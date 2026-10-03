@@ -1,0 +1,62 @@
+id: experiment-definition
+name: Experiment Definition
+version: 1.0.0
+category: discovery
+summary: Design an experiment that tests a hypothesis, with method, metrics, success threshold and a decision rule set in advance.
+purpose: >
+  Make learning reliable and decisions honest by fixing what is tested, how, and which result changes the
+  plan before the experiment runs. This avoids experiments that cannot fail or whose results get
+  reinterpreted after the fact.
+triggers: [design an experiment, experiment, a/b test, test this hypothesis, validate the idea, experiment plan, concevoir une expérimentation]
+inputs:
+  - name: hypothesis
+    description: The hypothesis or assumption to test
+    required: true
+    ask: true
+    question: Which hypothesis or assumption should the experiment test?
+  - name: constraints
+    description: Traffic, time, budget or technical limits
+expected_context:
+  orbit_intent: validation
+  query_hint: hypotheses, metrics and baselines, traffic and usage volumes, previous experiments, analytics setup
+  token_budget: 4000
+methodology:
+  name: Pre-registered product experiment
+  principles:
+    - Test the riskiest assumption with the cheapest experiment that can produce a reliable signal
+    - Fix the primary metric, guardrails, threshold and duration before starting
+    - Decide in advance what each possible result means for the roadmap
+    - "Respect users: informed consent, no dark patterns, reversible exposure"
+  references: ["Ron Kohavi, Diane Tang & Ya Xu — Trustworthy Online Controlled Experiments", David Bland & Alex Osterwalder — Testing Business Ideas]
+steps:
+  - id: hypothesis
+    title: Restating the hypothesis
+    instruction: >
+      Summarize what the team wants to learn and the decision it informs. Write 1–2 hypotheses with
+      we_believe, will_result_in, we_know_when and confidence, citing their origin.
+    fills: [summary, hypotheses]
+  - id: design
+    title: Designing the experiment
+    instruction: >
+      Define 1–2 experiments: method (A/B test, fake door, concierge, prototype test, survey…),
+      hypothesis_ref, metric, success_threshold, duration (from traffic in context when known, otherwise
+      state the assumption) and status planned. Describe audience, variants and sample in the description.
+    fills: [experiments]
+  - id: metrics
+    title: Defining metrics and risks
+    instruction: >
+      Define the primary metric (type success) and 1–3 guardrails (type guardrail) with definition, and
+      baseline only when known. List risks and ethical concerns (bias, novelty effect, user harm, data
+      privacy) with likelihood, impact and mitigation.
+    fills: [metrics, risks]
+  - id: decision_rule
+    title: Setting the decision rule
+    instruction: >
+      Write the decision rule: what the team does if the threshold is met, missed, or the result is
+      inconclusive (e.g. scale, iterate, stop), and who decides (role).
+    fills: [decision_rule]
+tools: [search_orbit]
+outputs:
+  artifact_type: experiment
+  mode: create
+composes_with: [experiment-analysis, product-metrics, hypothesis-generation]

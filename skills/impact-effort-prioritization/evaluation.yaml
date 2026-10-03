@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.method_rigor
+    question: Are buckets consistent with the impact and effort scores?
+    weight: 2
+  - key: quality.grounding
+    question: Are judgements justified with cited evidence or explicit assumptions?
+    weight: 1
+  - key: quality.actionability
+    question: Does the recommendation say what to do now, investigate, or drop?
+    weight: 2
+checks:
+  - type: sections_present
+    params: {sections: [Method & context, Ranked items, Recommendation]}
+    description: Method, ranked items and recommendation are present
+  - type: citation_required
+    params: {min: 1}
+    description: Estimates cite context when context was provided

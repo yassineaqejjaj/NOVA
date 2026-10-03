@@ -1,0 +1,138 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "One sentence describing what was produced"
+    },
+    "sections": {
+      "type": "object",
+      "properties": {
+        "stories": {
+          "type": "object",
+          "description": "Stories: list of story items. parent_id = epic item id",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "parent_id = epic item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "as_a": {
+                        "type": "string"
+                      },
+                      "i_want": {
+                        "type": "string"
+                      },
+                      "so_that": {
+                        "type": "string"
+                      },
+                      "acceptance_criteria": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "given": {
+                              "type": "string"
+                            },
+                            "when": {
+                              "type": "string"
+                            },
+                            "then": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "given",
+                            "when",
+                            "then"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": [
+                          "must",
+                          "should",
+                          "could",
+                          "wont"
+                        ]
+                      },
+                      "estimate": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "draft",
+                          "ready",
+                          "in_progress",
+                          "done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "as_a",
+                      "i_want"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "stories"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "summary",
+    "sections"
+  ],
+  "additionalProperties": false
+}

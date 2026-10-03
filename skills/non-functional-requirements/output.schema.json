@@ -1,0 +1,106 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "One sentence describing what was produced"
+    },
+    "sections": {
+      "type": "object",
+      "properties": {
+        "non_functional": {
+          "type": "object",
+          "description": "Non-functional requirements: list of requirement items.",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Parent item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "functional",
+                          "non_functional"
+                        ]
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": [
+                          "must",
+                          "should",
+                          "could",
+                          "wont"
+                        ]
+                      },
+                      "category": {
+                        "type": "string"
+                      },
+                      "acceptance": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "non_functional"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "summary",
+    "sections"
+  ],
+  "additionalProperties": false
+}

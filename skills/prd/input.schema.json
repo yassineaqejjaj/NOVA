@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Product Requirements Document — inputs",
+  "type": "object",
+  "properties": {
+    "idea": {
+      "type": "string",
+      "description": "The idea, feature or initiative to specify"
+    },
+    "target_users": {
+      "type": "string",
+      "description": "Who the product is for, if already known"
+    },
+    "constraints": {
+      "type": "string",
+      "description": "Known constraints (deadline, budget, technology, regulation)"
+    }
+  },
+  "required": [
+    "idea"
+  ],
+  "additionalProperties": false
+}

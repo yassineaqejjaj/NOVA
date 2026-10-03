@@ -1,0 +1,34 @@
+type: product_update
+name: Product Update
+description: Progress update
+icon: megaphone
+sections:
+- key: headline
+  title: Headline
+  kind: rich_text
+  description: ''
+- key: highlights
+  title: Highlights
+  kind: items
+  item_kind: note
+  description: ''
+- key: metrics
+  title: Key metrics
+  kind: items
+  item_kind: metric
+  description: ''
+- key: risks
+  title: Risks & blockers
+  kind: items
+  item_kind: risk
+  description: ''
+- key: asks
+  title: Asks
+  kind: items
+  item_kind: note
+  description: ''
+- key: next
+  title: Next
+  kind: items
+  item_kind: milestone
+  description: ''

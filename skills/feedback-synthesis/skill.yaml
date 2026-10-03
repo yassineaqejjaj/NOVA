@@ -1,0 +1,58 @@
+id: feedback-synthesis
+name: Feedback Synthesis
+version: 1.0.0
+category: analysis
+summary: Synthesize user feedback into themes with frequency and severity, representative quotes and product opportunities.
+purpose: >
+  Turn scattered feedback — interviews, tickets, reviews, surveys — into a few evidence-backed themes the
+  team can act on. Synthesis separates recurring patterns from loud anecdotes.
+triggers: [feedback synthesis, synthesize feedback, user feedback themes, what are users saying, analyse the feedback, affinity mapping, synthèse des retours]
+inputs:
+  - name: sources
+    description: The feedback sources or period to synthesize
+  - name: question
+    description: A specific question the synthesis should answer
+expected_context:
+  orbit_intent: research
+  query_hint: user feedback, interview notes, support tickets, reviews, survey responses, NPS comments, sales notes
+  token_budget: 6000
+  required: true
+methodology:
+  name: Thematic analysis (affinity mapping)
+  principles:
+    - Code feedback bottom-up into themes before interpreting
+    - Report how often a theme appears, and across which sources and segments
+    - Keep quotes faithful in meaning and anonymized
+    - Reframe themes as opportunities (needs), not feature requests
+  references: [Jiro Kawakita — KJ method (affinity diagram), Erika Hall — Just Enough Research, Teresa Torres — Continuous Discovery Habits]
+steps:
+  - id: corpus
+    title: Reviewing the feedback corpus
+    instruction: >
+      Summarize the sources, volume, period and segments covered (cited), then the 3 main takeaways as
+      bullets.
+    fills: [summary]
+  - id: themes
+    title: Clustering themes
+    instruction: >
+      Group feedback into 4–8 themes as insights: theme, evidence (sources and examples, cited), frequency
+      (a count or share when countable, otherwise the number of sources) and severity. Order themes by
+      frequency and severity.
+    fills: [themes]
+  - id: quotes
+    title: Selecting representative quotes
+    instruction: >
+      Select 1–2 quotes per major theme as insight items (theme = the theme title, parent_id = the theme
+      id), taken only from context and anonymized: no names, emails, company or account identifiers.
+    fills: [quotes]
+  - id: opportunities
+    title: Framing opportunities and next steps
+    instruction: >
+      Frame 3–5 opportunities (node_type opportunity, parent_id = the theme id) as user needs. List next
+      steps as note items: research to run, items to add to the backlog, people to inform.
+    fills: [opportunities, next_steps]
+tools: [search_orbit, retrieve_orbit_context]
+outputs:
+  artifact_type: feedback_synthesis
+  mode: create
+composes_with: [opportunity-solution-tree, persona, jobs-to-be-done, product-update]

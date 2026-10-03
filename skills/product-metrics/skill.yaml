@@ -1,0 +1,59 @@
+id: product-metrics
+name: Product Metrics Plan
+version: 1.0.0
+category: analysis
+summary: Define the metrics that show whether a product or feature succeeds, and the instrumentation needed to measure them.
+purpose: >
+  Decide upfront how success will be measured so the team can learn after launch. A metrics plan links goals
+  to precise metrics, events and data sources, and anticipates data quality issues.
+triggers: [product metrics, metrics plan, kpis, what should we measure, success metrics, tracking plan, instrumentation plan, plan de mesure]
+inputs:
+  - name: scope
+    description: The product or feature to measure, if not in context
+  - name: objective
+    description: The objective or outcome the metrics should reflect
+expected_context:
+  orbit_intent: analysis
+  query_hint: objectives, OKRs, north star metric, existing dashboards, analytics events, data sources, baselines
+  token_budget: 5000
+methodology:
+  name: Goals → Signals → Metrics (HEART)
+  principles:
+    - Start from goals, then the signals that show success, then the metrics
+    - Combine outcome metrics with leading input metrics and guardrails
+    - "Define each metric precisely: formula, population, time window, data source"
+    - Instrument before launch so that a baseline exists
+  references: ["Kerry Rodden, Hilary Hutchinson & Xin Fu — Measuring the User Experience on a Large Scale (Google HEART)", Alistair Croll & Benjamin Yoskovitz — Lean Analytics]
+steps:
+  - id: goals
+    title: Clarifying goals and signals
+    instruction: >
+      Summarize the scope, the goals being measured (cite the objectives or north star they come from) and,
+      for each goal, the user signals that would show success.
+    fills: [summary]
+  - id: metrics
+    title: Defining the metrics
+    instruction: >
+      Define 5–10 metrics with type (north_star, input, success, guardrail or health), a precise definition
+      (formula, population, time window), baseline only when known, target and timeframe when relevant, and
+      data_source when known.
+    fills: [metrics]
+  - id: instrumentation
+    title: Planning the instrumentation
+    instruction: >
+      Describe the instrumentation: tools, where events fire (client or server), identifiers, dashboards and
+      ownership, without personal data in event properties. List 5–15 events as note items titled with
+      snake_case event names; the description gives the trigger and properties; parent_id is the metric id
+      that uses it.
+    fills: [instrumentation, events]
+  - id: risks
+    title: Assessing data risks
+    instruction: >
+      List data risks (tracking gaps, sampling, bot traffic, definition drift, consent and privacy
+      constraints) with likelihood, impact and mitigation.
+    fills: [risks]
+tools: [search_orbit]
+outputs:
+  artifact_type: metrics_plan
+  mode: create
+composes_with: [experiment-definition, north-star-metric, product-update]

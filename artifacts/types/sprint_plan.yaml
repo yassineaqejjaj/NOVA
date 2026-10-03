@@ -1,0 +1,43 @@
+type: sprint_plan
+name: Sprint Plan
+description: Sprint proposal with goal, scope and capacity
+icon: calendar-range
+sections:
+- key: goal
+  title: Sprint goal
+  kind: rich_text
+  description: ''
+- key: capacity
+  title: Capacity
+  kind: rich_text
+  description: ''
+- key: carry_over
+  title: Unfinished work carried over
+  kind: items
+  item_kind: sprint_item
+  description: ''
+- key: committed
+  title: Committed scope
+  kind: items
+  item_kind: sprint_item
+  description: ''
+- key: stretch
+  title: Stretch scope
+  kind: items
+  item_kind: sprint_item
+  description: ''
+- key: dependencies
+  title: Dependencies
+  kind: items
+  item_kind: dependency
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: questions
+  title: Questions for planning
+  kind: items
+  item_kind: question
+  description: ''

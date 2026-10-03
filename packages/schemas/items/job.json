@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/job",
+  "title": "job",
+  "description": "Job to be done",
+  "type": "object",
+  "properties": {
+    "situation": {
+      "type": "string"
+    },
+    "motivation": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "functional",
+        "emotional",
+        "social"
+      ]
+    }
+  },
+  "required": [
+    "situation",
+    "motivation",
+    "outcome"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,27 @@
+type: prfaq
+name: PRFAQ
+description: Working-backwards press release and FAQ
+icon: newspaper
+sections:
+- key: headline
+  title: Headline
+  kind: rich_text
+  description: ''
+- key: press_release
+  title: Press release
+  kind: rich_text
+  description: ''
+- key: customer_quote
+  title: Customer quote
+  kind: rich_text
+  description: ''
+- key: external_faq
+  title: External FAQ
+  kind: items
+  item_kind: faq
+  description: ''
+- key: internal_faq
+  title: Internal FAQ
+  kind: items
+  item_kind: faq
+  description: ''

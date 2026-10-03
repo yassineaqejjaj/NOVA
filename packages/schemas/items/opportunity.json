@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/opportunity",
+  "title": "opportunity",
+  "description": "Node of an opportunity solution tree",
+  "type": "object",
+  "properties": {
+    "node_type": {
+      "type": "string",
+      "enum": [
+        "outcome",
+        "opportunity",
+        "solution",
+        "experiment"
+      ]
+    }
+  },
+  "required": [
+    "node_type"
+  ],
+  "additionalProperties": false
+}

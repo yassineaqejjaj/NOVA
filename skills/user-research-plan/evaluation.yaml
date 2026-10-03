@@ -1,0 +1,19 @@
+criteria:
+  - key: quality.decision_link
+    question: Is the plan clearly tied to a decision and learning goals?
+    weight: 2
+  - key: quality.method_fit
+    question: Is the method appropriate for the research questions?
+    weight: 2
+  - key: quality.feasibility
+    question: Are participants, timeline and biases realistic and explicit?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Research goal, Research questions, Method, Participants & recruiting]}
+    description: Core research plan sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Prior knowledge cites context when context was provided
+  - type: no_pii
+    description: No personal data about participants

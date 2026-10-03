@@ -1,0 +1,312 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "One sentence describing what was produced"
+    },
+    "sections": {
+      "type": "object",
+      "properties": {
+        "context": {
+          "type": "object",
+          "description": "Context.",
+          "properties": {
+            "blocks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "paragraph",
+                      "heading",
+                      "bullet",
+                      "numbered",
+                      "quote"
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  }
+                },
+                "required": [
+                  "type",
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "blocks"
+          ],
+          "additionalProperties": false
+        },
+        "options": {
+          "type": "object",
+          "description": "Options considered: list of note items.",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Parent item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "decision": {
+          "type": "object",
+          "description": "Decision: list of decision items.",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Parent item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "proposed",
+                          "accepted",
+                          "superseded",
+                          "rejected"
+                        ]
+                      },
+                      "alternatives": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "consequences": {
+                        "type": "string"
+                      },
+                      "decided_by": {
+                        "type": "string"
+                      },
+                      "date": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "consequences": {
+          "type": "object",
+          "description": "Consequences.",
+          "properties": {
+            "blocks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "paragraph",
+                      "heading",
+                      "bullet",
+                      "numbered",
+                      "quote"
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  }
+                },
+                "required": [
+                  "type",
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "blocks"
+          ],
+          "additionalProperties": false
+        },
+        "follow_ups": {
+          "type": "object",
+          "description": "Follow-ups: list of note items.",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Parent item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "context",
+        "options",
+        "decision",
+        "consequences",
+        "follow_ups"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "summary",
+    "sections"
+  ],
+  "additionalProperties": false
+}

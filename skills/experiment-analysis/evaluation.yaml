@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.grounding
+    question: Are all reported figures taken from cited results, with nothing invented?
+    weight: 3
+  - key: quality.rigor
+    question: Are uncertainty, validity threats and the pre-set decision rule addressed?
+    weight: 2
+  - key: quality.decision
+    question: Does the analysis end in a clear decision and next steps?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Setup, Results, Validity & limitations, Decision]}
+    description: Core experiment analysis sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Results cite their data source

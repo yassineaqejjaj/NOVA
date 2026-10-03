@@ -1,0 +1,19 @@
+criteria:
+  - key: quality.customer_focus
+    question: Is the press release written from the customer's perspective with a compelling, specific benefit?
+    weight: 2
+  - key: quality.hard_questions
+    question: Do internal FAQs address feasibility, economics and risks honestly?
+    weight: 2
+  - key: quality.clarity
+    question: Is the language plain and free of jargon?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Headline, Press release, External FAQ, Internal FAQ]}
+    description: Core PR/FAQ sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: FAQ answers cite context when context was provided
+  - type: no_pii
+    description: No personal data, including in the customer quote

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Problem Framing — inputs",
+  "type": "object",
+  "properties": {
+    "problem": {
+      "type": "string",
+      "description": "The problem or situation to frame"
+    },
+    "evidence": {
+      "type": "string",
+      "description": "Known data, feedback or observations about the problem"
+    }
+  },
+  "required": [
+    "problem"
+  ],
+  "additionalProperties": false
+}

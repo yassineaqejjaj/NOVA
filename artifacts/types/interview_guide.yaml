@@ -1,0 +1,33 @@
+type: interview_guide
+name: Interview Guide
+description: Script for discovery interviews
+icon: messages-square
+sections:
+- key: intro
+  title: Introduction & consent
+  kind: rich_text
+  description: ''
+- key: warm_up
+  title: Warm-up questions
+  kind: items
+  item_kind: question
+  description: ''
+- key: core
+  title: Core questions
+  kind: items
+  item_kind: question
+  description: ''
+- key: probes
+  title: Follow-up probes
+  kind: items
+  item_kind: question
+  description: ''
+- key: wrap_up
+  title: Wrap-up
+  kind: rich_text
+  description: ''
+- key: do_dont
+  title: Interviewer do's & don'ts
+  kind: items
+  item_kind: checklist_item
+  description: ''

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/scored_item",
+  "title": "scored_item",
+  "description": "Item scored by a prioritization method",
+  "type": "object",
+  "properties": {
+    "method": {
+      "type": "string",
+      "enum": [
+        "rice",
+        "moscow",
+        "wsjf",
+        "impact_effort",
+        "kano"
+      ]
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "number",
+          "string"
+        ]
+      }
+    },
+    "score": {
+      "type": [
+        "number",
+        "string"
+      ]
+    },
+    "rank": {
+      "type": "integer"
+    },
+    "bucket": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "method",
+    "score"
+  ],
+  "additionalProperties": false
+}

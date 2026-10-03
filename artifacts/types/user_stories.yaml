@@ -1,0 +1,24 @@
+type: user_stories
+name: User Stories
+description: User stories with acceptance criteria
+icon: list-checks
+sections:
+- key: summary
+  title: Context
+  kind: rich_text
+  description: ''
+- key: epics
+  title: Epics
+  kind: items
+  item_kind: epic
+  description: ''
+- key: stories
+  title: Stories
+  kind: items
+  item_kind: story
+  description: parent_id = epic item id
+- key: questions
+  title: Open questions
+  kind: items
+  item_kind: question
+  description: ''

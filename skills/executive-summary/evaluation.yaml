@@ -1,0 +1,20 @@
+criteria:
+  - key: quality.answer_first
+    question: Does the summary lead with the answer and support it with a few key points?
+    weight: 2
+  - key: quality.decision_ready
+    question: Are the decisions needed explicit, with options and consequences?
+    weight: 2
+  - key: quality.grounding
+    question: Are key points grounded in cited context?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Key points, Decisions needed, Recommendation]}
+    description: Core executive summary sections are present
+  - type: citation_required
+    params: {min: 2}
+    description: Key points cite context
+  - type: max_length
+    params: {words: 600}
+    description: The summary fits on one page

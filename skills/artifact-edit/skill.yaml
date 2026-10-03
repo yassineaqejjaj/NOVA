@@ -1,0 +1,34 @@
+id: artifact-edit
+name: Artifact Editing
+version: 1.0.0
+category: artifact
+summary: Update selected sections of an existing Artifact according to the user's request.
+purpose: >
+  Let the user change part of an Artifact conversationally ("rewrite the success metrics") without
+  regenerating the whole document.
+triggers: []
+inputs:
+  - name: instruction
+    description: What to change
+    required: true
+expected_context:
+  orbit_intent: general
+  token_budget: 3000
+methodology:
+  name: Minimal, targeted edit
+  principles:
+    - Change only what was requested
+    - Keep existing item ids so history and comments stay attached
+    - Preserve citations that still apply
+steps:
+  - id: edit
+    title: Updating the requested sections
+    instruction: >
+      Return the full new content of each requested section, applying the instruction. Keep the ids of
+      items you keep or modify; use new ids only for new items.
+    fills: [summary]
+tools: []
+outputs:
+  artifact_type: prd
+  mode: update
+system: true

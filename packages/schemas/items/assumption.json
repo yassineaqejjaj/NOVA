@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/assumption",
+  "title": "assumption",
+  "description": "Assumption to validate",
+  "type": "object",
+  "properties": {
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "validation": {
+      "type": "string"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

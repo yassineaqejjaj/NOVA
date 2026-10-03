@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.value_focus
+    question: Does the North Star capture value delivered to customers rather than vanity or revenue?
+    weight: 2
+  - key: quality.actionability
+    question: Do input metrics decompose the North Star into levers teams can move?
+    weight: 2
+  - key: quality.precision
+    question: Are metric definitions precise and guardrails relevant?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [North Star, North Star metric, Input metrics, Guardrail metrics]}
+    description: North Star, inputs and guardrails are present
+  - type: citation_required
+    params: {min: 1}
+    description: The value moment is grounded in cited context when context was provided

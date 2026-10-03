@@ -1,0 +1,32 @@
+type: root_cause_analysis
+name: Root Cause Analysis
+description: Why something happened and what to change
+icon: search-check
+sections:
+- key: problem
+  title: Problem
+  kind: rich_text
+  description: ''
+- key: timeline
+  title: Timeline
+  kind: rich_text
+  description: ''
+- key: causes
+  title: Causes
+  kind: items
+  item_kind: cause
+  description: ''
+- key: root_cause
+  title: Root cause
+  kind: rich_text
+  description: ''
+- key: actions
+  title: Corrective actions
+  kind: items
+  item_kind: note
+  description: ''
+- key: decisions
+  title: Decisions
+  kind: items
+  item_kind: decision
+  description: ''

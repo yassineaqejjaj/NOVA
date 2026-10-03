@@ -1,0 +1,52 @@
+id: user-story-generation
+name: User Story Generation
+version: 1.0.0
+category: definition
+summary: Write INVEST user stories with Given/When/Then acceptance criteria, grouped under epics.
+purpose: >
+  Turn a feature, epic or requirement into small, valuable, testable stories the team can estimate and
+  deliver. Stories keep the conversation about user value, while acceptance criteria make "done"
+  unambiguous.
+triggers: [user stories, write stories, generate stories, break this into stories, story writing, stories for this feature, rédiger des user stories]
+inputs:
+  - name: feature
+    description: The feature, epic or requirement to break down, if not in context
+  - name: users
+    description: The user roles involved
+expected_context:
+  orbit_intent: specification
+  query_hint: PRD, requirements, epics, personas, decisions, existing stories, business rules
+  token_budget: 5000
+methodology:
+  name: INVEST user stories with BDD acceptance criteria
+  principles:
+    - Stories are vertical slices delivering user-visible value (INVEST)
+    - As a / I want / so that names a real role and a real benefit
+    - Each story has 2–4 testable acceptance criteria in Given/When/Then form
+    - Split by workflow step, business rule or data variation rather than by technical layer
+  references: [Mike Cohn — User Stories Applied, Bill Wake — INVEST in Good Stories, Richard Lawrence — Patterns for Splitting User Stories, Dan North — Introducing BDD]
+steps:
+  - id: epics
+    title: Grouping the work into epics
+    instruction: >
+      Summarize the source and scope of the stories (cited). Define 1–4 epics with value, priority and
+      status draft, reusing the ids of epics already found in context.
+    fills: [summary, epics]
+  - id: stories
+    title: Writing user stories
+    instruction: >
+      Write 3–6 stories per epic: as_a (a specific role), i_want, so_that, priority must/should/could,
+      status draft, estimate only when given; parent_id is the epic id. Each story has 2–4
+      acceptance_criteria with given/when/then, covering the main path and at least one edge or error case.
+    fills: [stories]
+  - id: questions
+    title: Listing open questions
+    instruction: >
+      List the questions that block or shape the stories (business rules, edge cases, dependencies), with
+      owner role when obvious and status open.
+    fills: [questions]
+tools: [search_orbit]
+outputs:
+  artifact_type: user_stories
+  mode: create
+composes_with: [acceptance-criteria, story-mapping, backlog-refinement, rice-prioritization]

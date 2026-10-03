@@ -1,0 +1,153 @@
+@import "tailwindcss";
+@source "../../../../packages/ui/src";
+
+/* NOVA design tokens — warm light theme with a coral accent (default), dark variant via `.dark`. */
+:root {
+  --background: #faf8f7;
+  --surface: #ffffff;
+  --surface-2: #f6f2f1;
+  --surface-3: #efe9e7;
+  --border: rgb(30 20 18 / 0.07);
+  --border-strong: rgb(30 20 18 / 0.12);
+  --text: #191716;
+  --text-muted: #5f5856;
+  --text-subtle: #9a918e;
+  --accent: #f0463c;
+  --accent-strong: #dc3328;
+  --accent-soft: #fdeceb;
+  --accent-fg: #ffffff;
+  --glow: rgb(244 114 140 / 0.35);
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --shadow: 0 1px 2px rgb(30 20 18 / 0.04), 0 10px 30px -12px rgb(30 20 18 / 0.12);
+  color-scheme: light;
+}
+
+:root.dark {
+  --background: #0d0c0d;
+  --surface: #151314;
+  --surface-2: #1b1819;
+  --surface-3: #231f20;
+  --border: rgb(255 255 255 / 0.07);
+  --border-strong: rgb(255 255 255 / 0.12);
+  --text: #f1eeed;
+  --text-muted: #aaa3a1;
+  --text-subtle: #736c6a;
+  --accent: #ff5a4f;
+  --accent-strong: #ff7369;
+  --accent-soft: rgb(255 90 79 / 0.14);
+  --accent-fg: #ffffff;
+  --glow: rgb(244 114 140 / 0.25);
+  --success: oklch(0.76 0.13 155);
+  --warning: oklch(0.8 0.13 75);
+  --danger: oklch(0.68 0.17 25);
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 12px 32px -12px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-glow: var(--glow);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-panel: var(--shadow);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--text);
+}
+
+body {
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+* {
+  border-color: var(--border);
+}
+
+/* Subtle scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* Lexical editor content */
+.nova-editor p {
+  margin: 0.35rem 0;
+}
+.nova-editor h3 {
+  font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
+}
+.nova-editor ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.nova-editor ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+.nova-editor blockquote {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 0.75rem;
+  color: var(--text-muted);
+}
+
+.prose-nova p {
+  margin: 0.4rem 0;
+}
+.prose-nova ul {
+  list-style: disc;
+  padding-left: 1.2rem;
+  margin: 0.4rem 0;
+}
+.prose-nova ol {
+  list-style: decimal;
+  padding-left: 1.2rem;
+}
+.prose-nova strong {
+  font-weight: 600;
+  color: var(--text);
+}
+.prose-nova code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--surface-3);
+  padding: 0.1rem 0.3rem;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.specificity
+    question: Are risks specific cause-and-consequence statements?
+    weight: 2
+  - key: quality.coverage
+    question: Do risks cover value, usability, feasibility, viability and delivery as relevant?
+    weight: 1
+  - key: quality.mitigation
+    question: Do significant risks have concrete mitigations and owners?
+    weight: 2
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Risks, Actions]}
+    description: Summary, risks and actions are present
+  - type: citation_required
+    params: {min: 1}
+    description: Risks cite context when context was provided

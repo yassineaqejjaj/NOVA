@@ -1,0 +1,52 @@
+id: functional-requirements
+name: Functional Requirements
+version: 1.0.0
+category: definition
+summary: Specify what the system must do as prioritized, testable functional requirements, with constraints, assumptions and open questions.
+purpose: >
+  Give engineering and QA an unambiguous list of required behaviours, traceable to user needs and decisions.
+  Explicit constraints, assumptions and questions prevent hidden scope and late surprises.
+triggers: [functional requirements, functional specification, specify the features, system requirements, what the system must do, spécifications fonctionnelles]
+inputs:
+  - name: feature
+    description: The feature or scope to specify, if not in context
+  - name: users
+    description: The user roles involved
+  - name: constraints
+    description: Known constraints (technology, regulation, integrations, deadline)
+expected_context:
+  orbit_intent: specification
+  query_hint: PRD, user stories, decisions, business rules, existing system behaviour, integrations, regulations
+  token_budget: 5000
+methodology:
+  name: Testable functional requirements
+  principles:
+    - Each requirement states one observable behaviour ("The system shall…")
+    - Requirements describe what, not how
+    - Every requirement is prioritized (MoSCoW) and has an acceptance statement
+    - Requirements trace to user needs, stories or decisions
+  references: [Karl Wiegers & Joy Beatty — Software Requirements, ISO/IEC/IEEE 29148 — Requirements engineering]
+steps:
+  - id: context
+    title: Summarizing the context
+    instruction: >
+      Summarize the scope, the users and the sources the requirements derive from, citing them.
+    fills: [summary]
+  - id: functional
+    title: Writing functional requirements
+    instruction: >
+      Write 8–20 requirements of type functional: title "The system shall …" stating a single behaviour;
+      category = feature area; priority must/should/could/wont; acceptance = how it will be verified. Use
+      consistent ids per area (req-export-1, req-export-2).
+    fills: [functional]
+  - id: bounds
+    title: Recording constraints, assumptions and questions
+    instruction: >
+      List the constraints (technical, regulatory, business) that bound the solution, the assumptions with
+      confidence and validation, and the open questions with owner role and status open.
+    fills: [constraints, assumptions, questions]
+tools: [search_orbit]
+outputs:
+  artifact_type: requirements
+  mode: create
+composes_with: [non-functional-requirements, user-story-generation, acceptance-criteria, moscow-prioritization]

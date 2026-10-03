@@ -1,0 +1,43 @@
+type: initiative
+name: Initiative Brief
+description: A scoped initiative with its expected impact
+icon: rocket
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: problem
+  title: Problem
+  kind: rich_text
+  description: ''
+- key: objectives
+  title: Objectives served
+  kind: items
+  item_kind: objective
+  description: ''
+- key: scope
+  title: Scope
+  kind: items
+  item_kind: note
+  description: ''
+- key: metrics
+  title: Success metrics
+  kind: items
+  item_kind: metric
+  description: ''
+- key: dependencies
+  title: Dependencies
+  kind: items
+  item_kind: dependency
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: milestones
+  title: Milestones
+  kind: items
+  item_kind: milestone
+  description: ''

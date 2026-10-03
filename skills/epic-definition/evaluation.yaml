@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.value
+    question: Does the epic state clear user value and a measurable outcome?
+    weight: 2
+  - key: quality.boundaries
+    question: Are in-scope and out-of-scope boundaries explicit?
+    weight: 1
+  - key: quality.story_quality
+    question: Are candidate stories vertical slices linked to the epic?
+    weight: 2
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Problem & value, Epic, In scope, Out of scope, Candidate stories]}
+    description: Core epic sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: The epic is grounded in cited context when context was provided

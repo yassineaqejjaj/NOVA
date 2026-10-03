@@ -1,0 +1,57 @@
+id: stakeholder-brief
+name: Stakeholder Brief
+version: 1.0.0
+category: communication
+summary: Tailor what each stakeholder needs to know about a project or change, with key messages, asks and a communication timeline.
+purpose: >
+  Bring the right people along before a launch, change or decision. Mapping stakeholders by interest and
+  influence ensures each gets the right message at the right time, and nobody is surprised.
+triggers: [stakeholder brief, stakeholder map, brief the stakeholders, communication plan, who needs to know, stakeholder communication, note aux parties prenantes]
+inputs:
+  - name: topic
+    description: The project, launch, change or decision to communicate
+  - name: stakeholders
+    description: Known stakeholder groups or roles
+expected_context:
+  orbit_intent: general
+  query_hint: project scope, decisions, timeline, impacted teams, organization, risks, previous communications
+  token_budget: 5000
+methodology:
+  name: Stakeholder mapping (power / interest)
+  principles:
+    - Map stakeholders by interest and influence to decide how to engage each
+    - "One message per audience, in their terms: what changes for them and what we need"
+    - Asks are explicit decisions or contributions with a deadline
+    - Plan communication over time, not as a one-off
+  references: [Aubrey Mendelow — Power/Interest grid, PMI — PMBOK Guide]
+steps:
+  - id: context
+    title: Summarizing the topic
+    instruction: >
+      Summarize in 3–4 sentences what is happening, why, and when, citing context.
+    fills: [summary]
+  - id: mapping
+    title: Mapping the stakeholders
+    instruction: >
+      List 4–10 stakeholders by role or group (personal names only when found in context): role, interest
+      (what they care about), influence low/medium/high, and communication (channel, frequency and
+      engagement mode: manage closely, keep satisfied, keep informed or monitor).
+    fills: [stakeholders]
+  - id: messages
+    title: Crafting key messages and asks
+    instruction: >
+      Write 3–6 key messages as note items (parent_id = the stakeholder id when the message targets one
+      audience). List the asks as decision items: status proposed, decided_by role, date only when a
+      deadline is found in context.
+    fills: [messages, asks]
+  - id: timeline
+    title: Planning the communication timeline
+    instruction: >
+      Propose 3–6 communication milestones (briefings, announcements, follow-ups) with deliverables and
+      status planned; dates only when known.
+    fills: [timeline]
+tools: [search_orbit]
+outputs:
+  artifact_type: stakeholder_brief
+  mode: create
+composes_with: [executive-summary, product-update, decision-record]

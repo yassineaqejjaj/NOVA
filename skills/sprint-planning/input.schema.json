@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sprint Planning — inputs",
+  "type": "object",
+  "properties": {
+    "sprint": {
+      "type": "string",
+      "description": "Sprint name or number (e.g. Sprint 19)"
+    },
+    "capacity": {
+      "type": "string",
+      "description": "Team capacity if known (points or person-days)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

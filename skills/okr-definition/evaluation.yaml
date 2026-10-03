@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.outcome_focus
+    question: Are key results measurable outcomes rather than tasks or outputs?
+    weight: 2
+  - key: quality.focus
+    question: Are there few objectives, clearly aligned with higher-level priorities?
+    weight: 2
+  - key: quality.grounding
+    question: Are baselines and alignments grounded in cited context, with nothing invented?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Objectives, Key results]}
+    description: Objectives and key results are present
+  - type: citation_required
+    params: {min: 1}
+    description: Alignment or baselines cite context when context was provided

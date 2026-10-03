@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Experiment Definition — inputs",
+  "type": "object",
+  "properties": {
+    "hypothesis": {
+      "type": "string",
+      "description": "The hypothesis or assumption to test"
+    },
+    "constraints": {
+      "type": "string",
+      "description": "Traffic, time, budget or technical limits"
+    }
+  },
+  "required": [
+    "hypothesis"
+  ],
+  "additionalProperties": false
+}

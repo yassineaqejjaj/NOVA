@@ -1,0 +1,475 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "One sentence describing what was produced"
+    },
+    "sections": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "object",
+          "description": "Who they are.",
+          "properties": {
+            "blocks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "paragraph",
+                      "heading",
+                      "bullet",
+                      "numbered",
+                      "quote"
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  }
+                },
+                "required": [
+                  "type",
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "blocks"
+          ],
+          "additionalProperties": false
+        },
+        "goals": {
+          "type": "object",
+          "description": "Goals: list of persona_attribute items.",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Parent item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "goal",
+                          "frustration",
+                          "behavior",
+                          "context",
+                          "quote",
+                          "need"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "category"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "needs": {
+          "type": "object",
+          "description": "Needs: list of persona_attribute items.",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Parent item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "goal",
+                          "frustration",
+                          "behavior",
+                          "context",
+                          "quote",
+                          "need"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "category"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "frustrations": {
+          "type": "object",
+          "description": "Frustrations: list of persona_attribute items.",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Parent item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "goal",
+                          "frustration",
+                          "behavior",
+                          "context",
+                          "quote",
+                          "need"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "category"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "behaviors": {
+          "type": "object",
+          "description": "Behaviors: list of persona_attribute items.",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Parent item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "goal",
+                          "frustration",
+                          "behavior",
+                          "context",
+                          "quote",
+                          "need"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "category"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "quotes": {
+          "type": "object",
+          "description": "Representative quotes: list of persona_attribute items.",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Short stable id, e.g. story-3 (keep existing ids)"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Parent item id"
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "description": "Why this item exists (one sentence)"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "goal",
+                          "frustration",
+                          "behavior",
+                          "context",
+                          "quote",
+                          "need"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "category"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "attributes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "object",
+          "description": "Evidence base.",
+          "properties": {
+            "blocks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "paragraph",
+                      "heading",
+                      "bullet",
+                      "numbered",
+                      "quote"
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "citations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Context labels such as S1"
+                  }
+                },
+                "required": [
+                  "type",
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "blocks"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "summary",
+        "goals",
+        "needs",
+        "frustrations",
+        "behaviors",
+        "quotes",
+        "evidence"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "summary",
+    "sections"
+  ],
+  "additionalProperties": false
+}

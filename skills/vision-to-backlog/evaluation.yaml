@@ -1,0 +1,15 @@
+criteria:
+  - key: quality.traceability
+    question: Does every story trace to an epic, initiative and objective?
+    weight: 2
+  - key: quality.story_quality
+    question: Are stories vertical slices with testable Given/When/Then acceptance criteria?
+    weight: 2
+  - key: quality.grounding
+    question: Are objectives and initiatives grounded in the cited vision?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Objectives, Initiatives, Epics, User stories]}
+  - type: citation_required
+    params: {min: 1}

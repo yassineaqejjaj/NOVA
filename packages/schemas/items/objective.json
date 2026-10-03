@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/objective",
+  "title": "objective",
+  "description": "Outcome the product aims for",
+  "type": "object",
+  "properties": {
+    "timeframe": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

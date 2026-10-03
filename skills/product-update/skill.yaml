@@ -1,0 +1,58 @@
+id: product-update
+name: Product Update
+version: 1.0.0
+category: communication
+summary: "Write a concise progress update: headline status, highlights, key metrics, risks and blockers, asks and what comes next."
+purpose: >
+  Keep stakeholders informed with a predictable, honest update that takes two minutes to read. Leading with
+  outcomes and explicit asks turns status reporting into alignment.
+triggers: [product update, status update, weekly update, monthly update, progress report, update for stakeholders, point d'avancement]
+inputs:
+  - name: period
+    description: The period covered (e.g. last two weeks)
+  - name: audience
+    description: Who will read the update (team, leadership, customers)
+expected_context:
+  orbit_intent: general
+  query_hint: recent progress, releases, sprint reviews, metrics, objectives, risks, blockers, decisions, roadmap
+  token_budget: 6000
+  required: true
+methodology:
+  name: Outcome-first status update
+  principles:
+    - Lead with the most important news in one line (bottom line up front)
+    - Report outcomes and metrics against objectives, not activity
+    - "Be candid about risks and slips: no surprises"
+    - End with explicit asks and next steps
+  references: [Barbara Minto — The Pyramid Principle]
+steps:
+  - id: headline
+    title: Writing the headline
+    instruction: >
+      Write the headline in 1–2 sentences: overall status (on track, at risk or off track) and the most
+      important news of the period.
+    fills: [headline]
+  - id: highlights
+    title: Selecting highlights and metrics
+    instruction: >
+      List 3–6 highlights (shipped, learned, decided), each cited. Report 2–5 key metrics with definition,
+      baseline and target when known, and the current value and trend in the description — only figures
+      found in context.
+    fills: [highlights, metrics]
+  - id: risks
+    title: Flagging risks and asks
+    instruction: >
+      List risks and blockers with likelihood, impact and mitigation. Write 1–3 specific asks (a decision,
+      help or resource), saying from whom (role) and by when if known.
+    fills: [risks, asks]
+  - id: next
+    title: Outlining what comes next
+    instruction: >
+      List 2–5 milestones for the next period with deliverables and status planned or at_risk; dates only
+      when found in context.
+    fills: [next]
+tools: [search_orbit, retrieve_orbit_context, list_artifacts]
+outputs:
+  artifact_type: product_update
+  mode: create
+composes_with: [executive-summary, stakeholder-brief, release-notes]

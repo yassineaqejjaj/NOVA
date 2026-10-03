@@ -1,0 +1,54 @@
+id: opportunity-solution-tree
+name: Opportunity Solution Tree
+version: 1.0.0
+category: discovery
+summary: Map a desired outcome to customer opportunities, candidate solutions and the experiments that test them.
+purpose: >
+  Structure discovery around one outcome so the team compares options instead of committing to the first
+  idea. The tree makes visible which opportunity each solution addresses and which assumptions need testing.
+triggers: [opportunity solution tree, ost, opportunity tree, map opportunities, discovery tree, from outcome to solutions, arbre d'opportunités]
+inputs:
+  - name: outcome
+    description: The product outcome to drive, ideally a metric
+  - name: research
+    description: Research insights to draw opportunities from, if not in context
+expected_context:
+  orbit_intent: research
+  query_hint: product objectives, OKRs, metrics, user research insights, feedback themes, previous experiments
+  token_budget: 5000
+methodology:
+  name: Opportunity Solution Tree (Continuous Discovery)
+  principles:
+    - Start from a single measurable product outcome the team can influence
+    - Opportunities are customer needs, pain points or desires found in research, not solutions in disguise
+    - Compare at least three solutions for the target opportunity
+    - Test the riskiest assumptions behind solutions with small experiments
+  references: [Teresa Torres — Continuous Discovery Habits]
+steps:
+  - id: outcome
+    title: Defining the desired outcome
+    instruction: >
+      State one desired product outcome (ideally a metric with direction and timeframe) and why it matters,
+      citing the objective or key result it comes from.
+    fills: [outcome]
+  - id: tree
+    title: Building the opportunity tree
+    instruction: >
+      Create 3–5 opportunities (node_type opportunity, parent_id null, or a parent opportunity for
+      sub-opportunities) grounded in research. For the 1–2 target opportunities, add 3 solutions each
+      (node_type solution, parent_id = opportunity id) and 1–2 experiments per solution (node_type
+      experiment, parent_id = solution id). The rationale of a target opportunity explains why it was
+      chosen.
+    fills: [nodes]
+  - id: assumptions
+    title: Identifying the riskiest assumptions
+    instruction: >
+      List 3–6 riskiest assumptions behind the candidate solutions across desirability, viability,
+      feasibility and usability, with confidence and validation (the experiment that tests it); parent_id is
+      the solution id.
+    fills: [assumptions]
+tools: [search_orbit]
+outputs:
+  artifact_type: opportunity_tree
+  mode: create
+composes_with: [hypothesis-generation, experiment-definition, rice-prioritization]

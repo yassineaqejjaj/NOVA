@@ -1,0 +1,15 @@
+criteria:
+  - key: quality.goal_alignment
+    question: Do committed items serve the sprint goal?
+    weight: 2
+  - key: quality.realism
+    question: Is committed scope consistent with capacity and carried-over work?
+    weight: 2
+  - key: quality.grounding
+    question: Are stories taken from the actual backlog in context (no invented items)?
+    weight: 2
+checks:
+  - type: sections_present
+    params: {sections: [Sprint goal, Committed scope]}
+  - type: citation_required
+    params: {min: 1}

@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.structure
+    question: Is the tree well formed (outcome → opportunities → solutions → experiments)?
+    weight: 2
+  - key: quality.opportunity_framing
+    question: Are opportunities customer needs grounded in research rather than solutions?
+    weight: 2
+  - key: quality.divergence
+    question: Are several distinct solutions compared for the target opportunity?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Desired outcome, Tree, Riskiest assumptions]}
+    description: Outcome, tree and assumptions are present
+  - type: citation_required
+    params: {min: 1}
+    description: Opportunities cite research when context was provided

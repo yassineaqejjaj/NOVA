@@ -1,0 +1,19 @@
+type: product_principles
+name: Product Principles
+description: Principles that guide product decisions
+icon: scale
+sections:
+- key: summary
+  title: Purpose
+  kind: rich_text
+  description: ''
+- key: principles
+  title: Principles
+  kind: items
+  item_kind: note
+  description: ''
+- key: examples
+  title: Decisions they would settle
+  kind: items
+  item_kind: decision
+  description: ''

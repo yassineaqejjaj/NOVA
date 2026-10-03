@@ -1,0 +1,63 @@
+id: initiative-definition
+name: Initiative Definition
+version: 1.0.0
+category: strategy
+summary: "Scope an initiative: the problem it addresses, the objectives it serves, success metrics, milestones, dependencies and risks."
+purpose: >
+  Make a bet explicit before resources are committed. A well-defined initiative states why it matters, how
+  success will be measured and what it depends on, so it can be prioritized and tracked honestly.
+triggers: [define an initiative, initiative brief, scope this initiative, new initiative, frame this bet, initiative, cadrer une initiative]
+inputs:
+  - name: initiative
+    description: The initiative to define
+    required: true
+    ask: true
+    question: Which initiative should I define — what is it, and which outcome should it move?
+  - name: objective
+    description: The objective or OKR it serves, if known
+  - name: constraints
+    description: Known constraints (deadline, budget, team, technology)
+expected_context:
+  orbit_intent: specification
+  query_hint: strategy, objectives, OKRs, related initiatives, decisions, team capacity, dependencies
+  token_budget: 5000
+methodology:
+  name: Outcome-based initiative brief
+  principles:
+    - Every initiative serves an explicit objective and states its expected impact
+    - Scope is described as capabilities and boundaries, not tasks
+    - Milestones are value or learning checkpoints, not only dates
+    - Dependencies and risks are surfaced before commitment
+  references: [Marty Cagan — Inspired, Melissa Perri — Escaping the Build Trap]
+steps:
+  - id: framing
+    title: Framing the problem
+    instruction: >
+      Write the summary in 2–3 sentences (what, for whom, expected impact) and the problem: who is affected,
+      the evidence and the cost of inaction, citing context.
+    fills: [summary, problem]
+  - id: outcomes
+    title: Linking objectives and success metrics
+    instruction: >
+      List the 1–3 objectives the initiative serves (cite them when they exist in context; timeframe when
+      known) and 2–4 success metrics (type success or guardrail) with definition, baseline when known,
+      target and timeframe.
+    fills: [objectives, metrics]
+  - id: scope
+    title: Defining the scope
+    instruction: >
+      List 3–7 capabilities the initiative will deliver. Add exclusions as items titled "Out of scope: …"
+      when they prevent likely misunderstandings, each with a rationale.
+    fills: [scope]
+  - id: plan
+    title: Planning milestones, dependencies and risks
+    instruction: >
+      Propose 3–5 milestones (status planned, deliverables listed, date only when given in context). List
+      dependencies (depends_on, type team/system/vendor/decision/data, status) and risks with likelihood,
+      impact and mitigation.
+    fills: [milestones, dependencies, risks]
+tools: [search_orbit, list_artifacts]
+outputs:
+  artifact_type: initiative
+  mode: create
+composes_with: [epic-definition, rice-prioritization, risk-analysis, release-planning]

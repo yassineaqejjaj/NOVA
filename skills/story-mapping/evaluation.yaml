@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.narrative
+    question: Does the backbone follow the user's narrative with activity-level steps?
+    weight: 2
+  - key: quality.slicing
+    question: Is each release slice end to end, with a minimal first slice?
+    weight: 2
+  - key: quality.traceability
+    question: Is every story linked to an activity?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Narrative, Activities (backbone), Stories, Release slices]}
+    description: Core story map sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: The map is grounded in cited context when context was provided

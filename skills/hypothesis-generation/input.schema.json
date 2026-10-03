@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hypothesis Generation — inputs",
+  "type": "object",
+  "properties": {
+    "idea": {
+      "type": "string",
+      "description": "The idea, solution or initiative to examine"
+    },
+    "outcome": {
+      "type": "string",
+      "description": "The outcome the idea should influence"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

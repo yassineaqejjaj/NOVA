@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/story",
+  "title": "story",
+  "description": "User story",
+  "type": "object",
+  "properties": {
+    "as_a": {
+      "type": "string"
+    },
+    "i_want": {
+      "type": "string"
+    },
+    "so_that": {
+      "type": "string"
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "given": {
+            "type": "string"
+          },
+          "when": {
+            "type": "string"
+          },
+          "then": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "given",
+          "when",
+          "then"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "must",
+        "should",
+        "could",
+        "wont"
+      ]
+    },
+    "estimate": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "ready",
+        "in_progress",
+        "done"
+      ]
+    }
+  },
+  "required": [
+    "as_a",
+    "i_want"
+  ],
+  "additionalProperties": false
+}

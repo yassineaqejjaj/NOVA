@@ -1,0 +1,50 @@
+id: dependency-analysis
+name: Dependency Analysis
+version: 1.0.0
+category: delivery
+summary: Map the dependencies of a plan, identify the critical path and define actions to unblock them.
+purpose: >
+  Expose what the team depends on — other teams, systems, vendors, decisions or data — before it blocks
+  delivery. Knowing the critical path shows where delays cost the most.
+triggers: [dependency analysis, dependencies, what are we blocked by, critical path, cross-team dependencies, map the dependencies, analyse des dépendances]
+inputs:
+  - name: scope
+    description: The plan, release, epic or sprint to analyse, if not obvious from context
+expected_context:
+  orbit_intent: engineering
+  query_hint: roadmap, epics, stories, architecture, other teams' plans, vendors, pending decisions, blockers
+  token_budget: 5000
+methodology:
+  name: Dependency mapping and critical path
+  principles:
+    - Name both sides of each dependency and an owner
+    - "Classify dependencies by type: team, system, vendor, decision, data"
+    - The critical path is the longest chain of dependent work; protect it first
+    - Every open dependency gets an action, a due date or an escalation
+  references: [James Kelley & Morgan Walker — Critical Path Method (1959), Eliyahu Goldratt — Critical Chain, Donald Reinertsen — The Principles of Product Development Flow]
+steps:
+  - id: inventory
+    title: Inventorying dependencies
+    instruction: >
+      Summarize the scope analysed and the overall exposure. List 4–15 dependencies: title (what is needed),
+      depends_on (the team, system, vendor, decision or data providing it), type, status
+      open/resolved/blocked, due only when known; parent_id is the epic or story id it blocks when relevant.
+    fills: [summary, dependencies]
+  - id: critical_path
+    title: Tracing the critical path
+    instruction: >
+      Describe the chain of dependent work that determines the earliest completion, where slack exists, and
+      which dependency would delay the plan most if it slipped.
+    fills: [critical_path]
+  - id: mitigation
+    title: Assessing risks and actions
+    instruction: >
+      List the risks created by dependencies (likelihood, impact, mitigation, owner role). List actions as
+      note items with parent_id = the dependency id; the description gives the owner role, the expected date
+      when known and the escalation path.
+    fills: [risks, actions]
+tools: [search_orbit, retrieve_orbit_context, list_artifacts]
+outputs:
+  artifact_type: dependency_analysis
+  mode: create
+composes_with: [risk-analysis, release-planning, stakeholder-brief]

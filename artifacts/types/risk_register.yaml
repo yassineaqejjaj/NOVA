@@ -1,0 +1,24 @@
+type: risk_register
+name: Risk Register
+description: Risks with likelihood, impact and mitigation
+icon: shield-alert
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: assumptions
+  title: Assumptions
+  kind: items
+  item_kind: assumption
+  description: ''
+- key: actions
+  title: Actions
+  kind: items
+  item_kind: note
+  description: ''

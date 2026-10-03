@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.user_perspective
+    question: Is the journey told from the user's perspective, end to end?
+    weight: 2
+  - key: quality.evidence
+    question: Are pain points and emotions grounded in cited evidence?
+    weight: 2
+  - key: quality.opportunities
+    question: Do opportunities target the most painful moments without prescribing solutions?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Scenario, Persona & goal, Journey steps, Opportunities]}
+    description: Core journey map sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Pain points cite evidence when context was provided

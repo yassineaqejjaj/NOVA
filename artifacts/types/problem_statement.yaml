@@ -1,0 +1,46 @@
+type: problem_statement
+name: Problem Framing
+description: A well-framed problem before any solution
+icon: crosshair
+sections:
+- key: problem
+  title: Problem statement
+  kind: rich_text
+  description: ''
+- key: who
+  title: Who is affected
+  kind: rich_text
+  description: ''
+- key: evidence
+  title: Evidence
+  kind: items
+  item_kind: insight
+  description: ''
+- key: impact
+  title: Impact & cost of inaction
+  kind: rich_text
+  description: ''
+- key: root_causes
+  title: Suspected causes
+  kind: items
+  item_kind: cause
+  description: ''
+- key: constraints
+  title: Constraints
+  kind: items
+  item_kind: note
+  description: ''
+- key: assumptions
+  title: Assumptions
+  kind: items
+  item_kind: assumption
+  description: ''
+- key: questions
+  title: Open questions
+  kind: items
+  item_kind: question
+  description: ''
+- key: success
+  title: What success looks like
+  kind: rich_text
+  description: ''

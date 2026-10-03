@@ -1,0 +1,29 @@
+type: feedback_synthesis
+name: Feedback Synthesis
+description: Themes from user feedback
+icon: messages-square
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: themes
+  title: Themes
+  kind: items
+  item_kind: insight
+  description: ''
+- key: opportunities
+  title: Opportunities
+  kind: items
+  item_kind: opportunity
+  description: ''
+- key: quotes
+  title: Representative quotes
+  kind: items
+  item_kind: insight
+  description: ''
+- key: next_steps
+  title: Next steps
+  kind: items
+  item_kind: note
+  description: ''

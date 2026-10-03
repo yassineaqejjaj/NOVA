@@ -1,0 +1,28 @@
+type: decision_record
+name: Decision Record
+description: Context, options and decision
+icon: gavel
+sections:
+- key: context
+  title: Context
+  kind: rich_text
+  description: ''
+- key: options
+  title: Options considered
+  kind: items
+  item_kind: note
+  description: ''
+- key: decision
+  title: Decision
+  kind: items
+  item_kind: decision
+  description: ''
+- key: consequences
+  title: Consequences
+  kind: rich_text
+  description: ''
+- key: follow_ups
+  title: Follow-ups
+  kind: items
+  item_kind: note
+  description: ''

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Interview Guide — inputs",
+  "type": "object",
+  "properties": {
+    "research_goal": {
+      "type": "string",
+      "description": "What the interviews should help learn"
+    },
+    "participant_profile": {
+      "type": "string",
+      "description": "Who will be interviewed (role, segment, behaviour)"
+    },
+    "duration": {
+      "type": "string",
+      "description": "Session length (e.g. 45 minutes)"
+    }
+  },
+  "required": [
+    "research_goal"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Executive Summary — inputs",
+  "type": "object",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "The topic, document or project to summarize"
+    },
+    "audience": {
+      "type": "string",
+      "description": "The leadership audience (e.g. executive committee, board)"
+    },
+    "decision": {
+      "type": "string",
+      "description": "The decision expected from the audience, if any"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

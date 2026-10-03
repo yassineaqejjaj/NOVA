@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Product Principles — inputs",
+  "type": "object",
+  "properties": {
+    "product": {
+      "type": "string",
+      "description": "The product or product area, if not obvious from context"
+    },
+    "tensions": {
+      "type": "string",
+      "description": "Recurring debates or trade-offs the team struggles with"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

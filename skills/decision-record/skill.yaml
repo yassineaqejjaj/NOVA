@@ -1,0 +1,62 @@
+id: decision-record
+name: Decision Record
+version: 1.0.0
+category: communication
+summary: "Document a product or technical decision: the context, the options considered, the decision and its consequences."
+purpose: >
+  Keep a durable trace of why a decision was made, so the team does not relitigate it and newcomers
+  understand the trade-offs. A decision record is short, factual and written when the decision is taken.
+triggers: [decision record, adr, document the decision, record this decision, why did we decide, architecture decision record, consigner une décision]
+inputs:
+  - name: decision
+    description: The decision to record
+    required: true
+    ask: true
+    question: Which decision should I record — what was decided (or needs deciding), and why now?
+  - name: options
+    description: The options considered, if known
+  - name: decided_by
+    description: Who decides (role or forum)
+expected_context:
+  orbit_intent: general
+  query_hint: decisions, discussions, meeting notes, constraints, related specifications, previous decisions
+  token_budget: 4000
+methodology:
+  name: Decision record (ADR)
+  principles:
+    - One record per decision, written in plain language
+    - Describe the forces at play before the options
+    - Compare at least two real options with their pros and cons
+    - Record consequences, positive and negative, and what would make us revisit
+  references: [Michael Nygard — Documenting Architecture Decisions, MADR — Markdown Architectural Decision Records]
+steps:
+  - id: context
+    title: Describing the context
+    instruction: >
+      Describe the problem, the forces at play (goals, constraints, deadlines) and why the decision is
+      needed now, citing context.
+    fills: [context]
+  - id: options
+    title: Comparing the options
+    instruction: >
+      List 2–4 options as note items, including "do nothing" when relevant; the description gives pros and
+      cons, and the rationale the main argument.
+    fills: [options]
+  - id: decision
+    title: Recording the decision
+    instruction: >
+      Write one decision item: title = the choice; status accepted only when context shows the decision was
+      taken, otherwise proposed; alternatives = the other option titles; consequences; decided_by (role or
+      forum from context); date only from context.
+    fills: [decision]
+  - id: consequences
+    title: Stating consequences and follow-ups
+    instruction: >
+      Describe the consequences — positive, negative, and the signals that would trigger a revisit. List
+      follow-ups as note items: actions created, documents to update, people to inform.
+    fills: [consequences, follow_ups]
+tools: [search_orbit]
+outputs:
+  artifact_type: decision_record
+  mode: create
+composes_with: [stakeholder-brief, executive-summary, risk-analysis]

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/sprint_item",
+  "title": "sprint_item",
+  "description": "Work item selected for a sprint",
+  "type": "object",
+  "properties": {
+    "story_ref": {
+      "type": "string"
+    },
+    "estimate": {
+      "type": "string"
+    },
+    "carried_over": {
+      "type": "boolean"
+    },
+    "assignee": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "candidate",
+        "committed",
+        "stretch",
+        "deferred"
+      ]
+    }
+  },
+  "required": [
+    "status"
+  ],
+  "additionalProperties": false
+}

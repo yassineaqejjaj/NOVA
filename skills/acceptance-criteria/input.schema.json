@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Acceptance Criteria — inputs",
+  "type": "object",
+  "properties": {
+    "stories": {
+      "type": "string",
+      "description": "The stories to complete, if not in the current artifact or context"
+    },
+    "rules": {
+      "type": "string",
+      "description": "Business rules or constraints the criteria must respect"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

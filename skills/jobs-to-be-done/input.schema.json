@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Jobs to Be Done — inputs",
+  "type": "object",
+  "properties": {
+    "segment": {
+      "type": "string",
+      "description": "Customer segment or persona to analyse"
+    },
+    "domain": {
+      "type": "string",
+      "description": "The activity or market to analyse"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

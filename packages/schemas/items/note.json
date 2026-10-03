@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/note",
+  "title": "note",
+  "description": "Generic note or statement",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "additionalProperties": false
+}

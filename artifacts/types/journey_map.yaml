@@ -1,0 +1,23 @@
+type: journey_map
+name: User Journey
+description: End-to-end journey with pain points and opportunities
+icon: route
+sections:
+- key: summary
+  title: Scenario
+  kind: rich_text
+  description: ''
+- key: persona
+  title: Persona & goal
+  kind: rich_text
+  description: ''
+- key: steps
+  title: Journey steps
+  kind: items
+  item_kind: journey_step
+  description: ''
+- key: opportunities
+  title: Opportunities
+  kind: items
+  item_kind: opportunity
+  description: ''

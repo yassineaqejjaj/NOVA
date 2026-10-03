@@ -1,0 +1,64 @@
+[project]
+name = "nova"
+version = "0.1.0"
+description = "NOVA — personal AI product agent of the ORION ecosystem (API, worker, agent runtime)."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "email-validator>=2.2",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30",
+    "alembic>=1.14",
+    "psycopg[binary,pool]>=3.2",
+    "langgraph>=0.2.60",
+    "langgraph-checkpoint-postgres>=2.0",
+    "langchain-core>=0.3",
+    "celery>=5.4",
+    "redis>=5.2",
+    "httpx>=0.28",
+    "pyjwt[crypto]>=2.10",
+    "cryptography>=43",
+    "pyyaml>=6.0",
+    "jsonschema>=4.23",
+    "sse-starlette>=2.1",
+    "opentelemetry-api>=1.28",
+    "opentelemetry-sdk>=1.28",
+    "opentelemetry-exporter-otlp-proto-http>=1.28",
+    "opentelemetry-instrumentation-fastapi>=0.49b0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "respx>=0.21",
+    "ruff>=0.8",
+    "aiosqlite>=0.20",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+extend-exclude = ["alembic/versions", "apps/web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "SIM", "RUF"]
+ignore = ["B008", "RUF012", "SIM108", "RUF001", "RUF002", "E501"]  # E501: the formatter owns line length
+
+[tool.ruff.lint.isort]
+known-first-party = ["nova", "nova_api", "nova_worker", "tests"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+pythonpath = [".", "apps/api", "services/worker"]
+testpaths = ["tests/unit", "tests/integration"]
+markers = ["infra: needs postgres + valkey (docker compose up postgres valkey)"]

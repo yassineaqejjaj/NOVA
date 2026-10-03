@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.coherence
+    question: Do the bets follow from the diagnosis and serve the stated objectives?
+    weight: 2
+  - key: quality.focus
+    question: Does the strategy make explicit choices and trade-offs rather than listing everything?
+    weight: 2
+  - key: quality.measurability
+    question: Can progress be measured with the proposed metrics?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Strategy summary, Market & context, Strategic bets, Objectives, Trade-offs]}
+    description: Core strategy sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: The diagnosis is grounded in cited context when context was provided

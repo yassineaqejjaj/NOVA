@@ -1,0 +1,38 @@
+type: product_strategy
+name: Product Strategy
+description: How the vision will be reached
+icon: compass
+sections:
+- key: summary
+  title: Strategy summary
+  kind: rich_text
+  description: ''
+- key: market_context
+  title: Market & context
+  kind: rich_text
+  description: ''
+- key: bets
+  title: Strategic bets
+  kind: items
+  item_kind: initiative
+  description: ''
+- key: objectives
+  title: Objectives
+  kind: items
+  item_kind: objective
+  description: ''
+- key: metrics
+  title: How we measure progress
+  kind: items
+  item_kind: metric
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: trade_offs
+  title: Trade-offs
+  kind: items
+  item_kind: decision
+  description: ''

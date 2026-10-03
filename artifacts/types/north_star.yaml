@@ -1,0 +1,33 @@
+type: north_star
+name: North Star Metric
+description: The metric that best captures delivered value
+icon: star
+sections:
+- key: summary
+  title: North Star
+  kind: rich_text
+  description: ''
+- key: north_star
+  title: North Star metric
+  kind: items
+  item_kind: metric
+  description: ''
+- key: input_metrics
+  title: Input metrics
+  kind: items
+  item_kind: metric
+  description: ''
+- key: guardrails
+  title: Guardrail metrics
+  kind: items
+  item_kind: metric
+  description: ''
+- key: rationale
+  title: Why this metric
+  kind: rich_text
+  description: ''
+- key: risks
+  title: Measurement risks
+  kind: items
+  item_kind: risk
+  description: ''

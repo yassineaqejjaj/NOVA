@@ -1,0 +1,38 @@
+type: persona
+name: Persona
+description: Evidence-based persona
+icon: user
+sections:
+- key: summary
+  title: Who they are
+  kind: rich_text
+  description: ''
+- key: goals
+  title: Goals
+  kind: items
+  item_kind: persona_attribute
+  description: ''
+- key: frustrations
+  title: Frustrations
+  kind: items
+  item_kind: persona_attribute
+  description: ''
+- key: behaviors
+  title: Behaviors
+  kind: items
+  item_kind: persona_attribute
+  description: ''
+- key: needs
+  title: Needs
+  kind: items
+  item_kind: persona_attribute
+  description: ''
+- key: quotes
+  title: Representative quotes
+  kind: items
+  item_kind: persona_attribute
+  description: ''
+- key: evidence
+  title: Evidence base
+  kind: rich_text
+  description: ''

@@ -1,0 +1,28 @@
+type: dependency_analysis
+name: Dependency Analysis
+description: Dependencies, critical path and owners
+icon: network
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: dependencies
+  title: Dependencies
+  kind: items
+  item_kind: dependency
+  description: ''
+- key: critical_path
+  title: Critical path
+  kind: rich_text
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: actions
+  title: Actions
+  kind: items
+  item_kind: note
+  description: ''

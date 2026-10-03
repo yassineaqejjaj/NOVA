@@ -1,0 +1,59 @@
+id: executive-summary
+name: Executive Summary
+version: 1.0.0
+category: communication
+summary: Condense a topic, document or project into a decision-ready summary for leadership.
+purpose: >
+  Give executives what they need to understand the situation and decide, on one page. The summary leads with
+  the answer, supports it with a few key points and states the decisions required.
+triggers: [executive summary, exec summary, summary for leadership, one-pager for management, tl;dr for the board, brief the executives, synthèse pour la direction]
+inputs:
+  - name: topic
+    description: The topic, document or project to summarize
+  - name: audience
+    description: The leadership audience (e.g. executive committee, board)
+  - name: decision
+    description: The decision expected from the audience, if any
+expected_context:
+  orbit_intent: general
+  query_hint: documents, decisions, metrics, risks, strategy, recent progress related to the topic
+  token_budget: 6000
+  required: true
+methodology:
+  name: Pyramid Principle (answer first, SCQA)
+  principles:
+    - Start with the answer or recommendation, then support it
+    - Three to five key points, grouped and non-overlapping
+    - Quantify when evidence allows and avoid jargon
+    - Make the decisions needed explicit, with options and deadline
+  references: [Barbara Minto — The Pyramid Principle, Chip Heath & Dan Heath — Made to Stick]
+steps:
+  - id: synthesis
+    title: Synthesizing the situation
+    instruction: >
+      Write the summary in 3–5 sentences following Situation, Complication, Question, Answer, citing the
+      sources.
+    fills: [summary]
+  - id: key_points
+    title: Selecting the key points
+    instruction: >
+      List 3–5 key points supporting the answer, each with its evidence cited and quantified when context
+      allows.
+    fills: [key_points]
+  - id: decisions
+    title: Framing decisions and risks
+    instruction: >
+      List the decisions needed as decision items (status proposed, alternatives, consequences, decided_by
+      role, date only for a deadline found in context) and the top 3 risks with likelihood, impact and
+      mitigation.
+    fills: [decisions_needed, risks]
+  - id: recommendation
+    title: Writing the recommendation
+    instruction: >
+      State the recommendation clearly, the main reason, and the immediate next step if it is approved.
+    fills: [recommendation]
+tools: [search_orbit, retrieve_orbit_context, get_artifact]
+outputs:
+  artifact_type: executive_summary
+  mode: create
+composes_with: [decision-record, stakeholder-brief, product-update]

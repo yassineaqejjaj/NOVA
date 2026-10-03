@@ -1,0 +1,62 @@
+id: product-vision
+name: Product Vision
+version: 1.0.0
+category: strategy
+summary: Articulate where the product is going, for whom and why it matters, in a vision the team can rally around.
+purpose: >
+  Give the team and stakeholders a shared, durable picture of the future the product creates. A clear vision
+  makes strategy, prioritization and trade-offs easier because every bet can be checked against it.
+triggers: [product vision, write the vision, vision statement, where the product is going, define our vision, long-term vision, vision produit]
+inputs:
+  - name: product
+    description: The product or product area the vision is for, if not obvious from context
+  - name: horizon
+    description: Vision horizon (e.g. 3 years)
+  - name: ambition
+    description: What the team or leadership hopes the product will become, in their words
+expected_context:
+  orbit_intent: general
+  query_hint: mission, existing vision, market, target users, customer problems, strategy, differentiators
+  token_budget: 5000
+methodology:
+  name: Vision as a destination, not a plan
+  principles:
+    - Describe the future customers will experience, not the features that get them there
+    - "Be inspiring and concrete: a vision that cannot settle a debate is too vague"
+    - Anchor the vision in a real customer problem and a durable opportunity
+    - State what the product will not become as clearly as what it will
+  references: [Marty Cagan — Empowered, Roman Pichler — Strategize, Geoffrey Moore — Crossing the Chasm]
+steps:
+  - id: opportunity
+    title: Framing the problem and the opportunity
+    instruction: >
+      Describe the customer problem and why now is the moment to address it (market, technology or behaviour
+      shift). Describe the target users: who they are, their context and what they struggle with today. Use
+      evidence from context and mark assumptions as such.
+    fills: [problem, target_users]
+  - id: statement
+    title: Writing the vision statement
+    instruction: >
+      Write the vision statement in one or two sentences describing the future state for the target users
+      (3–5 year horizon unless given). Then write the value proposition: the benefit users get, the
+      alternative it replaces and why it is better.
+    fills: [summary, value_proposition]
+  - id: outcomes
+    title: Defining long-term outcomes and differentiators
+    instruction: >
+      Define 3–5 long-term outcomes as objective items (a behaviour or business change, attribute timeframe
+      such as "3 years", owner only when known). List 2–4 differentiators, each explaining why competitors
+      or current alternatives cannot easily copy it.
+    fills: [outcomes, differentiators]
+  - id: boundaries
+    title: Setting guiding principles and non-goals
+    instruction: >
+      Write 3–5 guiding principles as note items phrased as explicit choices ("we favour X over Y"). List
+      3–5 non-goals: segments, uses or business models the product deliberately will not pursue, each with a
+      one-sentence rationale.
+    fills: [principles, non_goals]
+tools: [search_orbit]
+outputs:
+  artifact_type: product_vision
+  mode: create
+composes_with: [product-strategy, vision-to-objectives, north-star-metric, product-principles]

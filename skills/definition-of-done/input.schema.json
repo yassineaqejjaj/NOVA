@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Definition of Done — inputs",
+  "type": "object",
+  "properties": {
+    "team_context": {
+      "type": "string",
+      "description": "The team, its release process and recurring quality issues"
+    },
+    "quality_standards": {
+      "type": "string",
+      "description": "Known standards (code review, test coverage, accessibility, security)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

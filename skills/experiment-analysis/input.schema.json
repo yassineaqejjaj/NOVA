@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Experiment Analysis — inputs",
+  "type": "object",
+  "properties": {
+    "experiment": {
+      "type": "string",
+      "description": "The experiment to analyse, if not in context"
+    },
+    "results": {
+      "type": "string",
+      "description": "Result data, if not in context"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

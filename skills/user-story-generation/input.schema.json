@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "User Story Generation — inputs",
+  "type": "object",
+  "properties": {
+    "feature": {
+      "type": "string",
+      "description": "The feature, epic or requirement to break down, if not in context"
+    },
+    "users": {
+      "type": "string",
+      "description": "The user roles involved"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

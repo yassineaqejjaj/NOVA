@@ -1,0 +1,19 @@
+criteria:
+  - key: quality.goal_link
+    question: Do metrics derive from explicit goals and signals?
+    weight: 2
+  - key: quality.precision
+    question: Are metric definitions precise (formula, population, window, source)?
+    weight: 2
+  - key: quality.instrumentability
+    question: Are events concrete enough to implement, with data risks addressed?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Metrics, Instrumentation, Events to track]}
+    description: Core metrics plan sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Goals cite objectives in context when context was provided
+  - type: no_pii
+    description: No personal data in events or examples

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Functional Requirements — inputs",
+  "type": "object",
+  "properties": {
+    "feature": {
+      "type": "string",
+      "description": "The feature or scope to specify, if not in context"
+    },
+    "users": {
+      "type": "string",
+      "description": "The user roles involved"
+    },
+    "constraints": {
+      "type": "string",
+      "description": "Known constraints (technology, regulation, integrations, deadline)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

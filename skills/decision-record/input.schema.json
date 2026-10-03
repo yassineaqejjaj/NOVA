@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Decision Record — inputs",
+  "type": "object",
+  "properties": {
+    "decision": {
+      "type": "string",
+      "description": "The decision to record"
+    },
+    "options": {
+      "type": "string",
+      "description": "The options considered, if known"
+    },
+    "decided_by": {
+      "type": "string",
+      "description": "Who decides (role or forum)"
+    }
+  },
+  "required": [
+    "decision"
+  ],
+  "additionalProperties": false
+}

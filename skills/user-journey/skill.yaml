@@ -1,0 +1,51 @@
+id: user-journey
+name: User Journey Map
+version: 1.0.0
+category: discovery
+summary: Map a user's end-to-end journey for a scenario, with actions, thoughts, emotions, pain points and opportunities.
+purpose: >
+  Make the user's experience across touchpoints visible as one story so the team sees where it breaks. The
+  map turns scattered feedback into a prioritized set of opportunities.
+triggers: [user journey, journey map, customer journey, map the experience, end-to-end journey, parcours utilisateur]
+inputs:
+  - name: scenario
+    description: The scenario to map (e.g. a new customer's first month)
+  - name: persona
+    description: The persona or segment whose journey is mapped
+expected_context:
+  orbit_intent: design
+  query_hint: personas, user research, feedback, support tickets, analytics funnels, existing journeys
+  token_budget: 5000
+methodology:
+  name: Current-state journey mapping
+  principles:
+    - Map one persona and one scenario with a clear start and end
+    - Describe the experience from the user's perspective, including outside the product
+    - Ground emotions and pain points in evidence
+    - Turn the biggest pain points into opportunities, not solutions
+  references: [Jim Kalbach — Mapping Experiences, Nielsen Norman Group — Journey Mapping 101, Adaptive Path — Guide to Experience Mapping]
+steps:
+  - id: scenario
+    title: Setting the persona and scenario
+    instruction: >
+      Describe the scenario with its start and end points and scope. Describe the persona: who they are,
+      their goal in this scenario and their expectations, citing context.
+    fills: [summary, persona]
+  - id: steps
+    title: Mapping the journey steps
+    instruction: >
+      Map 5–10 steps in chronological order. For each: stage (e.g. discover, sign up, first use, routine
+      use, get help), actions, thoughts, emotion positive/neutral/negative, and short lists of pain_points
+      and opportunities. Cite the evidence behind pain points.
+    fills: [steps]
+  - id: opportunities
+    title: Prioritizing opportunities
+    instruction: >
+      List 3–6 opportunities (node_type opportunity) for the moments with the most negative emotion or the
+      most frequent pain; parent_id is the journey step id and the rationale explains the expected impact.
+    fills: [opportunities]
+tools: [search_orbit]
+outputs:
+  artifact_type: journey_map
+  mode: create
+composes_with: [opportunity-solution-tree, hypothesis-generation, story-mapping]

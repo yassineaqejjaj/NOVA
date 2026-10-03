@@ -1,0 +1,12 @@
+{
+  "name": "nova-monorepo",
+  "private": true,
+  "workspaces": ["apps/web", "packages/ui", "packages/config"],
+  "scripts": {
+    "dev": "npm run dev -w @nova/web",
+    "build": "npm run build -w @nova/web",
+    "typecheck": "npm run typecheck -w @nova/web",
+    "lint": "npm run lint -w @nova/web",
+    "test:e2e": "npm run test:e2e -w @nova/web"
+  }
+}

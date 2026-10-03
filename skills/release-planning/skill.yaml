@@ -1,0 +1,65 @@
+id: release-planning
+name: Release Planning
+version: 1.0.0
+category: delivery
+summary: "Plan a release: goal, scope by epic, milestones, dependencies, risks, rollout and a go/no-go checklist."
+purpose: >
+  Align the team and stakeholders on what ships, when and how, with the risks visible. A release plan built
+  on scope and capacity rather than wishes makes trade-offs explicit early.
+triggers: [release planning, plan the release, release plan, what ships when, go no-go, release roadmap, plan de release]
+inputs:
+  - name: release
+    description: Release name or version
+  - name: target_date
+    description: Target date or window, if fixed
+  - name: capacity
+    description: Team capacity or velocity, if known
+expected_context:
+  orbit_intent: engineering
+  query_hint: roadmap, epics, backlog, velocity, deadlines, dependencies, risks, release process, decisions
+  token_budget: 6000
+methodology:
+  name: Goal-driven release planning
+  principles:
+    - Each release has one clear goal and a user-visible outcome
+    - Scope is planned at epic level with MoSCoW priority so it can flex against the date
+    - Milestones are checkpoints of integrated, demonstrable value
+    - Rollout is progressive and reversible, with explicit go/no-go criteria
+  references: [Mike Cohn — Agile Estimating and Planning, Jeff Patton — User Story Mapping, Jez Humble & David Farley — Continuous Delivery]
+steps:
+  - id: goal
+    title: Defining the release goal
+    instruction: >
+      Summarize the release goal, the target window and the capacity assumption (from context when
+      available, otherwise stated explicitly).
+    fills: [summary]
+  - id: scope
+    title: Scoping the epics
+    instruction: >
+      List the epics in the release, reusing ids from context, with value, priority must/should/could (must
+      haves fit capacity) and status. The rationale explains each inclusion.
+    fills: [scope]
+  - id: milestones
+    title: Setting milestones and dependencies
+    instruction: >
+      Propose 3–6 milestones with deliverables and status planned or at_risk; dates only from context or
+      derived from the stated target date. List dependencies (depends_on, type, status, due when known).
+    fills: [milestones, dependencies]
+  - id: rollout
+    title: Assessing risks and the rollout
+    instruction: >
+      List release risks with likelihood, impact, mitigation and owner role. Describe the rollout: feature
+      flags, beta or percentage rollout, rollback plan, support readiness and communication to users and
+      stakeholders.
+    fills: [risks, rollout]
+  - id: go_no_go
+    title: Writing the go/no-go checklist
+    instruction: >
+      List 6–10 go/no-go criteria as checklist items (category quality, operations, support, communication
+      or compliance), checked false.
+    fills: [go_no_go]
+tools: [search_orbit, retrieve_orbit_context, list_artifacts]
+outputs:
+  artifact_type: release_plan
+  mode: create
+composes_with: [dependency-analysis, risk-analysis, release-notes, stakeholder-brief]

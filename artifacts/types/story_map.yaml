@@ -1,0 +1,24 @@
+type: story_map
+name: Story Map
+description: Backbone of activities with releases
+icon: map
+sections:
+- key: summary
+  title: Narrative
+  kind: rich_text
+  description: ''
+- key: activities
+  title: Activities (backbone)
+  kind: items
+  item_kind: note
+  description: ''
+- key: stories
+  title: Stories
+  kind: items
+  item_kind: story
+  description: parent_id = activity item id
+- key: releases
+  title: Release slices
+  kind: items
+  item_kind: milestone
+  description: ''

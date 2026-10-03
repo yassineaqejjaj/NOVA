@@ -1,0 +1,60 @@
+id: backlog-refinement
+name: Backlog Refinement
+version: 1.0.0
+category: delivery
+summary: "Refine backlog items: clarify stories, sharpen acceptance criteria, propose splits and surface questions for the team."
+purpose: >
+  Keep the top of the backlog understood, small enough and estimable, so planning is fast and delivery
+  predictable. Refinement turns vague items into stories the team can commit to.
+triggers: [backlog refinement, refine the backlog, backlog grooming, grooming, refine these stories, clean up the backlog, affinage du backlog]
+inputs:
+  - name: items
+    description: The stories or epics to refine, if not in context
+  - name: focus
+    description: Epic, theme or sprint goal to focus the refinement on
+expected_context:
+  orbit_intent: engineering
+  query_hint: backlog, user stories, epics, acceptance criteria, estimates, decisions, dependencies, team questions
+  token_budget: 6000
+  required: true
+methodology:
+  name: Refinement towards INVEST and Ready
+  principles:
+    - "Work top-down: refine the items most likely to be planned next"
+    - A refined story is small enough to finish in a few days and testable
+    - Split by workflow step, business rule or data variation, never by technical layer
+    - Questions are made explicit and owned, not left implicit
+  references: [Mike Cohn — User Stories Applied, Richard Lawrence — Patterns for Splitting User Stories, Scrum Guide 2020]
+steps:
+  - id: review
+    title: Reviewing the backlog items
+    instruction: >
+      Summarize which items were reviewed and where they come from (cited), and the main findings: unclear
+      value, missing criteria, oversized items, blockers.
+    fills: [summary]
+  - id: refine
+    title: Refining the stories
+    instruction: >
+      Rewrite the 4–12 stories that need it, keeping their key or id from context: clarify as_a / i_want /
+      so_that, add or sharpen 2–4 Given/When/Then acceptance criteria, set priority, keep estimate only when
+      it exists in context, status draft or ready. The rationale says what changed.
+    fills: [stories]
+  - id: splits
+    title: Proposing splits
+    instruction: >
+      For stories that are too large or mix concerns, propose splits as note items: parent_id = the original
+      story id, title = the proposed slice, description = the splitting pattern used (workflow step,
+      business rule, data variation, happy/unhappy path).
+    fills: [splits]
+  - id: readiness
+    title: Raising questions and checking readiness
+    instruction: >
+      List the questions blocking refinement (owner role, status open). Add a ready check of 5–8 checklist
+      items (value clear, criteria testable, small enough, dependencies known, design available…), checked
+      true only when context shows it is met; category is the story id it applies to, or "all".
+    fills: [questions, ready]
+tools: [search_orbit, retrieve_orbit_context, list_artifacts]
+outputs:
+  artifact_type: refinement
+  mode: create
+composes_with: [sprint-planning, acceptance-criteria, definition-of-ready]

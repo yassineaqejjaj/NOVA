@@ -1,0 +1,23 @@
+type: prioritization_matrix
+name: Prioritization Matrix
+description: Initiatives ranked with an explicit method
+icon: list-ordered
+sections:
+- key: summary
+  title: Method & context
+  kind: rich_text
+  description: ''
+- key: items
+  title: Ranked items
+  kind: items
+  item_kind: scored_item
+  description: ''
+- key: assumptions
+  title: Scoring assumptions
+  kind: items
+  item_kind: assumption
+  description: ''
+- key: recommendation
+  title: Recommendation
+  kind: rich_text
+  description: ''

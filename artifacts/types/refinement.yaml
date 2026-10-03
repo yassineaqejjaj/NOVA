@@ -1,0 +1,29 @@
+type: refinement
+name: Backlog Refinement
+description: Refinement outcome
+icon: sparkles
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: stories
+  title: Refined stories
+  kind: items
+  item_kind: story
+  description: ''
+- key: splits
+  title: Proposed splits
+  kind: items
+  item_kind: note
+  description: ''
+- key: questions
+  title: Questions for the team
+  kind: items
+  item_kind: question
+  description: ''
+- key: ready
+  title: Ready check
+  kind: items
+  item_kind: checklist_item
+  description: ''

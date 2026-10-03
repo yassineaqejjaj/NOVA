@@ -1,0 +1,19 @@
+criteria:
+  - key: quality.completeness
+    question: Does the PRD cover problem, users, objectives, scope, requirements, metrics and risks?
+    weight: 2
+  - key: quality.traceability
+    question: Do requirements trace to user needs, decisions or cited context?
+    weight: 2
+  - key: quality.testability
+    question: Are objectives measurable and acceptance criteria testable?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Problem, Objectives, Functional requirements, Success metrics, Risks]}
+    description: Core PRD sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: At least one statement is grounded in cited context when context was provided
+  - type: no_pii
+    description: No personal data in the PRD

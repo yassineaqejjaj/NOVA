@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/hypothesis",
+  "title": "hypothesis",
+  "description": "Testable hypothesis",
+  "type": "object",
+  "properties": {
+    "we_believe": {
+      "type": "string"
+    },
+    "will_result_in": {
+      "type": "string"
+    },
+    "we_know_when": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    }
+  },
+  "required": [
+    "we_believe",
+    "will_result_in",
+    "we_know_when"
+  ],
+  "additionalProperties": false
+}

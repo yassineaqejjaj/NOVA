@@ -1,0 +1,41 @@
+type: product_vision
+name: Product Vision
+description: Where the product is going and why it matters
+icon: telescope
+sections:
+- key: summary
+  title: Vision statement
+  kind: rich_text
+  description: One or two sentences, inspiring and concrete
+- key: problem
+  title: Problem & opportunity
+  kind: rich_text
+  description: ''
+- key: target_users
+  title: Target users
+  kind: rich_text
+  description: ''
+- key: value_proposition
+  title: Value proposition
+  kind: rich_text
+  description: ''
+- key: principles
+  title: Guiding principles
+  kind: items
+  item_kind: note
+  description: ''
+- key: outcomes
+  title: Long-term outcomes
+  kind: items
+  item_kind: objective
+  description: ''
+- key: differentiators
+  title: Differentiators
+  kind: items
+  item_kind: note
+  description: ''
+- key: non_goals
+  title: What we will not do
+  kind: items
+  item_kind: note
+  description: ''

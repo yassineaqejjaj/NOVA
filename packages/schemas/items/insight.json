@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/insight",
+  "title": "insight",
+  "description": "Research or feedback insight",
+  "type": "object",
+  "properties": {
+    "theme": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "frequency": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

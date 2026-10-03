@@ -1,0 +1,60 @@
+id: kano-analysis
+name: Kano Analysis
+version: 1.0.0
+category: prioritization
+summary: "Classify features by their effect on customer satisfaction: must-be, performance, attractive, indifferent or reverse."
+purpose: >
+  Understand which features customers take for granted, which raise satisfaction proportionally and which
+  delight, so the team invests in the right mix. Kano prevents over-investing in basics and ignoring what
+  differentiates.
+triggers: [kano, kano model, kano analysis, delighters, must-be features, customer satisfaction drivers, analyse kano]
+inputs:
+  - name: features
+    description: The features to classify, if not in context
+  - name: survey_data
+    description: Kano survey results (functional / dysfunctional answers), if available
+expected_context:
+  orbit_intent: research
+  query_hint: user research, Kano survey results, feedback, feature requests, competitor features, satisfaction data
+  token_budget: 4000
+methodology:
+  name: Kano model
+  principles:
+    - "Must-be: expected; absence causes dissatisfaction, presence adds little"
+    - "Performance: satisfaction grows with how well it is delivered"
+    - "Attractive: unexpected delighters whose absence causes no dissatisfaction"
+    - Indifferent and reverse features deserve no or negative investment
+    - "Categories drift over time: today's delighter becomes tomorrow's must-be"
+  references: [Noriaki Kano et al. — Attractive Quality and Must-Be Quality (1984), Daniel Zacarias — The Complete Guide to the Kano Model]
+steps:
+  - id: evidence
+    title: Reviewing the evidence base
+    instruction: >
+      Describe the features considered, the evidence used (Kano survey with functional and dysfunctional
+      question pairs, or qualitative research) and the resulting confidence, citing context.
+    fills: [summary]
+  - id: classify
+    title: Classifying features with Kano
+    instruction: >
+      For each feature, create a scored_item with method kano and bucket must_be, performance, attractive,
+      indifferent or reverse. With survey data, add scores {better, worse} where Better = (A+O)/(A+O+M+I)
+      and Worse = −(O+M)/(A+O+M+I), and set score to Better; otherwise set score to the bucket name. Rank by
+      investment priority: unmet must-be first, then performance, then attractive.
+    fills: [items]
+  - id: assumptions
+    title: Recording classification assumptions
+    instruction: >
+      List the assumptions behind classifications made without survey data, and segments that may classify
+      features differently, with confidence and validation (e.g. a Kano survey).
+    fills: [assumptions]
+  - id: recommendation
+    title: Recommending the investment mix
+    instruction: >
+      Recommend the investment mix: must-be gaps to close, performance features to improve and 1–2
+      attractive features to differentiate; name indifferent or reverse features to deprioritize.
+    fills: [recommendation]
+tools: [search_orbit]
+outputs:
+  artifact_type: prioritization_matrix
+  mode: create
+composes_with: [moscow-prioritization, epic-definition, user-research-plan]

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/checklist_item",
+  "title": "checklist_item",
+  "description": "Checklist entry",
+  "type": "object",
+  "properties": {
+    "checked": {
+      "type": "boolean"
+    },
+    "category": {
+      "type": "string"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

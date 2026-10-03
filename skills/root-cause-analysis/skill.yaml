@@ -1,0 +1,58 @@
+id: root-cause-analysis
+name: Root Cause Analysis
+version: 1.0.0
+category: analysis
+summary: Investigate why a problem or incident happened, find the root causes and define corrective and preventive actions.
+purpose: >
+  Learn from incidents, metric drops or failed launches without blame. Going beyond the first explanation to
+  systemic causes prevents the problem from recurring.
+triggers: [root cause analysis, rca, why did this happen, 5 whys, post-mortem, incident analysis, analyse des causes racines]
+inputs:
+  - name: problem
+    description: The problem, incident or metric change to investigate
+    required: true
+    ask: true
+    question: What happened — which problem, incident or metric change should I investigate, and when did it occur?
+expected_context:
+  orbit_intent: analysis
+  query_hint: incident reports, metrics, timeline of events, releases and changes, support tickets, monitoring alerts, decisions
+  token_budget: 5000
+methodology:
+  name: Blameless 5 Whys with cause categories
+  principles:
+    - "Blameless: focus on systems and processes, not individuals"
+    - Ask why iteratively until reaching a cause the team can act on
+    - Explore several causal branches (people, process, product, technology, data, external)
+    - Each root cause gets a corrective and a preventive action
+  references: [Taiichi Ohno — Toyota Production System, Kaoru Ishikawa — Guide to Quality Control, Betsy Beyer et al. — Site Reliability Engineering]
+steps:
+  - id: problem
+    title: Describing the problem
+    instruction: >
+      Describe the problem factually: what happened, when, the impact and how it was detected, citing
+      context. Write the timeline as chronological events, with times only from context.
+    fills: [problem, timeline]
+  - id: whys
+    title: Asking the five whys
+    instruction: >
+      Build cause chains: level 1 for direct causes, then deeper causes at level n+1 with parent_id = the
+      cause they explain, up to 5 levels. Give each a category (people, process, product, technology, data,
+      external) and its evidence, or mark it as a hypothesis in the rationale.
+    fills: [causes]
+  - id: root_cause
+    title: Identifying the root cause
+    instruction: >
+      State the 1–2 root causes, why they are systemic rather than individual, and the confidence in them
+      given the evidence.
+    fills: [root_cause]
+  - id: actions
+    title: Defining corrective actions
+    instruction: >
+      List corrective and preventive actions as note items (the description says which, with owner role;
+      parent_id = the cause id). Record the decisions needed as decision items with status proposed.
+    fills: [actions, decisions]
+tools: [search_orbit, retrieve_orbit_context]
+outputs:
+  artifact_type: root_cause_analysis
+  mode: create
+composes_with: [risk-analysis, decision-record, stakeholder-brief]

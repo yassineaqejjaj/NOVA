@@ -1,0 +1,16 @@
+criteria:
+  - key: quality.non_leading
+    question: Are questions open, non-leading and focused on past behaviour?
+    weight: 3
+  - key: quality.coverage
+    question: Do core questions cover the research questions or hypotheses?
+    weight: 2
+  - key: quality.ethics
+    question: Does the introduction cover purpose, consent and data use?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Introduction & consent, Core questions, Follow-up probes, Wrap-up]}
+    description: Core interview guide sections are present
+  - type: no_pii
+    description: No personal data in the guide

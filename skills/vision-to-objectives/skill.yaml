@@ -1,0 +1,59 @@
+id: vision-to-objectives
+name: Vision to Objectives
+version: 1.0.0
+category: strategy
+summary: Translate a product vision into outcome objectives, measurable key results and the initiatives expected to move them.
+purpose: >
+  Connect the long-term vision to the next planning horizon. Each objective is an outcome the vision
+  implies, measured by key results and pursued through a few initiatives, so the team knows what to achieve
+  before deciding what to build.
+triggers: [vision into objectives, objectives from the vision, derive objectives, translate the vision, goals from the vision, objectifs à partir de la vision]
+inputs:
+  - name: vision
+    description: The product vision or its location (usually found in context)
+  - name: horizon
+    description: Planning horizon (e.g. next two quarters)
+expected_context:
+  orbit_intent: general
+  query_hint: product vision, strategy, long-term outcomes, current metrics and baselines, business goals, decisions
+  token_budget: 5000
+  required: true
+methodology:
+  name: Vision → outcomes → key results → initiatives
+  principles:
+    - Objectives are outcomes the vision implies for the horizon, not features
+    - Each key result is a measurable change with a target and a timeframe
+    - Initiatives are bets linked to the objective they should move
+    - Make the assumptions linking initiatives to outcomes explicit
+  references: [John Doerr — Measure What Matters, Christina Wodtke — Radical Focus, Marty Cagan — Empowered]
+steps:
+  - id: read_vision
+    title: Reading the vision
+    instruction: >
+      Summarize the vision and the planning horizon in 2–3 sentences, citing where the vision comes from. If
+      no vision is found in context or input, say so and work from the user's description only.
+    fills: [summary]
+  - id: objectives
+    title: Deriving outcome objectives
+    instruction: >
+      Derive 2–4 objectives the vision implies for the horizon, each phrased as a qualitative outcome with a
+      timeframe (owner only when known). The rationale names the part of the vision each objective advances.
+    fills: [objectives]
+  - id: key_results
+    title: Defining key results
+    instruction: >
+      For each objective, define 2–4 key results with metric, baseline (only when known), target and
+      timeframe. parent_id is the objective id. Key results measure outcomes, never task completion.
+    fills: [key_results]
+  - id: initiatives
+    title: Linking initiatives and assumptions
+    instruction: >
+      For each objective, propose 1–3 initiatives (parent_id and objective_ref = the objective id) with
+      expected_impact, confidence and status proposed. List the assumptions that link initiatives to key
+      results, with confidence and how to validate them.
+    fills: [initiatives, assumptions]
+tools: [search_orbit, retrieve_orbit_context]
+outputs:
+  artifact_type: objectives
+  mode: create
+composes_with: [okr-definition, initiative-definition, rice-prioritization, vision-to-backlog]

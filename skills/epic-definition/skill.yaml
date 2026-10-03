@@ -1,0 +1,61 @@
+id: epic-definition
+name: Epic Definition
+version: 1.0.0
+category: definition
+summary: Define an epic as a shippable increment of value, with scope boundaries, candidate stories, success metrics, dependencies and risks.
+purpose: >
+  Give the team a clear, bounded unit of value to plan and deliver. A well-defined epic states why it
+  matters, where it stops and how success will be measured, before it is broken into stories.
+triggers: [define an epic, write an epic, epic brief, scope this epic, epic definition, epic, rédiger une epic]
+inputs:
+  - name: epic
+    description: What the epic should deliver
+    required: true
+    ask: true
+    question: What should the epic deliver, and for which users?
+  - name: initiative
+    description: The parent initiative or objective, if known
+expected_context:
+  orbit_intent: specification
+  query_hint: initiatives, objectives, PRD, requirements, decisions, related epics, dependencies
+  token_budget: 5000
+methodology:
+  name: Value-sliced epic
+  principles:
+    - An epic delivers user-visible value and can ship on its own
+    - Scope boundaries, in and out, are explicit
+    - Candidate stories are vertical slices following INVEST
+    - Success is measured by outcomes, not by completion
+  references: [Jeff Patton — User Story Mapping, Mike Cohn — User Stories Applied, Bill Wake — INVEST in Good Stories]
+steps:
+  - id: framing
+    title: Framing the epic
+    instruction: >
+      Write the summary (2–3 sentences) and the problem and value: who benefits, the evidence and the
+      expected outcome. Create exactly one epic item with value, priority must/should/could and status
+      draft; parent_id is the initiative id when known from context.
+    fills: [summary, problem, epics]
+  - id: scope
+    title: Drawing the scope boundaries
+    instruction: >
+      List 3–7 in-scope capabilities and 2–5 out-of-scope items, each with a one-sentence rationale;
+      out-of-scope items prevent likely misunderstandings.
+    fills: [scope, out_of_scope]
+  - id: stories
+    title: Drafting candidate stories
+    instruction: >
+      Write 4–8 candidate stories (as_a, i_want, so_that, priority must/should/could, status draft);
+      parent_id is the epic id. Add 1–2 Given/When/Then acceptance criteria to must stories only; detailed
+      criteria come later.
+    fills: [user_stories]
+  - id: delivery
+    title: Assessing metrics, dependencies and risks
+    instruction: >
+      Define 2–3 success metrics (type success or guardrail) with definition, baseline when known and
+      target. List dependencies (depends_on, type, status) and risks with likelihood, impact and mitigation.
+    fills: [metrics, dependencies, risks]
+tools: [search_orbit, list_artifacts]
+outputs:
+  artifact_type: epic
+  mode: create
+composes_with: [user-story-generation, story-mapping, acceptance-criteria, dependency-analysis]

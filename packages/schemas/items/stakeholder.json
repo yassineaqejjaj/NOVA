@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/stakeholder",
+  "title": "stakeholder",
+  "description": "Stakeholder",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string"
+    },
+    "interest": {
+      "type": "string"
+    },
+    "influence": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "communication": {
+      "type": "string"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

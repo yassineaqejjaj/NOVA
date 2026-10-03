@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/epic",
+  "title": "epic",
+  "description": "Large body of work",
+  "type": "object",
+  "properties": {
+    "value": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "must",
+        "should",
+        "could",
+        "wont"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "ready",
+        "in_progress",
+        "done"
+      ]
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

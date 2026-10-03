@@ -1,0 +1,40 @@
+id: definition-of-done
+name: Definition of Done
+version: 1.0.0
+category: delivery
+summary: "Write the team's Definition of Done: the quality bar every increment must meet to be considered done."
+purpose: >
+  Make "done" mean the same thing for everyone, so increments are truly releasable and quality debt does not
+  accumulate silently.
+triggers: [definition of done, dod, done criteria, when is a story done, quality bar, définition de terminé]
+inputs:
+  - name: team_context
+    description: The team, its release process and recurring quality issues
+  - name: quality_standards
+    description: Known standards (code review, test coverage, accessibility, security)
+expected_context:
+  orbit_intent: engineering
+  query_hint: existing definition of done, quality standards, release process, non-functional requirements, incidents, retrospective notes
+  token_budget: 3000
+methodology:
+  name: Releasable-increment Definition of Done
+  principles:
+    - An item is done when it is releasable, not just coded
+    - Criteria cover code, tests, documentation, non-functional quality and product acceptance
+    - Each criterion is verifiable by anyone in the team
+    - Tighten the definition over time; never relax it to meet a deadline
+  references: [Scrum Guide 2020, Jez Humble & David Farley — Continuous Delivery, Lisa Crispin & Janet Gregory — Agile Testing]
+steps:
+  - id: done
+    title: Writing the done criteria
+    instruction: >
+      Return the done section with 8–12 checklist items, checked false; category one of code, testing,
+      quality, security, accessibility, documentation, release, product. Include product owner acceptance
+      and the non-functional checks found in context (e.g. performance budgets). Keep the ids of existing
+      items.
+    fills: [done]
+tools: [search_orbit]
+outputs:
+  artifact_type: definition_checklist
+  mode: update
+composes_with: [definition-of-ready, release-planning, non-functional-requirements]

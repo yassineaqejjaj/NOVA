@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.outcome_link
+    question: Is the initiative clearly linked to objectives with measurable success metrics?
+    weight: 2
+  - key: quality.scope_clarity
+    question: Is the scope bounded and described as capabilities?
+    weight: 1
+  - key: quality.risk_awareness
+    question: Are dependencies and risks identified with mitigations?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Problem, Objectives served, Scope, Success metrics]}
+    description: Core initiative sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: The initiative is grounded in cited context when context was provided

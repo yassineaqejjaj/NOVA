@@ -1,0 +1,34 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+import { CommandPalette } from "@/components/shell/command-palette";
+import { NovaMark } from "@/components/shell/nova-mark";
+import { MobileTabBar, Sidebar } from "@/components/shell/sidebar";
+import { useMe } from "@/lib/api/hooks";
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const { data: me, isLoading } = useMe();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (me && !me.preferences.onboarding_completed) router.replace("/welcome");
+  }, [me, router]);
+
+  if (isLoading || !me) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <NovaMark phase="planning" size={36} />
+      </div>
+    );
+  }
+  return (
+    <div className="flex min-h-screen bg-background">
+      <Sidebar />
+      <main className="min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
+      <MobileTabBar />
+      <CommandPalette />
+    </div>
+  );
+}

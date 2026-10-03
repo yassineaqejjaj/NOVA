@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Product Vision — inputs",
+  "type": "object",
+  "properties": {
+    "product": {
+      "type": "string",
+      "description": "The product or product area the vision is for, if not obvious from context"
+    },
+    "horizon": {
+      "type": "string",
+      "description": "Vision horizon (e.g. 3 years)"
+    },
+    "ambition": {
+      "type": "string",
+      "description": "What the team or leadership hopes the product will become, in their words"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

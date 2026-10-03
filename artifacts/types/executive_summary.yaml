@@ -1,0 +1,28 @@
+type: executive_summary
+name: Executive Summary
+description: Decision-ready summary for leadership
+icon: presentation
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: key_points
+  title: Key points
+  kind: items
+  item_kind: note
+  description: ''
+- key: decisions_needed
+  title: Decisions needed
+  kind: items
+  item_kind: decision
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: recommendation
+  title: Recommendation
+  kind: rich_text
+  description: ''

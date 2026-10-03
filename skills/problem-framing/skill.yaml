@@ -1,0 +1,62 @@
+id: problem-framing
+name: Problem Framing
+version: 1.0.0
+category: discovery
+summary: Frame a problem clearly — who is affected, the evidence, the impact and suspected causes — before discussing solutions.
+purpose: >
+  Stop the team from jumping to solutions by first agreeing on the problem worth solving. A well-framed
+  problem separates evidence from assumptions and defines what success would look like.
+triggers: [frame the problem, problem statement, problem framing, define the problem, what problem are we solving, cadrer le problème]
+inputs:
+  - name: problem
+    description: The problem or situation to frame
+    required: true
+    ask: true
+    question: What problem or situation do you want to frame — what is happening, and for whom?
+  - name: evidence
+    description: Known data, feedback or observations about the problem
+expected_context:
+  orbit_intent: research
+  query_hint: user research, feedback, support tickets, metrics, previous analyses, decisions related to the problem
+  token_budget: 5000
+methodology:
+  name: Problem-first framing
+  principles:
+    - Describe the problem without implying a solution
+    - Separate observed evidence from assumptions
+    - Quantify the impact and the cost of inaction when evidence allows
+    - Define success as an observable change for the affected users
+  references: [Teresa Torres — Continuous Discovery Habits, "Thomas Wedell-Wedellsborg — What's Your Problem?", Design Council — Double Diamond]
+steps:
+  - id: statement
+    title: Stating the problem
+    instruction: >
+      Write the problem statement in 2–4 sentences ("[who] struggles to [do what] because [why], which leads
+      to [impact]") without naming a solution. Describe who is affected: segments, context and how many when
+      known.
+    fills: [problem, who]
+  - id: evidence
+    title: Gathering evidence and impact
+    instruction: >
+      List 3–6 evidence items as insights (theme, evidence, frequency, severity) drawn from context and
+      cited. Describe the impact and the cost of inaction for users and for the business.
+    fills: [evidence, impact]
+  - id: causes
+    title: Exploring suspected causes
+    instruction: >
+      List 2–5 suspected causes: level 1 for direct causes, level 2 for deeper causes with parent_id = the
+      cause they explain; category (process, product, people, technology, data, external) and evidence when
+      available. List the constraints any solution must respect.
+    fills: [root_causes, constraints]
+  - id: unknowns
+    title: Listing assumptions, questions and success
+    instruction: >
+      List the assumptions to validate (confidence, validation method) and the open questions (owner role
+      when obvious, status open). Describe what success looks like as observable changes for the affected
+      users.
+    fills: [assumptions, questions, success]
+tools: [search_orbit]
+outputs:
+  artifact_type: problem_statement
+  mode: create
+composes_with: [opportunity-solution-tree, hypothesis-generation, user-research-plan, prd]

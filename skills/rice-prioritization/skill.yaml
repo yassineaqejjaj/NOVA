@@ -1,0 +1,60 @@
+id: rice-prioritization
+name: RICE Prioritization
+version: 1.0.0
+category: prioritization
+summary: "Rank initiatives, epics or features with RICE: Reach × Impact × Confidence ÷ Effort."
+purpose: >
+  Compare candidate items on a common, explicit scale so prioritization debates are about estimates rather
+  than opinions. RICE makes the confidence behind each bet visible and penalizes costly, uncertain work.
+triggers: [rice, rice prioritization, rice score, prioritize with rice, score the backlog, rank the initiatives, prioriser avec rice]
+inputs:
+  - name: items
+    description: The initiatives, epics or features to rank, if not in context
+  - name: period
+    description: Time period used for Reach (e.g. per quarter)
+  - name: effort_unit
+    description: Effort unit (e.g. person-months)
+expected_context:
+  orbit_intent: analysis
+  query_hint: backlog, initiatives, epics, usage metrics, segment sizes, estimates, objectives
+  token_budget: 5000
+methodology:
+  name: RICE scoring
+  principles:
+    - Reach is the number of people or events affected per period, from data whenever possible
+    - "Impact uses a fixed scale: 3 massive, 2 high, 1 medium, 0.5 low, 0.25 minimal"
+    - "Confidence reflects evidence: 100% high, 80% medium, 50% low"
+    - Effort is total team time in person-months; score = Reach × Impact × Confidence ÷ Effort
+  references: ["Sean McBride — RICE: Simple prioritization for product managers (Intercom)"]
+steps:
+  - id: method
+    title: Setting the method and the candidates
+    instruction: >
+      Describe the candidate list and its source (cited), the Reach period, the effort unit and the
+      objective against which Impact is judged.
+    fills: [summary]
+  - id: scoring
+    title: Scoring initiatives with RICE
+    instruction: >
+      For each candidate (5–15), create a scored_item with method rice and scores {reach, impact,
+      confidence, effort} on the scales above. Compute score = reach × impact × confidence ÷ effort
+      (confidence as a decimal, rounded to one decimal) and set rank (1 = highest score). The description
+      states the evidence behind reach and effort.
+    fills: [items]
+  - id: assumptions
+    title: Recording scoring assumptions
+    instruction: >
+      List the assumptions behind the estimates — especially guessed reach and effort — with confidence and
+      how to validate them.
+    fills: [assumptions]
+  - id: recommendation
+    title: Recommending the order
+    instruction: >
+      Recommend what to do first and why. Call out items whose rank depends on a low-confidence estimate,
+      and any dependency or strategic reason to deviate from the pure ranking.
+    fills: [recommendation]
+tools: [search_orbit, list_artifacts]
+outputs:
+  artifact_type: prioritization_matrix
+  mode: create
+composes_with: [release-planning, initiative-definition, epic-definition]

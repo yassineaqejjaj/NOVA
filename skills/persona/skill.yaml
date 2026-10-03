@@ -1,0 +1,58 @@
+id: persona
+name: Persona
+version: 1.0.0
+category: discovery
+summary: Build an evidence-based persona describing a user segment's goals, frustrations, behaviours and needs.
+purpose: >
+  Give the team a shared, research-grounded picture of who they design for. Personas based on evidence help
+  prioritize and design; invented ones mislead, so every attribute should trace to research.
+triggers: [persona, user persona, create a persona, describe our users, target user profile, proto-persona, créer un persona]
+inputs:
+  - name: segment
+    description: The user segment to describe
+  - name: research
+    description: Research notes or sources to use, if not in context
+expected_context:
+  orbit_intent: research
+  query_hint: user research, interview notes, survey results, analytics segments, customer feedback, existing personas
+  token_budget: 5000
+methodology:
+  name: Evidence-based behavioural persona
+  principles:
+    - Segment by goals and behaviours, not by demographics
+    - Each attribute traces to research evidence; unvalidated ones are flagged
+    - Describe needs and frustrations in the user's own terms
+    - One persona per distinct set of goals
+  references: [Alan Cooper — The Inmates Are Running the Asylum, Kim Goodwin — Designing for the Digital Age, Jeff Gothelf & Josh Seiden — Lean UX]
+steps:
+  - id: profile
+    title: Profiling the segment
+    instruction: >
+      Describe who they are in 3–5 sentences: role, context, relationship with the product and segment size
+      when known. Use a descriptive label (e.g. "The time-pressed team lead") rather than a realistic
+      personal name, and no identifying details.
+    fills: [summary]
+  - id: goals
+    title: Capturing goals and needs
+    instruction: >
+      List 3–5 goals (category goal) and 3–5 needs (category need) the product could serve, each citing the
+      research it comes from.
+    fills: [goals, needs]
+  - id: pains
+    title: Capturing frustrations and behaviours
+    instruction: >
+      List 3–5 frustrations (category frustration) and 3–5 behaviours (category behavior: tools used,
+      frequency, workarounds, decision habits), each grounded in cited evidence.
+    fills: [frustrations, behaviors]
+  - id: evidence
+    title: Documenting quotes and the evidence base
+    instruction: >
+      Add 2–4 representative quotes (category quote) only when they appear in context, anonymized and never
+      invented. Describe the evidence base: sources, number of participants or data points, and confidence.
+      Without research, state that this is a proto-persona to validate.
+    fills: [quotes, evidence]
+tools: [search_orbit]
+outputs:
+  artifact_type: persona
+  mode: create
+composes_with: [jobs-to-be-done, user-journey, interview-guide]

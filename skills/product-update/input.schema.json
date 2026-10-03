@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Product Update — inputs",
+  "type": "object",
+  "properties": {
+    "period": {
+      "type": "string",
+      "description": "The period covered (e.g. last two weeks)"
+    },
+    "audience": {
+      "type": "string",
+      "description": "Who will read the update (team, leadership, customers)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -1,0 +1,61 @@
+id: north-star-metric
+name: North Star Metric
+version: 1.0.0
+category: strategy
+summary: Identify the single metric that best captures the value customers get, with its input and guardrail metrics.
+purpose: >
+  Give the whole team one metric that reflects delivered customer value and leads to sustainable business
+  results. Input metrics make it actionable for teams; guardrails prevent optimizing it at the expense of
+  users or the business.
+triggers: [north star metric, north star, nsm, our key metric, one metric that matters, metric that captures value, métrique north star]
+inputs:
+  - name: product
+    description: The product or product area, if not obvious from context
+  - name: business_model
+    description: How the product creates and captures value, if known
+expected_context:
+  orbit_intent: analysis
+  query_hint: product vision, value proposition, business model, current metrics and dashboards, usage data, strategy
+  token_budget: 4000
+methodology:
+  name: North Star Framework
+  principles:
+    - The North Star expresses customer value delivered and leads to revenue, rather than being revenue
+    - It is measurable, understood by everyone and responsive to the team's work
+    - Decompose it into 3–5 input metrics that teams can influence directly
+    - Pair it with guardrail metrics that must not degrade
+  references: [Amplitude — The North Star Playbook, Sean Ellis & Morgan Brown — Hacking Growth]
+steps:
+  - id: value_moment
+    title: Identifying the value moment
+    instruction: >
+      In the rationale section, describe the core value customers get and the moment they experience it,
+      citing context. Compare 2–3 candidate metrics and explain why the chosen one beats the others (value,
+      leading, actionable, understandable).
+    fills: [rationale]
+  - id: north_star
+    title: Defining the North Star metric
+    instruction: >
+      Write the North Star summary in 1–2 sentences, then define exactly one metric of type north_star: a
+      precise definition (unit, counting rule, time window), baseline only if known, target and timeframe if
+      relevant, and data_source when known.
+    fills: [summary, north_star]
+  - id: inputs
+    title: Decomposing into input metrics
+    instruction: >
+      Define 3–5 input metrics (type input) that together drive the North Star — typically breadth, depth,
+      frequency and efficiency of usage — each with a definition and the team lever it reflects in the
+      rationale. parent_id is the North Star metric id.
+    fills: [input_metrics]
+  - id: guardrails
+    title: Setting guardrails and measurement risks
+    instruction: >
+      Define 2–4 guardrail metrics (type guardrail) that must not degrade while pushing the North Star
+      (quality, satisfaction, cost, trust). List measurement risks — gaming, vanity counting, data gaps, lag
+      — with likelihood, impact and mitigation.
+    fills: [guardrails, risks]
+tools: [search_orbit]
+outputs:
+  artifact_type: north_star
+  mode: create
+composes_with: [product-metrics, okr-definition, experiment-definition]

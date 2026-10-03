@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.solution_agnostic
+    question: Are jobs expressed as progress in a situation, independent of any solution?
+    weight: 2
+  - key: quality.evidence
+    question: Are jobs and struggles grounded in cited research?
+    weight: 2
+  - key: quality.outcomes
+    question: Are desired outcomes measurable and linked to jobs?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Jobs, Desired outcomes, Struggling moments, Current alternatives]}
+    description: Core JTBD sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Jobs cite research when context was provided

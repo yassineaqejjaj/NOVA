@@ -1,0 +1,97 @@
+{
+  "realm": "nova",
+  "displayName": "ORION \u00b7 NOVA",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 600,
+  "ssoSessionIdleTimeout": 43200,
+  "roles": {
+    "realm": [
+      {
+        "name": "nova-user",
+        "description": "Can use NOVA"
+      },
+      {
+        "name": "nova-admin",
+        "description": "NOVA administrator"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "nova-web",
+      "name": "NOVA",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${NOVA_OIDC_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "${NOVA_PUBLIC_URL}/api/v1/auth/callback"
+      ],
+      "webOrigins": [
+        "${NOVA_PUBLIC_URL}"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "${NOVA_PUBLIC_URL}/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "nova-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "nova-web",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "multivalued": "true",
+            "claim.name": "realm_access.roles",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "yassine",
+      "email": "yassine@orion.local",
+      "emailVerified": true,
+      "firstName": "Yassine",
+      "lastName": "Demo",
+      "enabled": true,
+      "attributes": {
+        "title": [
+          "Head of AI"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${NOVA_DEMO_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "nova-user",
+        "nova-admin"
+      ]
+    }
+  ]
+}

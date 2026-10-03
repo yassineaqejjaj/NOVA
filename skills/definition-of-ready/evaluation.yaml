@@ -1,0 +1,14 @@
+criteria:
+  - key: quality.checkability
+    question: Is every criterion binary and checkable during refinement?
+    weight: 2
+  - key: quality.fit
+    question: Do criteria address the team's recurring problems rather than a generic list?
+    weight: 2
+  - key: quality.lightness
+    question: Is the list short enough to be used in practice?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Purpose, Definition of Ready]}
+    description: Purpose and ready criteria are present

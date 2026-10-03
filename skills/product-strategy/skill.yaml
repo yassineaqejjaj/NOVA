@@ -1,0 +1,68 @@
+id: product-strategy
+name: Product Strategy
+version: 1.0.0
+category: strategy
+summary: "Define how the product will reach its vision: the diagnosis, the strategic bets, the trade-offs and how progress is measured."
+purpose: >
+  Turn the vision into a small set of focused choices the team can execute and revisit. A good strategy says
+  what we will do, what we will not do, and how we will know it is working.
+triggers: [product strategy, strategy for the product, strategic bets, where to play and how to win, define our strategy, stratégie produit]
+inputs:
+  - name: vision
+    description: The product vision to build on (usually found in context)
+  - name: horizon
+    description: Strategy horizon (e.g. next 12–18 months)
+  - name: constraints
+    description: Known constraints (budget, team size, regulation, technology)
+expected_context:
+  orbit_intent: general
+  query_hint: product vision, market analysis, competitors, customer insights, business goals, capabilities, past decisions
+  token_budget: 6000
+methodology:
+  name: Diagnosis → guiding policy → coherent actions
+  principles:
+    - Start with an honest diagnosis of the situation and the critical challenge
+    - "Strategy is choice: a few focused bets and explicit trade-offs"
+    - Each bet states the objective it serves and why we believe it will work
+    - Measure progress with leading indicators, not only lagging results
+  references: [Richard Rumelt — Good Strategy Bad Strategy, A.G. Lafley & Roger Martin — Playing to Win, Marty Cagan — Empowered]
+steps:
+  - id: diagnosis
+    title: Diagnosing the market and the challenge
+    instruction: >
+      Summarize the strategy in 3–4 sentences (diagnosis, guiding policy, key bets). In the market context,
+      describe the target segment, customer needs, competitive alternatives and the critical challenge the
+      strategy must overcome, citing context.
+    fills: [summary, market_context]
+  - id: objectives
+    title: Setting strategic objectives
+    instruction: >
+      Define 2–4 outcome objectives for the horizon (attribute timeframe; owner only when known from
+      context). Each objective must follow from the diagnosis; say how in its rationale.
+    fills: [objectives]
+  - id: bets
+    title: Choosing strategic bets
+    instruction: >
+      Define 2–5 bets as initiative items: what we will do and why it should work for these customers. Set
+      objective_ref to the id of the objective it serves, expected_impact, confidence low/medium/high and
+      status proposed unless context says otherwise.
+    fills: [bets]
+  - id: trade_offs
+    title: Making trade-offs explicit
+    instruction: >
+      List 2–4 trade-offs as decision items: the choice made, the alternatives given up (segments, feature
+      areas, channels) and the consequences. Status accepted only when the decision is recorded in context;
+      otherwise proposed.
+    fills: [trade_offs]
+  - id: measures
+    title: Defining progress metrics and risks
+    instruction: >
+      Define 3–6 metrics (type success, input or guardrail) with definition, baseline only when known,
+      target and timeframe, showing whether the bets work. List the main strategic risks with likelihood,
+      impact and mitigation.
+    fills: [metrics, risks]
+tools: [search_orbit, retrieve_orbit_context]
+outputs:
+  artifact_type: product_strategy
+  mode: create
+composes_with: [vision-to-objectives, okr-definition, initiative-definition, rice-prioritization]

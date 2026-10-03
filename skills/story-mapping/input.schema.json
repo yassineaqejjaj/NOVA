@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Story Mapping — inputs",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "description": "The product or feature to map, if not in context"
+    },
+    "users": {
+      "type": "string",
+      "description": "The main user roles"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

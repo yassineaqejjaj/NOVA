@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.method_rigor
+    question: Are Kano categories applied correctly, with coefficients computed when data exists?
+    weight: 2
+  - key: quality.grounding
+    question: Are classifications grounded in cited research or flagged as assumptions?
+    weight: 2
+  - key: quality.actionability
+    question: Does the recommendation translate categories into an investment mix?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Method & context, Ranked items, Recommendation]}
+    description: Method, ranked items and recommendation are present
+  - type: citation_required
+    params: {min: 1}
+    description: Estimates cite context when context was provided

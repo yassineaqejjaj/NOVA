@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Kano Analysis — inputs",
+  "type": "object",
+  "properties": {
+    "features": {
+      "type": "string",
+      "description": "The features to classify, if not in context"
+    },
+    "survey_data": {
+      "type": "string",
+      "description": "Kano survey results (functional / dysfunctional answers), if available"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

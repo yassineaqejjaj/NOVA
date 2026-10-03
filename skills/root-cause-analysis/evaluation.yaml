@@ -1,0 +1,22 @@
+criteria:
+  - key: quality.depth
+    question: Does the analysis go beyond symptoms to systemic, actionable root causes?
+    weight: 2
+  - key: quality.evidence
+    question: Are causes supported by cited evidence or flagged as hypotheses?
+    weight: 2
+  - key: quality.blameless
+    question: Is the analysis blameless and focused on systems?
+    weight: 1
+  - key: quality.actionability
+    question: Does each root cause have corrective and preventive actions?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Problem, Causes, Root cause, Corrective actions]}
+    description: Core root cause analysis sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: The problem and causes cite context
+  - type: no_pii
+    description: No personal data or blame on named individuals

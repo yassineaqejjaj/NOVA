@@ -1,0 +1,19 @@
+type: definition_checklist
+name: Definition of Ready / Done
+description: Team working agreement
+icon: badge-check
+sections:
+- key: summary
+  title: Purpose
+  kind: rich_text
+  description: ''
+- key: ready
+  title: Definition of Ready
+  kind: items
+  item_kind: checklist_item
+  description: ''
+- key: done
+  title: Definition of Done
+  kind: items
+  item_kind: checklist_item
+  description: ''

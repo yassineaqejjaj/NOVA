@@ -1,0 +1,41 @@
+id: non-functional-requirements
+name: Non-Functional Requirements
+version: 1.0.0
+category: definition
+summary: Define measurable quality requirements — performance, security, privacy, accessibility, reliability — for a feature or system.
+purpose: >
+  Make quality attributes explicit and measurable before design and delivery choices lock them in. Vague
+  qualities ("fast", "secure") become testable targets that architecture and QA can work with.
+triggers: [non-functional requirements, nfr, quality attributes, performance requirements, security requirements, accessibility requirements, exigences non fonctionnelles]
+inputs:
+  - name: scope
+    description: The feature or system the requirements apply to, if not in context
+  - name: quality_targets
+    description: Known SLAs, standards or quality targets
+expected_context:
+  orbit_intent: engineering
+  query_hint: architecture, SLAs, security policies, privacy and compliance constraints, accessibility standards, incidents, load figures
+  token_budget: 4000
+methodology:
+  name: Measurable quality attribute scenarios
+  principles:
+    - "Every requirement is measurable: metric, threshold and condition (e.g. p95 < 300 ms at 200 requests/s)"
+    - Cover the quality characteristics relevant to the product, not every one by default
+    - Derive targets from SLAs, policies and standards in context; flag proposed ones
+    - State how each requirement will be verified
+  references: [ISO/IEC 25010 — Product quality model, "Len Bass, Paul Clements & Rick Kazman — Software Architecture in Practice", W3C — Web Content Accessibility Guidelines (WCAG) 2.2]
+steps:
+  - id: quality
+    title: Specifying quality requirements
+    instruction: >
+      Return the non-functional section with 6–12 requirements of type non_functional: category one of
+      performance, scalability, availability, security, privacy, accessibility, usability, maintainability,
+      observability or compatibility; priority must/should/could; a title stating the measurable
+      requirement; acceptance describing the verification (load test, security review, WCAG audit). Keep the
+      ids of existing non-functional requirements.
+    fills: [non_functional]
+tools: [search_orbit]
+outputs:
+  artifact_type: requirements
+  mode: update
+composes_with: [risk-analysis, definition-of-done, release-planning]

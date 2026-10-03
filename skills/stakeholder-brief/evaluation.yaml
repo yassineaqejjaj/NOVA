@@ -1,0 +1,19 @@
+criteria:
+  - key: quality.tailoring
+    question: Are messages tailored to each stakeholder's interests?
+    weight: 2
+  - key: quality.mapping
+    question: Are stakeholders mapped by interest and influence with a fitting engagement mode?
+    weight: 1
+  - key: quality.actionability
+    question: Are asks explicit, with who decides and by when?
+    weight: 2
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Stakeholders, Key messages, Asks & decisions]}
+    description: Core stakeholder brief sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: The brief cites context when context was provided
+  - type: no_pii
+    description: No contact details or personal data

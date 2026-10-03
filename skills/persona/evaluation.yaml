@@ -1,0 +1,19 @@
+criteria:
+  - key: quality.evidence
+    question: Is each attribute traceable to cited research or flagged as an assumption?
+    weight: 3
+  - key: quality.usefulness
+    question: Would the persona help a team make design and prioritization decisions?
+    weight: 1
+  - key: quality.behavioural
+    question: Is the persona defined by goals and behaviours rather than demographics?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Who they are, Goals, Frustrations, Needs, Evidence base]}
+    description: Core persona sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Attributes cite research when context was provided
+  - type: no_pii
+    description: No identifying personal data

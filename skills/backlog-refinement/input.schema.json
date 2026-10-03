@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Backlog Refinement — inputs",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "string",
+      "description": "The stories or epics to refine, if not in context"
+    },
+    "focus": {
+      "type": "string",
+      "description": "Epic, theme or sprint goal to focus the refinement on"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

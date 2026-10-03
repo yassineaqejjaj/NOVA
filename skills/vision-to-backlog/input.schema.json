@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Vision to Backlog — inputs",
+  "type": "object",
+  "properties": {
+    "vision": {
+      "type": "string",
+      "description": "The product vision or its location (usually found in context)"
+    },
+    "horizon": {
+      "type": "string",
+      "description": "Planning horizon (e.g. next quarter)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

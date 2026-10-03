@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.story_quality
+    question: Are stories INVEST vertical slices with real roles and benefits?
+    weight: 2
+  - key: quality.testability
+    question: Are acceptance criteria testable Given/When/Then statements covering edge cases?
+    weight: 2
+  - key: quality.traceability
+    question: Do stories trace to epics and to cited requirements or decisions?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Epics, Stories]}
+    description: Epics and stories are present
+  - type: citation_required
+    params: {min: 1}
+    description: Stories cite their source when context was provided

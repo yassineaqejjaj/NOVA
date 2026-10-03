@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Artifact Editing — inputs",
+  "type": "object",
+  "properties": {
+    "instruction": {
+      "type": "string",
+      "description": "What to change"
+    }
+  },
+  "required": [
+    "instruction"
+  ],
+  "additionalProperties": false
+}

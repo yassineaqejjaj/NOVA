@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Stakeholder Brief — inputs",
+  "type": "object",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "The project, launch, change or decision to communicate"
+    },
+    "stakeholders": {
+      "type": "string",
+      "description": "Known stakeholder groups or roles"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

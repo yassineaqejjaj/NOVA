@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.solution_free
+    question: Is the problem stated without presupposing a solution?
+    weight: 2
+  - key: quality.evidence
+    question: Is the problem supported by cited evidence, separated from assumptions?
+    weight: 2
+  - key: quality.success_definition
+    question: Is success described as an observable change for affected users?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Problem statement, Who is affected, Evidence, Impact & cost of inaction, What success looks like]}
+    description: Core problem framing sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Evidence cites context when context was provided

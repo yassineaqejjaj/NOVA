@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Impact / Effort Prioritization — inputs",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "string",
+      "description": "The ideas or items to place on the matrix, if not in context"
+    },
+    "objective": {
+      "type": "string",
+      "description": "The objective against which impact is judged"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

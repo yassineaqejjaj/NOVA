@@ -1,0 +1,57 @@
+id: risk-analysis
+name: Risk Analysis
+version: 1.0.0
+category: delivery
+summary: Identify product and delivery risks, rate likelihood and impact, and plan mitigations with owners.
+purpose: >
+  Make uncertainty visible and manageable instead of discovering it late. A risk register focuses attention
+  on the few risks that could derail value, delivery or trust.
+triggers: [risk analysis, risk register, what could go wrong, identify the risks, pre-mortem, risks, analyse des risques]
+inputs:
+  - name: scope
+    description: The project, release or initiative to analyse, if not obvious from context
+  - name: risk_appetite
+    description: The organization's tolerance for risk, if known
+expected_context:
+  orbit_intent: analysis
+  query_hint: plans, PRD, architecture, dependencies, decisions, incidents, assumptions, constraints, regulations
+  token_budget: 5000
+methodology:
+  name: Risk register with pre-mortem
+  principles:
+    - Cover value, usability, feasibility and viability risks, plus delivery and compliance risks
+    - Imagine the project has failed (pre-mortem) and list why
+    - Rate likelihood and impact separately; address high/high first
+    - Each significant risk has a mitigation, a signal to watch and an owner
+  references: [Marty Cagan — Inspired, "Gary Klein — Performing a Project Premortem (HBR, 2007)", PMI — PMBOK Guide]
+steps:
+  - id: premortem
+    title: Running a pre-mortem
+    instruction: >
+      Summarize the scope analysed, imagine it has failed in six months, and state the top 3 reasons in 3–5
+      sentences, citing context.
+    fills: [summary]
+  - id: risks
+    title: Rating the risks
+    instruction: >
+      List 6–12 risks ordered by severity: the description gives the category (value, usability,
+      feasibility, viability, delivery, compliance) and the signal to watch; likelihood and impact
+      low/medium/high; mitigation; owner as a role.
+    fills: [risks]
+  - id: assumptions
+    title: Exposing the assumptions
+    instruction: >
+      List the assumptions that, if wrong, would create or worsen risks, with confidence and how to validate
+      them.
+    fills: [assumptions]
+  - id: actions
+    title: Planning mitigation actions
+    instruction: >
+      List 3–8 actions as note items with parent_id = the risk id they mitigate; the description gives the
+      owner role and when it should be done (only dates found in context).
+    fills: [actions]
+tools: [search_orbit, retrieve_orbit_context]
+outputs:
+  artifact_type: risk_register
+  mode: create
+composes_with: [dependency-analysis, experiment-definition, stakeholder-brief]

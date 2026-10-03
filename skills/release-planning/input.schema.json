@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Release Planning — inputs",
+  "type": "object",
+  "properties": {
+    "release": {
+      "type": "string",
+      "description": "Release name or version"
+    },
+    "target_date": {
+      "type": "string",
+      "description": "Target date or window, if fixed"
+    },
+    "capacity": {
+      "type": "string",
+      "description": "Team capacity or velocity, if known"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

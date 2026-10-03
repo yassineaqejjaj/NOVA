@@ -1,0 +1,57 @@
+id: moscow-prioritization
+name: MoSCoW Prioritization
+version: 1.0.0
+category: prioritization
+summary: Classify requirements or features into Must, Should, Could and Won't have for a given release or timebox.
+purpose: >
+  Agree on what a release absolutely needs and what can flex, so scope can be negotiated without endangering
+  the deadline. MoSCoW forces an explicit "won't have this time" list.
+triggers: [moscow, must should could, must have, prioritize the scope, what is in the mvp, scope for the release, priorisation moscow]
+inputs:
+  - name: items
+    description: The requirements, features or stories to classify, if not in context
+  - name: timebox
+    description: The release or timebox the classification applies to
+expected_context:
+  orbit_intent: analysis
+  query_hint: requirements, backlog, release goal, deadline, constraints, decisions, stakeholder expectations, estimates
+  token_budget: 4000
+methodology:
+  name: MoSCoW (DSDM)
+  principles:
+    - "Must have: without it the release is not viable, not legal, unsafe or pointless"
+    - "Should have: important, but a workaround exists; Could have: desirable if time allows"
+    - "Won't have this time: explicitly out of the timebox, not rejected forever"
+    - Keep Must haves well under total effort (around 60%) to leave contingency
+  references: [Agile Business Consortium — DSDM Agile Project Framework (MoSCoW), Dai Clegg & Richard Barker — Case Method Fast-Track]
+steps:
+  - id: timebox
+    title: Defining the timebox and the criteria
+    instruction: >
+      Describe the timebox, the release goal and the test used for Must ("what happens if this is not
+      delivered?"), citing the goal and constraints found in context.
+    fills: [summary]
+  - id: classify
+    title: Classifying items with MoSCoW
+    instruction: >
+      For each item, create a scored_item with method moscow, bucket must, should, could or wont, score set
+      to the bucket name, and rank following bucket order then importance within the bucket. The rationale
+      applies the Must test in one sentence.
+    fills: [items]
+  - id: assumptions
+    title: Recording classification assumptions
+    instruction: >
+      List the assumptions behind the classification (effort share, deadlines, stakeholder needs, regulatory
+      obligations) with confidence and validation.
+    fills: [assumptions]
+  - id: balance
+    title: Checking the balance of the scope
+    instruction: >
+      Check that Must haves leave contingency (state their estimated share of effort when estimates exist),
+      flag items stakeholders may contest, and recommend the scope to commit.
+    fills: [recommendation]
+tools: [search_orbit, list_artifacts]
+outputs:
+  artifact_type: prioritization_matrix
+  mode: create
+composes_with: [release-planning, user-story-generation, stakeholder-brief]

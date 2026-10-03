@@ -1,0 +1,48 @@
+type: epic
+name: Epic
+description: Epic definition
+icon: layers
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: problem
+  title: Problem & value
+  kind: rich_text
+  description: ''
+- key: epics
+  title: Epic
+  kind: items
+  item_kind: epic
+  description: ''
+- key: scope
+  title: In scope
+  kind: items
+  item_kind: note
+  description: ''
+- key: out_of_scope
+  title: Out of scope
+  kind: items
+  item_kind: note
+  description: ''
+- key: user_stories
+  title: Candidate stories
+  kind: items
+  item_kind: story
+  description: parent_id = epic item id
+- key: metrics
+  title: Success metrics
+  kind: items
+  item_kind: metric
+  description: ''
+- key: dependencies
+  title: Dependencies
+  kind: items
+  item_kind: dependency
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''

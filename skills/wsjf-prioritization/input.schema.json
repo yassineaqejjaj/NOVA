@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WSJF Prioritization — inputs",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "string",
+      "description": "The features or epics to sequence, if not in context"
+    },
+    "scale": {
+      "type": "string",
+      "description": "Relative scale to use (default modified Fibonacci 1, 2, 3, 5, 8, 13, 20)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

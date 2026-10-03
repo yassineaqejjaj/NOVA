@@ -1,0 +1,20 @@
+criteria:
+  - key: quality.faithfulness
+    question: Is the decision status and ownership faithful to context, with nothing invented?
+    weight: 3
+  - key: quality.options
+    question: Are at least two real options compared with pros and cons?
+    weight: 1
+  - key: quality.consequences
+    question: Are positive and negative consequences recorded?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Context, Options considered, Decision, Consequences]}
+    description: Core decision record sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: The context cites sources when context was provided
+  - type: max_length
+    params: {words: 900}
+    description: The record stays short

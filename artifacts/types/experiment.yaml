@@ -1,0 +1,33 @@
+type: experiment
+name: Experiment
+description: Experiment design or analysis
+icon: flask-round
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: hypotheses
+  title: Hypotheses
+  kind: items
+  item_kind: hypothesis
+  description: ''
+- key: experiments
+  title: Experiments
+  kind: items
+  item_kind: experiment
+  description: ''
+- key: metrics
+  title: Metrics
+  kind: items
+  item_kind: metric
+  description: ''
+- key: risks
+  title: Risks & ethics
+  kind: items
+  item_kind: risk
+  description: ''
+- key: decision_rule
+  title: Decision rule
+  kind: rich_text
+  description: ''

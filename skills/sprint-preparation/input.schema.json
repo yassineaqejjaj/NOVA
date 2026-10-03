@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sprint Preparation — inputs",
+  "type": "object",
+  "properties": {
+    "sprint": {
+      "type": "string",
+      "description": "Sprint name or number (e.g. Sprint 19)"
+    },
+    "sprint_goal": {
+      "type": "string",
+      "description": "The proposed sprint goal, if known"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

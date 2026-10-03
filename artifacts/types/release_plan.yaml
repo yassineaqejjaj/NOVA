@@ -1,0 +1,38 @@
+type: release_plan
+name: Release Plan
+description: Plan for one or more releases
+icon: flag
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: milestones
+  title: Milestones
+  kind: items
+  item_kind: milestone
+  description: ''
+- key: scope
+  title: Scope
+  kind: items
+  item_kind: epic
+  description: ''
+- key: dependencies
+  title: Dependencies
+  kind: items
+  item_kind: dependency
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: rollout
+  title: Rollout & communication
+  kind: rich_text
+  description: ''
+- key: go_no_go
+  title: Go / no-go checklist
+  kind: items
+  item_kind: checklist_item
+  description: ''

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PR/FAQ (Working Backwards) — inputs",
+  "type": "object",
+  "properties": {
+    "idea": {
+      "type": "string",
+      "description": "The product or feature to describe"
+    },
+    "target_customer": {
+      "type": "string",
+      "description": "The customer the product is for"
+    },
+    "launch_horizon": {
+      "type": "string",
+      "description": "Target launch timeframe, if known"
+    }
+  },
+  "required": [
+    "idea"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OKR Definition — inputs",
+  "type": "object",
+  "properties": {
+    "period": {
+      "type": "string",
+      "description": "The OKR period (e.g. next quarter)"
+    },
+    "team": {
+      "type": "string",
+      "description": "The team or scope the OKRs are for"
+    },
+    "priorities": {
+      "type": "string",
+      "description": "Company or product priorities the OKRs should align with"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

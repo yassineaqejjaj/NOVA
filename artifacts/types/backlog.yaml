@@ -1,0 +1,44 @@
+type: backlog
+name: Backlog
+description: Objectives → initiatives → epics → stories
+icon: kanban
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: objectives
+  title: Objectives
+  kind: items
+  item_kind: objective
+  description: ''
+- key: initiatives
+  title: Initiatives
+  kind: items
+  item_kind: initiative
+  description: parent_id = objective item id
+- key: epics
+  title: Epics
+  kind: items
+  item_kind: epic
+  description: parent_id = initiative item id
+- key: stories
+  title: User stories
+  kind: items
+  item_kind: story
+  description: parent_id = epic item id
+- key: dependencies
+  title: Dependencies
+  kind: items
+  item_kind: dependency
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: questions
+  title: Open questions
+  kind: items
+  item_kind: question
+  description: ''

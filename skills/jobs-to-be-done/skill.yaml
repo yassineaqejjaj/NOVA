@@ -1,0 +1,59 @@
+id: jobs-to-be-done
+name: Jobs to Be Done
+version: 1.0.0
+category: discovery
+summary: Identify the jobs customers hire the product for, their desired outcomes, struggling moments and current alternatives.
+purpose: >
+  Understand why customers adopt or abandon a solution by focusing on the progress they try to make in a
+  given situation. Jobs and desired outcomes give a stable basis for innovation and prioritization that
+  feature lists cannot.
+triggers: [jobs to be done, jtbd, customer jobs, why customers hire us, job stories, desired outcomes, jobs à accomplir]
+inputs:
+  - name: segment
+    description: Customer segment or persona to analyse
+  - name: domain
+    description: The activity or market to analyse
+expected_context:
+  orbit_intent: research
+  query_hint: user research, interviews, feedback, switching stories, personas, competitors and alternatives
+  token_budget: 5000
+methodology:
+  name: Jobs to Be Done (job stories and outcome-driven innovation)
+  principles:
+    - A job is the progress a customer seeks in a specific circumstance, independent of any solution
+    - Capture functional, emotional and social dimensions
+    - Desired outcomes are the measurable criteria customers use to judge how well the job gets done
+    - Struggling moments and current alternatives reveal where to compete
+  references: [Clayton Christensen — Competing Against Luck, "Anthony Ulwick — Jobs to Be Done: Theory to Practice", Bob Moesta — Demand-Side Sales 101, Alan Klement — When Coffee and Kale Compete]
+steps:
+  - id: context
+    title: Setting the context
+    instruction: >
+      Describe the segment, the domain and the sources used in 2–4 sentences, citing context.
+    fills: [summary]
+  - id: jobs
+    title: Identifying the jobs
+    instruction: >
+      Write 3–6 jobs as job stories: situation ("When…"), motivation ("I want to…"), outcome ("so I can…")
+      and type functional, emotional or social. Include at least one main functional job; related emotional
+      or social jobs use parent_id = the main job id.
+    fills: [jobs]
+  - id: outcomes
+    title: Defining desired outcomes
+    instruction: >
+      For the main jobs, write 3–8 desired outcome statements as metric items (type success) with a
+      definition phrased "minimize the time / likelihood of …" or "increase …"; parent_id is the job id. No
+      baselines unless found in context.
+    fills: [outcomes]
+  - id: struggles
+    title: Mapping struggles and alternatives
+    instruction: >
+      List 3–5 struggling moments as insights (theme, evidence, frequency, severity) with parent_id = the
+      job they block, and 2–5 current alternatives (products, workarounds, doing nothing) customers hire
+      today, with why they fall short.
+    fills: [struggles, alternatives]
+tools: [search_orbit]
+outputs:
+  artifact_type: jtbd
+  mode: create
+composes_with: [opportunity-solution-tree, persona, user-journey, kano-analysis]

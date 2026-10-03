@@ -1,0 +1,58 @@
+id: wsjf-prioritization
+name: WSJF Prioritization
+version: 1.0.0
+category: prioritization
+summary: "Sequence features or epics by Weighted Shortest Job First: Cost of Delay divided by job size."
+purpose: >
+  Sequence work to maximize the economic value delivered over time. WSJF favours items whose delay is costly
+  and that are small, making time criticality and risk reduction explicit alongside business value.
+triggers: [wsjf, weighted shortest job first, cost of delay, sequence the epics, safe prioritization, prioriser avec wsjf]
+inputs:
+  - name: items
+    description: The features or epics to sequence, if not in context
+  - name: scale
+    description: Relative scale to use (default modified Fibonacci 1, 2, 3, 5, 8, 13, 20)
+expected_context:
+  orbit_intent: analysis
+  query_hint: epics, features, deadlines, market windows, dependencies, risks, business value, estimates, objectives
+  token_budget: 5000
+methodology:
+  name: WSJF (Reinertsen, SAFe)
+  principles:
+    - Cost of Delay = user-business value + time criticality + risk reduction or opportunity enablement
+    - Score each component relatively on a modified Fibonacci scale, with the smallest item at 1
+    - Job size is a relative estimate of duration or effort, not a date
+    - WSJF = Cost of Delay ÷ Job size; the highest goes first
+  references: [Donald Reinertsen — The Principles of Product Development Flow, Scaled Agile Framework — Weighted Shortest Job First]
+steps:
+  - id: method
+    title: Setting the method and the candidates
+    instruction: >
+      Describe the candidate list and its source (cited), the relative scale and the objective or economic
+      frame against which value is judged.
+    fills: [summary]
+  - id: scoring
+    title: Estimating cost of delay and job size
+    instruction: >
+      For each candidate, create a scored_item with method wsjf and scores {business_value,
+      time_criticality, risk_reduction, job_size} on the relative scale. Compute score = (business_value +
+      time_criticality + risk_reduction) ÷ job_size, rounded to one decimal, and set rank (1 = highest). The
+      description justifies time criticality (deadline, decay of value) and risk reduction.
+    fills: [items]
+  - id: assumptions
+    title: Recording scoring assumptions
+    instruction: >
+      List the assumptions behind the relative scores — deadlines, value decay, size guesses — with
+      confidence and validation.
+    fills: [assumptions]
+  - id: sequence
+    title: Recommending the sequence
+    instruction: >
+      Recommend the sequence. Note dependencies that force a different order and large items with a high
+      Cost of Delay that should be split to start delivering value sooner.
+    fills: [recommendation]
+tools: [search_orbit, list_artifacts]
+outputs:
+  artifact_type: prioritization_matrix
+  mode: create
+composes_with: [release-planning, dependency-analysis, epic-definition]

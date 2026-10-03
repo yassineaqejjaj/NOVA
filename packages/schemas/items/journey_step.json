@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/journey_step",
+  "title": "journey_step",
+  "description": "Step of a user journey",
+  "type": "object",
+  "properties": {
+    "stage": {
+      "type": "string"
+    },
+    "actions": {
+      "type": "string"
+    },
+    "thoughts": {
+      "type": "string"
+    },
+    "emotion": {
+      "type": "string",
+      "enum": [
+        "positive",
+        "neutral",
+        "negative"
+      ]
+    },
+    "pain_points": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "opportunities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "stage"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,57 @@
+id: story-mapping
+name: Story Mapping
+version: 1.0.0
+category: definition
+summary: "Build a user story map: a backbone of user activities, the stories beneath them and release slices."
+purpose: >
+  See the whole product experience as a narrative before slicing it into releases. The map helps the team
+  find the smallest end-to-end release that delivers value and avoids building features in isolation.
+triggers: [story map, story mapping, user story map, backbone of activities, release slices, mvp slice, cartographie des user stories]
+inputs:
+  - name: scope
+    description: The product or feature to map, if not in context
+  - name: users
+    description: The main user roles
+expected_context:
+  orbit_intent: specification
+  query_hint: personas, user journeys, PRD, epics, user stories, objectives, release constraints
+  token_budget: 5000
+methodology:
+  name: User Story Mapping
+  principles:
+    - The backbone is the user's activities in narrative order, left to right
+    - Stories sit under the activity they support, ordered top-down by necessity
+    - "Release slices cut across the whole backbone: each is an end-to-end, valuable experience"
+    - The first slice is the smallest that lets users reach their goal (walking skeleton)
+  references: [Jeff Patton — User Story Mapping]
+steps:
+  - id: narrative
+    title: Telling the user narrative
+    instruction: >
+      Write the narrative in 3–4 sentences: who the user is, their goal and how they reach it end to end,
+      citing personas or journeys from context.
+    fills: [summary]
+  - id: backbone
+    title: Building the backbone
+    instruction: >
+      List 4–8 activities as note items in narrative order, titled with verb phrases ("Set up the
+      workspace", "Invite the team").
+    fills: [activities]
+  - id: stories
+    title: Placing stories under activities
+    instruction: >
+      Under each activity, place 2–5 stories (as_a, i_want, so_that, priority, status draft) with parent_id
+      = the activity id, ordered from essential to nice-to-have. Reuse the ids of stories found in context.
+    fills: [stories]
+  - id: slices
+    title: Slicing the releases
+    instruction: >
+      Define 2–4 release slices as milestones whose deliverables list the included story ids (each slice
+      spans the whole backbone), status planned and date only when known. The first slice is the walking
+      skeleton; the description states the outcome each slice enables.
+    fills: [releases]
+tools: [search_orbit, list_artifacts]
+outputs:
+  artifact_type: story_map
+  mode: create
+composes_with: [release-planning, user-story-generation, backlog-refinement]

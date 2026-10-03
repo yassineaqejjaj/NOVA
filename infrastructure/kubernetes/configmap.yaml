@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nova-config
+data:
+  NOVA_ENV: production
+  NOVA_PUBLIC_URL: https://nova.example.internal
+  NOVA_VALKEY_URL: redis://valkey:6379/0
+  NOVA_AUTH_MODE: oidc
+  NOVA_OIDC_ISSUER: https://sso.example.internal/realms/nova
+  NOVA_OIDC_INTERNAL_URL: http://keycloak:8080/realms/nova
+  NOVA_OIDC_CLIENT_ID: nova-web
+  NOVA_OIDC_AUDIENCE: nova-web
+  NOVA_COOKIE_SECURE: "true"
+  NOVA_LLM_PROVIDER: vllm
+  NOVA_LLM_BASE_URL: http://vllm:8000/v1
+  NOVA_LLM_MODEL: Qwen/Qwen2.5-32B-Instruct
+  NOVA_ORBIT_BASE_URL: http://orbit-api:8000
+  NOVA_ORBIT_PUBLIC_URL: https://orbit.example.internal
+  NOVA_FORGE_BASE_URL: http://forge-api:8000
+  NOVA_FORGE_PUBLIC_URL: https://forge.example.internal
+  NOVA_FORGE_CAPTURE_POLICY: on_feedback
+  NOVA_OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  NOVA_POLICY_ALLOW_AUTO_EXTERNAL_WRITES: "false"

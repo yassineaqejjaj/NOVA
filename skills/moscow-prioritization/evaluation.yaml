@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.honest_musts
+    question: Are Must haves limited to what makes the release viable?
+    weight: 2
+  - key: quality.grounding
+    question: Are classifications justified by cited goals, constraints or decisions?
+    weight: 2
+  - key: quality.actionability
+    question: Does the recommendation give a committable scope with contingency?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Method & context, Ranked items, Recommendation]}
+    description: Method, ranked items and recommendation are present
+  - type: citation_required
+    params: {min: 1}
+    description: Estimates cite context when context was provided

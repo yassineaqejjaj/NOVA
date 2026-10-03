@@ -1,0 +1,19 @@
+type: opportunity_tree
+name: Opportunity Solution Tree
+description: Outcome → opportunities → solutions → experiments
+icon: git-fork
+sections:
+- key: outcome
+  title: Desired outcome
+  kind: rich_text
+  description: ''
+- key: nodes
+  title: Tree
+  kind: items
+  item_kind: opportunity
+  description: parent_id links the tree; root nodes are opportunities
+- key: assumptions
+  title: Riskiest assumptions
+  kind: items
+  item_kind: assumption
+  description: ''

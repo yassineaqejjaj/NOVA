@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nova-web
+  labels: {app: nova, component: web}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: nova, component: web}}
+  template:
+    metadata: {labels: {app: nova, component: web}}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001}
+      containers:
+        - name: web
+          image: nova-web:0.1.0
+          env: [{name: NOVA_API_URL, value: "http://nova-api:8200"}]
+          ports: [{containerPort: 3000, name: http}]
+          readinessProbe: {httpGet: {path: /login, port: http}}
+          resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {memory: 512Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nova-web
+spec:
+  selector: {app: nova, component: web}
+  ports: [{port: 3000, targetPort: http, name: http}]

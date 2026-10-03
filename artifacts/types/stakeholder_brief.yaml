@@ -1,0 +1,29 @@
+type: stakeholder_brief
+name: Stakeholder Brief
+description: What each stakeholder needs to know
+icon: users
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: stakeholders
+  title: Stakeholders
+  kind: items
+  item_kind: stakeholder
+  description: ''
+- key: messages
+  title: Key messages
+  kind: items
+  item_kind: note
+  description: ''
+- key: asks
+  title: Asks & decisions
+  kind: items
+  item_kind: decision
+  description: ''
+- key: timeline
+  title: Timeline
+  kind: items
+  item_kind: milestone
+  description: ''

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "User Research Plan — inputs",
+  "type": "object",
+  "properties": {
+    "research_goal": {
+      "type": "string",
+      "description": "The decision the research should inform and what needs to be learned"
+    },
+    "audience": {
+      "type": "string",
+      "description": "Who should be studied (segment, role, behaviour)"
+    },
+    "timeline": {
+      "type": "string",
+      "description": "Available time or deadline for the study"
+    }
+  },
+  "required": [
+    "research_goal"
+  ],
+  "additionalProperties": false
+}

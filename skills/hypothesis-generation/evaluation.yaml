@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.falsifiability
+    question: Is each hypothesis falsifiable with a measurable signal and threshold?
+    weight: 3
+  - key: quality.risk_focus
+    question: Are the riskiest assumptions prioritized?
+    weight: 1
+  - key: quality.coverage
+    question: Do assumptions cover desirability, viability, feasibility and usability?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Context, Hypotheses, Underlying assumptions]}
+    description: Context, hypotheses and assumptions are present
+  - type: citation_required
+    params: {min: 1}
+    description: Existing evidence is cited when context was provided

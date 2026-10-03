@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/cause",
+  "title": "cause",
+  "description": "Cause in a root cause analysis",
+  "type": "object",
+  "properties": {
+    "level": {
+      "type": "integer"
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

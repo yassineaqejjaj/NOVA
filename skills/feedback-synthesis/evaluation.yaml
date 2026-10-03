@@ -1,0 +1,19 @@
+criteria:
+  - key: quality.evidence
+    question: Is every theme backed by cited feedback with an honest frequency?
+    weight: 3
+  - key: quality.insightfulness
+    question: Do themes reveal underlying needs rather than restating requests?
+    weight: 1
+  - key: quality.actionability
+    question: Are opportunities and next steps concrete?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Themes, Representative quotes, Opportunities]}
+    description: Core synthesis sections are present
+  - type: citation_required
+    params: {min: 2}
+    description: Themes cite the feedback they come from
+  - type: no_pii
+    description: Quotes and themes contain no personal data

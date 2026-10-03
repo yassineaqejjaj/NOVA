@@ -1,0 +1,19 @@
+criteria:
+  - key: quality.user_language
+    question: Are changes described as user benefits in plain language?
+    weight: 2
+  - key: quality.accuracy
+    question: Do notes include only shipped changes found in cited context?
+    weight: 2
+  - key: quality.transparency
+    question: Are known issues and workarounds stated?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, New, Fixed]}
+    description: Summary, new and fixed sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Changes cite the release content in context
+  - type: no_pii
+    description: No personal data or customer names

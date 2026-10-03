@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nova-worker
+  labels: {app: nova, component: worker}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: nova, component: worker}}
+  template:
+    metadata: {labels: {app: nova, component: worker}}
+    spec:
+      terminationGracePeriodSeconds: 120
+      securityContext: {runAsNonRoot: true, runAsUser: 10001}
+      containers:
+        - name: worker
+          image: nova-backend:0.1.0
+          args: ["worker"]
+          env: [{name: NOVA_WORKER_CONCURRENCY, value: "4"}]
+          envFrom: [{configMapRef: {name: nova-config}}, {secretRef: {name: nova-secrets}}]
+          resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {memory: 1536Mi}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nova-beat
+  labels: {app: nova, component: beat}
+spec:
+  replicas: 1  # must stay single
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: nova, component: beat}}
+  template:
+    metadata: {labels: {app: nova, component: beat}}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001}
+      containers:
+        - name: beat
+          image: nova-backend:0.1.0
+          args: ["beat"]
+          envFrom: [{configMapRef: {name: nova-config}}, {secretRef: {name: nova-secrets}}]
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {memory: 256Mi}}

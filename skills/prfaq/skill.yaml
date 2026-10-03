@@ -1,0 +1,59 @@
+id: prfaq
+name: PR/FAQ (Working Backwards)
+version: 1.0.0
+category: definition
+summary: Write an Amazon-style press release and FAQ that describes the product from the customer's point of view before building it.
+purpose: >
+  Work backwards from the customer: if the launch announcement is not compelling, the product is not worth
+  building yet. The FAQ forces hard questions on feasibility, economics and risks to be answered upfront.
+triggers: [prfaq, pr faq, press release, working backwards, write the press release, launch announcement draft, communiqué working backwards]
+inputs:
+  - name: idea
+    description: The product or feature to describe
+    required: true
+    ask: true
+    question: What is the product or feature, and which customer problem does it solve?
+  - name: target_customer
+    description: The customer the product is for
+  - name: launch_horizon
+    description: Target launch timeframe, if known
+expected_context:
+  orbit_intent: specification
+  query_hint: customer problem, research insights, product vision, strategy, competitors, constraints, business model
+  token_budget: 5000
+methodology:
+  name: Working Backwards PR/FAQ
+  principles:
+    - Start from the customer and their problem, not from the technology
+    - Write the press release as if launching today, in plain language without jargon
+    - The external FAQ answers customer questions; the internal FAQ tackles feasibility, economics and risks
+    - If the benefit is not compelling on paper, iterate or stop
+  references: [Colin Bryar & Bill Carr — Working Backwards]
+steps:
+  - id: headline
+    title: Writing the headline
+    instruction: >
+      Write the headline (product name and main customer benefit, one line) followed by a one-sentence
+      subheading naming the target customer and the benefit.
+    fills: [headline]
+  - id: press_release
+    title: Drafting the press release
+    instruction: >
+      Write the press release in 4–6 short paragraphs: summary, the customer problem, the solution, how it
+      works from the customer's view, and how to get started. Use placeholders such as [Launch date] and
+      [City] instead of real dates or places. Write the customer quote as a clearly hypothetical customer,
+      described by role, explaining the benefit in their own words.
+    fills: [press_release, customer_quote]
+  - id: faqs
+    title: Answering customer and internal FAQs
+    instruction: >
+      Write 5–8 external FAQs (audience customer: price, availability, how it differs, what it does not do)
+      and 6–10 internal FAQs (audience internal: why now, target customers and how to size them, success
+      metrics, feasibility, dependencies, economics, risks, what we are not doing). Answers cite context;
+      unknowns are stated as open.
+    fills: [external_faq, internal_faq]
+tools: [search_orbit]
+outputs:
+  artifact_type: prfaq
+  mode: create
+composes_with: [prd, hypothesis-generation, stakeholder-brief]

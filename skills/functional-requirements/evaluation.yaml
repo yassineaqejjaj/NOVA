@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.testability
+    question: Is each requirement a single, verifiable behaviour with an acceptance statement?
+    weight: 2
+  - key: quality.traceability
+    question: Do requirements trace to cited needs, stories or decisions?
+    weight: 2
+  - key: quality.unambiguity
+    question: Is the language free of vague terms and implementation details?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Context, Functional requirements, Constraints, Open questions]}
+    description: Core functional requirements sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Requirements cite their source when context was provided

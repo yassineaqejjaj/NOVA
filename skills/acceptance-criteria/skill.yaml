@@ -1,0 +1,40 @@
+id: acceptance-criteria
+name: Acceptance Criteria
+version: 1.0.0
+category: definition
+summary: Write or strengthen Given/When/Then acceptance criteria on existing user stories, keeping their ids.
+purpose: >
+  Make each story unambiguous and testable before development starts. Concrete, shared examples align
+  product, design, engineering and QA on what "done" means.
+triggers: [acceptance criteria, given when then, write acceptance criteria, gherkin, test scenarios for the stories, critères d'acceptation]
+inputs:
+  - name: stories
+    description: The stories to complete, if not in the current artifact or context
+  - name: rules
+    description: Business rules or constraints the criteria must respect
+expected_context:
+  orbit_intent: specification
+  query_hint: user stories, business rules, requirements, decisions, edge cases, non-functional requirements
+  token_budget: 4000
+methodology:
+  name: Specification by Example (Given/When/Then)
+  principles:
+    - Criteria describe observable behaviour, not implementation
+    - Cover the main path, business-rule variations, edge cases and errors
+    - One behaviour per criterion, with concrete example values
+    - Keep each story's id, title and intent unchanged
+  references: [Gojko Adzic — Specification by Example, Dan North — Introducing BDD, Matt Wynne — Introducing Example Mapping]
+steps:
+  - id: criteria
+    title: Writing Given/When/Then criteria
+    instruction: >
+      Return the full stories section: keep every existing story with its id, title, as_a, i_want, so_that,
+      priority, estimate, status and parent_id unchanged, and replace acceptance_criteria with 3–6
+      given/when/then items covering the main path, business-rule variations, edge cases (empty, limits,
+      permissions) and errors. Note missing information in the story's rationale instead of inventing rules.
+    fills: [stories]
+tools: [search_orbit]
+outputs:
+  artifact_type: user_stories
+  mode: update
+composes_with: [backlog-refinement, definition-of-ready, sprint-preparation]

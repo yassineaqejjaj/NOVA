@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "User Journey Map — inputs",
+  "type": "object",
+  "properties": {
+    "scenario": {
+      "type": "string",
+      "description": "The scenario to map (e.g. a new customer's first month)"
+    },
+    "persona": {
+      "type": "string",
+      "description": "The persona or segment whose journey is mapped"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

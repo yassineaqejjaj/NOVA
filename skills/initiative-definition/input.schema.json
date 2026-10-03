@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Initiative Definition — inputs",
+  "type": "object",
+  "properties": {
+    "initiative": {
+      "type": "string",
+      "description": "The initiative to define"
+    },
+    "objective": {
+      "type": "string",
+      "description": "The objective or OKR it serves, if known"
+    },
+    "constraints": {
+      "type": "string",
+      "description": "Known constraints (deadline, budget, team, technology)"
+    }
+  },
+  "required": [
+    "initiative"
+  ],
+  "additionalProperties": false
+}

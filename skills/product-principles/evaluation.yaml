@@ -1,0 +1,20 @@
+criteria:
+  - key: quality.opinionated
+    question: Does each principle express a real trade-off rather than a platitude?
+    weight: 2
+  - key: quality.specificity
+    question: Are principles specific to this product and its users?
+    weight: 1
+  - key: quality.decision_power
+    question: Do the example decisions show the principles settling real debates?
+    weight: 2
+checks:
+  - type: sections_present
+    params: {sections: [Purpose, Principles, Decisions they would settle]}
+    description: Purpose, principles and examples are present
+  - type: citation_required
+    params: {min: 1}
+    description: Principles are grounded in cited context when context was provided
+  - type: max_length
+    params: {words: 1200}
+    description: The principles stay short enough to be remembered

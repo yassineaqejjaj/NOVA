@@ -1,0 +1,34 @@
+type: requirements
+name: Requirements
+description: Functional and non-functional requirements
+icon: clipboard-list
+sections:
+- key: summary
+  title: Context
+  kind: rich_text
+  description: ''
+- key: functional
+  title: Functional requirements
+  kind: items
+  item_kind: requirement
+  description: ''
+- key: non_functional
+  title: Non-functional requirements
+  kind: items
+  item_kind: requirement
+  description: ''
+- key: constraints
+  title: Constraints
+  kind: items
+  item_kind: note
+  description: ''
+- key: assumptions
+  title: Assumptions
+  kind: items
+  item_kind: assumption
+  description: ''
+- key: questions
+  title: Open questions
+  kind: items
+  item_kind: question
+  description: ''

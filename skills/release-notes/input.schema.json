@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Release Notes — inputs",
+  "type": "object",
+  "properties": {
+    "release": {
+      "type": "string",
+      "description": "Release name or version"
+    },
+    "audience": {
+      "type": "string",
+      "description": "Who reads the notes (end users, admins, developers)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

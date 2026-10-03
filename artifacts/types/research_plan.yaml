@@ -1,0 +1,37 @@
+type: research_plan
+name: User Research Plan
+description: Plan to learn what we need to learn
+icon: search
+sections:
+- key: summary
+  title: Research goal
+  kind: rich_text
+  description: ''
+- key: questions
+  title: Research questions
+  kind: items
+  item_kind: question
+  description: ''
+- key: method
+  title: Method
+  kind: rich_text
+  description: ''
+- key: participants
+  title: Participants & recruiting
+  kind: rich_text
+  description: ''
+- key: milestones
+  title: Timeline
+  kind: items
+  item_kind: milestone
+  description: ''
+- key: risks
+  title: Risks & biases
+  kind: items
+  item_kind: risk
+  description: ''
+- key: deliverables
+  title: Deliverables
+  kind: items
+  item_kind: note
+  description: ''

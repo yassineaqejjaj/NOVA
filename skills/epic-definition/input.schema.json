@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Epic Definition — inputs",
+  "type": "object",
+  "properties": {
+    "epic": {
+      "type": "string",
+      "description": "What the epic should deliver"
+    },
+    "initiative": {
+      "type": "string",
+      "description": "The parent initiative or objective, if known"
+    }
+  },
+  "required": [
+    "epic"
+  ],
+  "additionalProperties": false
+}

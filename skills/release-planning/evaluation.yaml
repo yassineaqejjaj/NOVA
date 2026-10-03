@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.realism
+    question: Is the scope consistent with capacity and dates found in context?
+    weight: 2
+  - key: quality.grounding
+    question: Are epics, dates and dependencies taken from cited context, with nothing invented?
+    weight: 2
+  - key: quality.rollout_safety
+    question: Is the rollout progressive and reversible with clear go/no-go criteria?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Milestones, Scope, Risks, Go / no-go checklist]}
+    description: Core release plan sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Scope cites the backlog or roadmap in context

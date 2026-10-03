@@ -1,0 +1,29 @@
+type: jtbd
+name: Jobs To Be Done
+description: Jobs customers hire the product for
+icon: briefcase
+sections:
+- key: summary
+  title: Context
+  kind: rich_text
+  description: ''
+- key: jobs
+  title: Jobs
+  kind: items
+  item_kind: job
+  description: ''
+- key: outcomes
+  title: Desired outcomes
+  kind: items
+  item_kind: metric
+  description: ''
+- key: struggles
+  title: Struggling moments
+  kind: items
+  item_kind: insight
+  description: ''
+- key: alternatives
+  title: Current alternatives
+  kind: items
+  item_kind: note
+  description: ''

@@ -1,0 +1,14 @@
+criteria:
+  - key: quality.verifiability
+    question: Is every criterion verifiable by anyone in the team?
+    weight: 2
+  - key: quality.releasability
+    question: Does meeting the definition make an increment releasable?
+    weight: 2
+  - key: quality.fit
+    question: Do criteria reflect the team's standards and recurring issues in context?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Definition of Done]}
+    description: The Definition of Done section is present

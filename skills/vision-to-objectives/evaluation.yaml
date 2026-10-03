@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.traceability
+    question: Does every objective trace to the cited vision, and every key result and initiative to an objective?
+    weight: 2
+  - key: quality.measurability
+    question: Are key results measurable outcomes with targets and timeframes?
+    weight: 2
+  - key: quality.focus
+    question: Is the set of objectives small and focused on outcomes?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Objectives, Key results, Initiatives]}
+    description: Objectives, key results and initiatives are present
+  - type: citation_required
+    params: {min: 1}
+    description: Objectives are grounded in the cited vision

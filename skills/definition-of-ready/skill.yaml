@@ -1,0 +1,44 @@
+id: definition-of-ready
+name: Definition of Ready
+version: 1.0.0
+category: delivery
+summary: "Write the team's Definition of Ready: the conditions a backlog item must meet before it enters a sprint."
+purpose: >
+  Give the team a shared, lightweight gate that keeps unclear or blocked work out of the sprint. A good
+  Definition of Ready is short, agreed and adapted to the team, not a bureaucratic checklist.
+triggers: [definition of ready, dor, ready criteria, when is a story ready, readiness checklist, définition de prêt]
+inputs:
+  - name: team_context
+    description: The team, its ways of working and recurring problems (e.g. stories blocked mid-sprint)
+expected_context:
+  orbit_intent: engineering
+  query_hint: team working agreements, existing definition of ready, retrospective notes, recurring blockers, refinement practices
+  token_budget: 3000
+methodology:
+  name: Lightweight Definition of Ready
+  principles:
+    - Criteria are binary and can be checked during refinement
+    - Keep it short (6–10 criteria) and focused on the team's recurring problems
+    - Readiness guides the conversation; it is not a stage gate that blocks valuable work
+    - Review it regularly in retrospectives
+  references: [Bill Wake — INVEST in Good Stories, Scrum Guide 2020, "Jeff Sutherland — Scrum: The Art of Doing Twice the Work in Half the Time"]
+steps:
+  - id: purpose
+    title: Clarifying the purpose
+    instruction: >
+      Explain in 2–4 sentences why the team needs a Definition of Ready, how it will be used in refinement
+      and planning, and which recurring problems it addresses (cite retrospective notes or blockers from
+      context).
+    fills: [summary]
+  - id: ready
+    title: Writing the ready criteria
+    instruction: >
+      Write 6–10 checklist items, checked false, each a binary check (e.g. "Acceptance criteria are written
+      in Given/When/Then and reviewed by QA"); category one of value, clarity, testability, size,
+      dependencies, design, data. The rationale links each to a recurring problem when context shows one.
+    fills: [ready]
+tools: [search_orbit]
+outputs:
+  artifact_type: definition_checklist
+  mode: create
+composes_with: [definition-of-done, backlog-refinement, sprint-preparation]

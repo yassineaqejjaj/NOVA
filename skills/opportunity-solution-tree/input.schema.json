@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Opportunity Solution Tree — inputs",
+  "type": "object",
+  "properties": {
+    "outcome": {
+      "type": "string",
+      "description": "The product outcome to drive, ideally a metric"
+    },
+    "research": {
+      "type": "string",
+      "description": "Research insights to draw opportunities from, if not in context"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

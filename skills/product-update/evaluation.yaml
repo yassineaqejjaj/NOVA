@@ -1,0 +1,20 @@
+criteria:
+  - key: quality.grounding
+    question: Are progress and metrics taken from cited context, with nothing invented?
+    weight: 2
+  - key: quality.candor
+    question: Are status, risks and slips reported honestly?
+    weight: 2
+  - key: quality.brevity
+    question: Can the update be read in about two minutes, with clear asks?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Headline, Highlights, Risks & blockers, Next]}
+    description: Core update sections are present
+  - type: citation_required
+    params: {min: 2}
+    description: Progress statements cite context
+  - type: max_length
+    params: {words: 700}
+    description: The update stays readable in about two minutes

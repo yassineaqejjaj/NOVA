@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.method_rigor
+    question: Are RICE scales respected and scores computed correctly?
+    weight: 2
+  - key: quality.grounding
+    question: Are reach and effort grounded in cited data, with uncertainty explicit?
+    weight: 2
+  - key: quality.actionability
+    question: Does the recommendation give a clear, justified order?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Method & context, Ranked items, Recommendation]}
+    description: Method, ranked items and recommendation are present
+  - type: citation_required
+    params: {min: 1}
+    description: Estimates cite context when context was provided

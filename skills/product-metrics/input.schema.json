@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Product Metrics Plan — inputs",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "description": "The product or feature to measure, if not in context"
+    },
+    "objective": {
+      "type": "string",
+      "description": "The objective or outcome the metrics should reflect"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

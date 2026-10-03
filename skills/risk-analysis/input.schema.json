@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Risk Analysis — inputs",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "description": "The project, release or initiative to analyse, if not obvious from context"
+    },
+    "risk_appetite": {
+      "type": "string",
+      "description": "The organization's tolerance for risk, if known"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Feedback Synthesis — inputs",
+  "type": "object",
+  "properties": {
+    "sources": {
+      "type": "string",
+      "description": "The feedback sources or period to synthesize"
+    },
+    "question": {
+      "type": "string",
+      "description": "A specific question the synthesis should answer"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

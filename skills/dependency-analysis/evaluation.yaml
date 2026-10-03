@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.completeness
+    question: Are the significant dependencies identified with type, provider and status?
+    weight: 2
+  - key: quality.critical_path
+    question: Is the critical path identified and explained?
+    weight: 2
+  - key: quality.actionability
+    question: Does every open dependency have an action or escalation?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Dependencies, Critical path, Actions]}
+    description: Core dependency analysis sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Dependencies cite context

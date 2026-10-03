@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/experiment",
+  "title": "experiment",
+  "description": "Experiment definition",
+  "type": "object",
+  "properties": {
+    "hypothesis_ref": {
+      "type": "string"
+    },
+    "method": {
+      "type": "string"
+    },
+    "metric": {
+      "type": "string"
+    },
+    "success_threshold": {
+      "type": "string"
+    },
+    "duration": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "running",
+        "concluded"
+      ]
+    },
+    "result": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "method",
+    "metric"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,63 @@
+id: interview-guide
+name: Interview Guide
+version: 1.0.0
+category: discovery
+summary: Write a discovery interview script with warm-up, open story-based questions, follow-up probes and a wrap-up.
+purpose: >
+  Help interviewers collect real stories about past behaviour instead of opinions and hypothetical answers.
+  A good guide keeps sessions comparable while leaving room to follow what participants say.
+triggers: [interview guide, interview script, discovery interviews, questions for user interviews, customer interview, guide d'entretien]
+inputs:
+  - name: research_goal
+    description: What the interviews should help learn
+    required: true
+    ask: true
+    question: What do you want to learn from these interviews, and who will you interview?
+  - name: participant_profile
+    description: Who will be interviewed (role, segment, behaviour)
+  - name: duration
+    description: Session length (e.g. 45 minutes)
+expected_context:
+  orbit_intent: research
+  query_hint: research plan, research questions, personas, hypotheses, previous interview insights
+  token_budget: 3000
+methodology:
+  name: Story-based discovery interviewing
+  principles:
+    - Ask about specific past behaviour, not opinions or future intentions
+    - Use open, non-leading questions and let silence work
+    - Follow the participant's story with probes before moving on
+    - Never pitch the solution during a discovery interview
+  references: [Rob Fitzpatrick — The Mom Test, Steve Portigal — Interviewing Users, Teresa Torres — Continuous Discovery Habits]
+steps:
+  - id: opening
+    title: Writing the introduction and warm-up
+    instruction: >
+      Write the introduction: purpose of the session, duration, no right or wrong answers, request for
+      consent to record and how notes will be used. Add 2–4 warm-up questions about the participant's role
+      and context.
+    fills: [intro, warm_up]
+  - id: core
+    title: Writing the core questions
+    instruction: >
+      Write 5–8 core questions mapped to the research questions, preferring "Tell me about the last time
+      you…". The description states which research question or hypothesis each one serves, with citations
+      when it comes from context.
+    fills: [core]
+  - id: probes
+    title: Adding follow-up probes
+    instruction: >
+      Add 1–2 probes per core question (parent_id = the core question id) that dig into motivations,
+      workarounds, emotions and consequences ("What happened next?", "Why did that matter?").
+    fills: [probes]
+  - id: closing
+    title: Closing and interviewer guidance
+    instruction: >
+      Write the wrap-up (anything we did not ask, thanks, next steps, referral to other participants). List
+      5–8 interviewer do's and don'ts as checklist items with category do or dont and checked false.
+    fills: [wrap_up, do_dont]
+tools: [search_orbit]
+outputs:
+  artifact_type: interview_guide
+  mode: create
+composes_with: [feedback-synthesis, persona, jobs-to-be-done]

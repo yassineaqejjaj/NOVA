@@ -1,0 +1,29 @@
+type: objectives
+name: Objectives & Key Results
+description: Outcome objectives with measurable key results
+icon: target
+sections:
+- key: summary
+  title: Context
+  kind: rich_text
+  description: ''
+- key: objectives
+  title: Objectives
+  kind: items
+  item_kind: objective
+  description: ''
+- key: key_results
+  title: Key results
+  kind: items
+  item_kind: key_result
+  description: parent_id = objective item id
+- key: initiatives
+  title: Initiatives
+  kind: items
+  item_kind: initiative
+  description: parent_id = objective item id
+- key: assumptions
+  title: Assumptions
+  kind: items
+  item_kind: assumption
+  description: ''

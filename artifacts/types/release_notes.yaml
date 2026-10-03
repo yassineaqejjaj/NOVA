@@ -1,0 +1,29 @@
+type: release_notes
+name: Release Notes
+description: What changed for users
+icon: scroll-text
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: new
+  title: New
+  kind: items
+  item_kind: note
+  description: ''
+- key: improved
+  title: Improved
+  kind: items
+  item_kind: note
+  description: ''
+- key: fixed
+  title: Fixed
+  kind: items
+  item_kind: note
+  description: ''
+- key: known_issues
+  title: Known issues
+  kind: items
+  item_kind: note
+  description: ''

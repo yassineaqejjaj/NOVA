@@ -1,0 +1,47 @@
+id: hypothesis-generation
+name: Hypothesis Generation
+version: 1.0.0
+category: discovery
+summary: Turn ideas and assumptions into falsifiable hypotheses with a clear, measurable signal of success.
+purpose: >
+  Make the beliefs behind a product idea explicit and testable, so the team learns before it builds. Each
+  hypothesis states what we believe, what it should cause and how we will know.
+triggers: [hypotheses, generate hypotheses, testable hypotheses, what do we believe, assumptions to test, hypothesis, hypothèses à tester]
+inputs:
+  - name: idea
+    description: The idea, solution or initiative to examine
+  - name: outcome
+    description: The outcome the idea should influence
+expected_context:
+  orbit_intent: validation
+  query_hint: ideas, opportunities, objectives, research insights, metric baselines, previous experiments and results
+  token_budget: 4000
+methodology:
+  name: Hypothesis-driven development
+  principles:
+    - "Each hypothesis is falsifiable: an expected result and a measurable signal"
+    - Map assumptions and test the riskiest first (high importance, little evidence)
+    - Cover desirability, viability, feasibility and usability
+    - One hypothesis, one primary signal
+  references: [Jeff Gothelf & Josh Seiden — Lean UX, David Bland & Alex Osterwalder — Testing Business Ideas, Eric Ries — The Lean Startup]
+steps:
+  - id: assumptions
+    title: Surfacing assumptions
+    instruction: >
+      Summarize the idea, the targeted outcome and what is already known (cited). List 5–8 underlying
+      assumptions, each stating its type (desirability, viability, feasibility, usability) in the
+      description, with confidence based on evidence and a validation approach; the rationale explains its
+      importance.
+    fills: [summary, assumptions]
+  - id: hypotheses
+    title: Writing testable hypotheses
+    instruction: >
+      Turn the 3–6 riskiest assumptions into hypotheses: we_believe (a change for a specific audience),
+      will_result_in (the expected behaviour or outcome), we_know_when (a measurable signal with threshold
+      and timeframe) and confidence. parent_id is the assumption id it tests; order from riskiest to safest.
+    fills: [hypotheses]
+tools: [search_orbit]
+outputs:
+  artifact_type: hypotheses
+  mode: create
+composes_with: [experiment-definition, opportunity-solution-tree, experiment-analysis]

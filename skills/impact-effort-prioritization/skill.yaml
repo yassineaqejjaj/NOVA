@@ -1,0 +1,58 @@
+id: impact-effort-prioritization
+name: Impact / Effort Prioritization
+version: 1.0.0
+category: prioritization
+summary: Place items on an impact/effort matrix to spot quick wins, big bets, fill-ins and money pits.
+purpose: >
+  Give a fast first pass on a long list of ideas when precise estimates are not available. The matrix
+  highlights quick wins and the expensive, low-value work to drop.
+triggers: [impact effort, impact effort matrix, value vs effort, quick wins, 2x2 prioritization, prioritize ideas quickly, matrice impact effort]
+inputs:
+  - name: items
+    description: The ideas or items to place on the matrix, if not in context
+  - name: objective
+    description: The objective against which impact is judged
+expected_context:
+  orbit_intent: analysis
+  query_hint: ideas, backlog, objectives, metrics, estimates, feedback themes
+  token_budget: 4000
+methodology:
+  name: Impact / Effort matrix (2×2)
+  principles:
+    - Judge impact against one explicit objective
+    - Score impact and effort on the same 1–5 scale, relative to the other items
+    - Quick wins first; big bets need validation; fill-ins when capacity allows; money pits are dropped
+    - Treat the matrix as a first pass, not a final ranking
+  references: [Nielsen Norman Group — Using Prioritization Matrices to Inform UX Decisions, Mind Tools — Action Priority Matrix]
+steps:
+  - id: method
+    title: Setting the objective and the scale
+    instruction: >
+      Describe the candidate list (cited), the objective used to judge impact, the 1–5 scales and the
+      threshold (3 or more = high).
+    fills: [summary]
+  - id: placing
+    title: Placing items on the matrix
+    instruction: >
+      For each item, create a scored_item with method impact_effort and scores {impact, effort} on 1–5. Set
+      bucket quick_win (high impact, low effort), big_bet (high impact, high effort), fill_in (low impact,
+      low effort) or money_pit (low impact, high effort). Score = impact ÷ effort, rounded to one decimal;
+      rank by bucket order (quick_win, big_bet, fill_in, money_pit), then by score.
+    fills: [items]
+  - id: assumptions
+    title: Recording scoring assumptions
+    instruction: >
+      List the assumptions behind impact and effort judgements, with confidence and how to validate them —
+      especially for big bets.
+    fills: [assumptions]
+  - id: recommendation
+    title: Recommending next moves
+    instruction: >
+      Recommend which quick wins to do now, which big bets deserve discovery or a deeper scoring method, and
+      which money pits to drop explicitly.
+    fills: [recommendation]
+tools: [search_orbit]
+outputs:
+  artifact_type: prioritization_matrix
+  mode: create
+composes_with: [rice-prioritization, hypothesis-generation, release-planning]

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MoSCoW Prioritization — inputs",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "string",
+      "description": "The requirements, features or stories to classify, if not in context"
+    },
+    "timebox": {
+      "type": "string",
+      "description": "The release or timebox the classification applies to"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

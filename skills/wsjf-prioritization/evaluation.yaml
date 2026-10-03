@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.method_rigor
+    question: Are Cost of Delay components and job sizes scored relatively and computed correctly?
+    weight: 2
+  - key: quality.grounding
+    question: Are time criticality and value grounded in cited deadlines or evidence?
+    weight: 2
+  - key: quality.actionability
+    question: Does the recommendation give a clear sequence, accounting for dependencies?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Method & context, Ranked items, Recommendation]}
+    description: Method, ranked items and recommendation are present
+  - type: citation_required
+    params: {min: 1}
+    description: Estimates cite context when context was provided

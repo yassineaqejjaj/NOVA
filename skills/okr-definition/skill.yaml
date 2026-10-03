@@ -1,0 +1,60 @@
+id: okr-definition
+name: OKR Definition
+version: 1.0.0
+category: strategy
+summary: Define a focused set of OKRs for a team and period, with ambitious, measurable key results.
+purpose: >
+  Help a team commit to a few outcomes for the period and agree how success will be measured. Good OKRs
+  focus effort, make progress visible and separate outcomes from the work planned to reach them.
+triggers: [okr, okrs, define okrs, quarterly objectives, key results, objectives and key results, définir les okr]
+inputs:
+  - name: period
+    description: The OKR period (e.g. next quarter)
+  - name: team
+    description: The team or scope the OKRs are for
+  - name: priorities
+    description: Company or product priorities the OKRs should align with
+expected_context:
+  orbit_intent: general
+  query_hint: company objectives, product strategy, previous OKRs and scores, current metrics and baselines, roadmap
+  token_budget: 5000
+methodology:
+  name: Objectives and Key Results (OKRs)
+  principles:
+    - Three objectives or fewer per team and period, each qualitative and inspiring
+    - Key results are measurable outcomes, not tasks or deliverables
+    - Set ambitious targets and state whether each key result is committed or aspirational
+    - Align with higher-level objectives and record the alignment
+  references: [John Doerr — Measure What Matters, Christina Wodtke — Radical Focus, Andy Grove — High Output Management]
+steps:
+  - id: alignment
+    title: Reviewing priorities and previous results
+    instruction: >
+      Summarize the period, the team, the higher-level objectives the OKRs align with and, when found in
+      context, the results of the previous OKRs, with citations.
+    fills: [summary]
+  - id: objectives
+    title: Writing objectives
+    instruction: >
+      Write 1–3 objectives: qualitative, inspiring and time-bound (timeframe = the period), owner only when
+      known. The rationale explains how each aligns with a higher-level priority.
+    fills: [objectives]
+  - id: key_results
+    title: Writing key results
+    instruction: >
+      For each objective, write 2–4 key results as measurable outcomes with metric, baseline (only when
+      known), target and timeframe; parent_id is the objective id. State in the description whether the key
+      result is committed or aspirational.
+    fills: [key_results]
+  - id: initiatives
+    title: Listing initiatives and assumptions
+    instruction: >
+      List 1–3 initiatives per objective that the team plans to run (parent_id and objective_ref = the
+      objective id, status proposed or planned) and the assumptions behind the targets, with confidence and
+      validation.
+    fills: [initiatives, assumptions]
+tools: [search_orbit]
+outputs:
+  artifact_type: objectives
+  mode: create
+composes_with: [initiative-definition, product-metrics, product-update]

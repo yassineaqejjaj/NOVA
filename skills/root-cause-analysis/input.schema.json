@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Root Cause Analysis — inputs",
+  "type": "object",
+  "properties": {
+    "problem": {
+      "type": "string",
+      "description": "The problem, incident or metric change to investigate"
+    }
+  },
+  "required": [
+    "problem"
+  ],
+  "additionalProperties": false
+}

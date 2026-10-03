@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.rigor
+    question: Are metric, threshold, duration and decision rule fixed before running?
+    weight: 3
+  - key: quality.method_fit
+    question: Is the method proportionate to the hypothesis and the available traffic?
+    weight: 1
+  - key: quality.ethics
+    question: Are user risks and guardrails addressed?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Hypotheses, Experiments, Metrics, Decision rule]}
+    description: Core experiment sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: The hypothesis or baselines cite context when context was provided

@@ -1,0 +1,59 @@
+id: user-research-plan
+name: User Research Plan
+version: 1.0.0
+category: discovery
+summary: "Plan a research study: what to learn, the right method, who to recruit, the timeline and the deliverables."
+purpose: >
+  Make sure research answers the questions that matter for an upcoming decision, with a method fit for those
+  questions and a realistic recruiting plan. A plan shared upfront aligns stakeholders on what will and will
+  not be learned.
+triggers: [research plan, user research, plan user interviews, discovery research, usability study, plan a study, plan de recherche utilisateur]
+inputs:
+  - name: research_goal
+    description: The decision the research should inform and what needs to be learned
+    required: true
+    ask: true
+    question: Which decision should this research inform, and what do you need to learn?
+  - name: audience
+    description: Who should be studied (segment, role, behaviour)
+  - name: timeline
+    description: Available time or deadline for the study
+expected_context:
+  orbit_intent: research
+  query_hint: research questions, previous research and insights, personas, target segments, pending decisions, product analytics
+  token_budget: 4000
+methodology:
+  name: Decision-driven research planning
+  principles:
+    - Start from the decision the research must inform
+    - "Match the method to the question: attitudinal or behavioural, generative or evaluative"
+    - Recruit participants who match the behaviour of interest, not only demographics
+    - State the biases and limits of the method upfront
+  references: [Erika Hall — Just Enough Research, Steve Portigal — Interviewing Users, Nielsen Norman Group — When to Use Which User-Experience Research Methods]
+steps:
+  - id: goal
+    title: Defining the research goal and questions
+    instruction: >
+      In the research goal, state the decision to inform, what is already known (cited) and what must be
+      learned. List 3–7 research questions — what the team needs to learn, not the questions asked to
+      participants — with owner role when obvious and status open.
+    fills: [summary, questions]
+  - id: method
+    title: Choosing the method and participants
+    instruction: >
+      Describe the method (e.g. interviews, contextual inquiry, usability test, survey, diary study), why it
+      fits the research questions, the session format and duration. Describe participants: criteria, number
+      (e.g. 5–8 per segment for qualitative studies), screening criteria and recruiting channel.
+    fills: [method, participants]
+  - id: logistics
+    title: Planning timeline, risks and deliverables
+    instruction: >
+      Propose 3–5 milestones (recruiting, sessions, synthesis, readout) with deliverables; dates only when a
+      deadline is known. List risks and biases (recruiting, leading questions, sample, observer effect) with
+      likelihood, impact and mitigation, and the deliverables (e.g. insight report, updated persona).
+    fills: [milestones, risks, deliverables]
+tools: [search_orbit]
+outputs:
+  artifact_type: research_plan
+  mode: create
+composes_with: [interview-guide, persona, feedback-synthesis]

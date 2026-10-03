@@ -1,0 +1,76 @@
+id: prd
+name: Product Requirements Document
+version: 1.0.0
+category: definition
+summary: Turn an idea or initiative into a complete, structured PRD that engineering can build from.
+purpose: >
+  Make the problem, the users, the expected outcomes and the scope explicit before building, so that
+  design and engineering share one source of truth and trade-offs are visible.
+triggers: [prd, product requirements, requirements document, spec for this idea, specification, cahier des charges]
+inputs:
+  - name: idea
+    description: The idea, feature or initiative to specify
+    required: true
+    ask: true
+    question: What is the idea, in a few sentences — who is it for and what should change for them?
+  - name: target_users
+    description: Who the product is for, if already known
+  - name: constraints
+    description: Known constraints (deadline, budget, technology, regulation)
+expected_context:
+  orbit_intent: specification
+  query_hint: product vision, objectives, decisions, constraints, user needs, related specifications
+  token_budget: 5000
+methodology:
+  name: Outcome-driven PRD
+  principles:
+    - Start from the problem and the users, not from the solution
+    - Every objective is measurable; every requirement traces to a user need or a decision
+    - Make scope boundaries and non-objectives explicit
+    - Surface assumptions, risks and open questions instead of hiding uncertainty
+  references: [Marty Cagan — Inspired, Teresa Torres — Continuous Discovery Habits]
+steps:
+  - id: framing
+    title: Framing the problem and the users
+    instruction: >
+      Write the summary (2–3 sentences), the problem (who is affected, evidence, cost of inaction), the
+      business and product context, the target users, and the jobs to be done.
+    fills: [summary, problem, context, users, jobs]
+  - id: outcomes
+    title: Defining objectives and scope
+    instruction: >
+      Define 2–4 measurable objectives, explicit non-objectives, what is in scope and out of scope for this
+      release. Scope items are capabilities, not tasks.
+    fills: [objectives, non_objectives, scope, out_of_scope]
+  - id: requirements
+    title: Writing journeys and requirements
+    instruction: >
+      Describe the main user journey as steps, then functional requirements (priority must/should/could/wont,
+      type functional) and non-functional requirements (type non_functional: performance, security, privacy,
+      accessibility, reliability). Each requirement has a one-sentence rationale and cites context when it
+      comes from it.
+    fills: [user_journeys, functional_requirements, non_functional_requirements]
+  - id: delivery
+    title: Assessing dependencies, risks and metrics
+    instruction: >
+      List dependencies, assumptions to validate, risks with likelihood/impact/mitigation, success metrics
+      (definition, baseline if known, target), the analytics to instrument and the rollout approach.
+    fills: [dependencies, assumptions, risks, metrics, analytics, rollout]
+  - id: breakdown
+    title: Breaking down into epics and stories
+    instruction: >
+      Group the scope into 2–5 epics, then write user stories (as_a / i_want / so_that) with 2–4
+      acceptance criteria each in Given/When/Then form; each story's parent_id is its epic id. Add
+      cross-cutting acceptance criteria as a checklist.
+    fills: [epics, user_stories, acceptance_criteria]
+  - id: open_items
+    title: Listing open questions and decisions
+    instruction: >
+      List the open questions that block or shape the work (with an owner role when obvious) and the
+      decisions already taken (from context) or to be taken (status proposed).
+    fills: [open_questions, decisions]
+tools: [search_orbit]
+outputs:
+  artifact_type: prd
+  mode: create
+composes_with: [user-story-generation, acceptance-criteria, release-planning, risk-analysis]

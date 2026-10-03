@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/persona_attribute",
+  "title": "persona_attribute",
+  "description": "Persona attribute",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "goal",
+        "frustration",
+        "behavior",
+        "context",
+        "quote",
+        "need"
+      ]
+    }
+  },
+  "required": [
+    "category"
+  ],
+  "additionalProperties": false
+}

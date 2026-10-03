@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dependency Analysis — inputs",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "description": "The plan, release, epic or sprint to analyse, if not obvious from context"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

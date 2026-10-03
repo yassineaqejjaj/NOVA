@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/dependency",
+  "title": "dependency",
+  "description": "Dependency on a team, system, vendor or decision",
+  "type": "object",
+  "properties": {
+    "depends_on": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "team",
+        "system",
+        "vendor",
+        "decision",
+        "data"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "resolved",
+        "blocked"
+      ]
+    },
+    "due": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "depends_on"
+  ],
+  "additionalProperties": false
+}

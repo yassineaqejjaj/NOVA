@@ -1,0 +1,37 @@
+type: experiment_analysis
+name: Experiment Analysis
+description: What an experiment taught us
+icon: chart-column
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: setup
+  title: Setup
+  kind: rich_text
+  description: ''
+- key: results
+  title: Results
+  kind: items
+  item_kind: metric
+  description: ''
+- key: insights
+  title: Insights
+  kind: items
+  item_kind: insight
+  description: ''
+- key: validity
+  title: Validity & limitations
+  kind: rich_text
+  description: ''
+- key: decisions
+  title: Decision
+  kind: items
+  item_kind: decision
+  description: ''
+- key: next_steps
+  title: Next steps
+  kind: items
+  item_kind: note
+  description: ''

@@ -1,0 +1,14 @@
+criteria:
+  - key: quality.measurability
+    question: Is every requirement measurable with a threshold and conditions?
+    weight: 3
+  - key: quality.relevance
+    question: Are the chosen quality categories relevant to the scope?
+    weight: 1
+  - key: quality.verifiability
+    question: Does each requirement state how it will be verified?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Non-functional requirements]}
+    description: The non-functional requirements section is present

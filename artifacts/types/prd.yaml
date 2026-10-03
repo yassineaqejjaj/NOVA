@@ -1,0 +1,114 @@
+type: prd
+name: Product Requirements Document
+description: Complete PRD
+icon: file-text
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: problem
+  title: Problem
+  kind: rich_text
+  description: ''
+- key: context
+  title: Context
+  kind: rich_text
+  description: ''
+- key: users
+  title: Users
+  kind: rich_text
+  description: ''
+- key: jobs
+  title: Jobs To Be Done
+  kind: items
+  item_kind: job
+  description: ''
+- key: objectives
+  title: Objectives
+  kind: items
+  item_kind: objective
+  description: ''
+- key: non_objectives
+  title: Non-objectives
+  kind: items
+  item_kind: note
+  description: ''
+- key: scope
+  title: Scope
+  kind: items
+  item_kind: note
+  description: ''
+- key: out_of_scope
+  title: Out of scope
+  kind: items
+  item_kind: note
+  description: ''
+- key: user_journeys
+  title: User journeys
+  kind: items
+  item_kind: journey_step
+  description: ''
+- key: functional_requirements
+  title: Functional requirements
+  kind: items
+  item_kind: requirement
+  description: ''
+- key: non_functional_requirements
+  title: Non-functional requirements
+  kind: items
+  item_kind: requirement
+  description: ''
+- key: dependencies
+  title: Dependencies
+  kind: items
+  item_kind: dependency
+  description: ''
+- key: assumptions
+  title: Assumptions
+  kind: items
+  item_kind: assumption
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: metrics
+  title: Success metrics
+  kind: items
+  item_kind: metric
+  description: ''
+- key: analytics
+  title: Analytics
+  kind: rich_text
+  description: ''
+- key: rollout
+  title: Rollout
+  kind: rich_text
+  description: ''
+- key: epics
+  title: Epics
+  kind: items
+  item_kind: epic
+  description: ''
+- key: user_stories
+  title: User stories
+  kind: items
+  item_kind: story
+  description: parent_id = epic item id
+- key: acceptance_criteria
+  title: Acceptance criteria
+  kind: items
+  item_kind: checklist_item
+  description: Cross-cutting acceptance criteria
+- key: open_questions
+  title: Open questions
+  kind: items
+  item_kind: question
+  description: ''
+- key: decisions
+  title: Decisions
+  kind: items
+  item_kind: decision
+  description: ''

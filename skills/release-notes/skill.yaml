@@ -1,0 +1,51 @@
+id: release-notes
+name: Release Notes
+version: 1.0.0
+category: communication
+summary: Write user-facing release notes that explain what changed and why it matters to users.
+purpose: >
+  Help users discover and adopt what changed, and reduce support load. Good release notes speak in benefits
+  and plain language, not ticket titles.
+triggers: [release notes, changelog, what's new, write the release notes, announce the release, notes de version]
+inputs:
+  - name: release
+    description: Release name or version
+  - name: audience
+    description: Who reads the notes (end users, admins, developers)
+expected_context:
+  orbit_intent: engineering
+  query_hint: release scope, shipped stories and epics, fixed bugs, known issues, release plan, changelog, documentation
+  token_budget: 5000
+  required: true
+methodology:
+  name: Benefit-first release notes
+  principles:
+    - "Write for users: what they can now do and why it matters"
+    - Plain language, without internal jargon or ticket numbers in titles
+    - Group changes by New, Improved and Fixed; lead with the most valuable change
+    - Be transparent about known issues and workarounds
+  references: [Keep a Changelog (keepachangelog.com), Google — Developer Documentation Style Guide]
+steps:
+  - id: summary
+    title: Summarizing the release
+    instruction: >
+      Write 2–3 sentences on the theme of the release and its most valuable change for users.
+    fills: [summary]
+  - id: changes
+    title: Describing new and improved features
+    instruction: >
+      List new capabilities, one note per change, with a benefit-oriented title and a description of how to
+      use it; then improvements to existing features. Include only items shipped in this release according
+      to context, each cited.
+    fills: [new, improved]
+  - id: fixes
+    title: Listing fixes and known issues
+    instruction: >
+      List user-visible fixes described by the symptom users experienced. List known issues with their
+      workaround and, only when found in context, the expected fix.
+    fills: [fixed, known_issues]
+tools: [search_orbit, list_artifacts]
+outputs:
+  artifact_type: release_notes
+  mode: create
+composes_with: [product-update, stakeholder-brief]

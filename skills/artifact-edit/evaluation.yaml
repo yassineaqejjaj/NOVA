@@ -1,0 +1,5 @@
+criteria:
+  - key: quality.instruction_following
+    question: Was exactly the requested change applied, and nothing else?
+    weight: 3
+checks: []

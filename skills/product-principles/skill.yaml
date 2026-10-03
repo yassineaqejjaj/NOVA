@@ -1,0 +1,52 @@
+id: product-principles
+name: Product Principles
+version: 1.0.0
+category: strategy
+summary: Write a small set of opinionated product principles that guide decisions when the team faces trade-offs.
+purpose: >
+  Encode what the team believes makes the product good, so that decisions stay consistent without
+  escalation. Good principles are opinionated, specific to this product and testable against real decisions.
+triggers: [product principles, design principles, guiding principles, decision principles, principles for the product, principes produit]
+inputs:
+  - name: product
+    description: The product or product area, if not obvious from context
+  - name: tensions
+    description: Recurring debates or trade-offs the team struggles with
+expected_context:
+  orbit_intent: general
+  query_hint: product vision, strategy, past decisions and debates, user research insights, brand values
+  token_budget: 4000
+methodology:
+  name: Opinionated, decision-ready principles
+  principles:
+    - A principle prioritizes one good thing over another good thing
+    - Principles are specific to this product and its users, not generic virtues
+    - Each principle must be able to settle a real decision
+    - Keep the set small (4–7) so it can be remembered
+  references: [Marty Cagan — Inspired, Dieter Rams — Ten principles for good design]
+steps:
+  - id: purpose
+    title: Clarifying the purpose
+    instruction: >
+      Explain in 2–3 sentences what the principles are for, who should use them and which recurring tensions
+      they aim to settle, citing the vision, strategy or debates found in context.
+    fills: [summary]
+  - id: principles
+    title: Writing the principles
+    instruction: >
+      Write 4–7 principles as note items. The title is a short, memorable statement of an explicit
+      preference ("Clarity over completeness"); the description explains what it means in practice and where
+      it does not apply. Cite the vision, research or decisions that inspire each.
+    fills: [principles]
+  - id: examples
+    title: Testing the principles against decisions
+    instruction: >
+      For 3–5 real or plausible decisions, write decision items showing which principle settles them:
+      alternatives considered, the choice and its consequences. Status accepted only for decisions recorded
+      in context; otherwise proposed.
+    fills: [examples]
+tools: [search_orbit]
+outputs:
+  artifact_type: product_principles
+  mode: create
+composes_with: [product-vision, product-strategy, decision-record]

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Non-Functional Requirements — inputs",
+  "type": "object",
+  "properties": {
+    "scope": {
+      "type": "string",
+      "description": "The feature or system the requirements apply to, if not in context"
+    },
+    "quality_targets": {
+      "type": "string",
+      "description": "Known SLAs, standards or quality targets"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

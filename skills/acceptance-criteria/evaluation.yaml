@@ -1,0 +1,14 @@
+criteria:
+  - key: quality.testability
+    question: Is every criterion a single, observable, testable behaviour?
+    weight: 3
+  - key: quality.coverage
+    question: Do criteria cover main path, rule variations, edge cases and errors?
+    weight: 2
+  - key: quality.preservation
+    question: Are existing stories and ids preserved unchanged apart from their criteria?
+    weight: 2
+checks:
+  - type: sections_present
+    params: {sections: [Stories]}
+    description: The stories section is present

@@ -1,0 +1,177 @@
+# NOVA — local stack: `cp .env.example .env && docker compose up`
+#
+# Starts NOVA and its own dependencies only. ORBIT and FORGE are NOT duplicated: run them from their
+# repositories (ORBIT on :8000/:3000, FORGE on :8100/:3100) and NOVA reaches them through
+# NOVA_ORBIT_BASE_URL / NOVA_FORGE_BASE_URL (host.docker.internal by default).
+#
+# Host ports (127.0.0.1 only): web 3200, api 8200, postgres 5435, valkey 6382, keycloak 8280.
+# Optional profiles: `--profile gpu` (vLLM), `--profile cpu-llm` (Ollama, laptops), `--profile observability` (Jaeger).
+
+name: nova
+
+# `.env` describes the host (localhost URLs, optional dev sign-in); inside containers these values are replaced
+# by their container-network equivalents. Override them with the NOVA_DOCKER_* variables.
+x-backend-env: &backend-env
+  NOVA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-nova}:${POSTGRES_PASSWORD:-nova}@postgres:5432/${POSTGRES_DB:-nova}
+  NOVA_VALKEY_URL: redis://valkey:6379/0
+  NOVA_OIDC_INTERNAL_URL: http://keycloak:8080/realms/nova
+  NOVA_AUTH_MODE: ${NOVA_DOCKER_AUTH_MODE:-oidc}
+  NOVA_ORBIT_BASE_URL: ${NOVA_DOCKER_ORBIT_BASE_URL:-http://host.docker.internal:8000}
+  NOVA_FORGE_BASE_URL: ${NOVA_DOCKER_FORGE_BASE_URL:-http://host.docker.internal:8100}
+  NOVA_LLM_BASE_URL: ${NOVA_DOCKER_LLM_BASE_URL:-http://vllm:8000/v1}
+  NOVA_BIND_HOST: 0.0.0.0
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: infrastructure/docker/backend.Dockerfile
+  image: nova-backend:latest
+  env_file:
+    - path: .env
+      required: false
+  restart: unless-stopped
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  depends_on:
+    postgres:
+      condition: service_healthy
+    valkey:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nova}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nova}
+      POSTGRES_DB: ${POSTGRES_DB:-nova}
+    ports: ["127.0.0.1:5435:5432"]
+    volumes:
+      - nova_pg:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres-init.sql:/docker-entrypoint-initdb.d/10-keycloak.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes"]
+    ports: ["127.0.0.1:6382:6379"]
+    volumes: [nova_valkey:/data]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm", "--http-port=8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-nova}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-nova}
+      # Browser-facing issuer (tokens carry it); back-channel calls from the api use keycloak:8080.
+      KC_HOSTNAME: http://localhost:8280
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+      NOVA_OIDC_CLIENT_SECRET: ${NOVA_OIDC_CLIENT_SECRET:-nova-dev-client-secret}
+      NOVA_PUBLIC_URL: ${NOVA_PUBLIC_URL:-http://localhost:3200}
+      NOVA_DEMO_PASSWORD: ${NOVA_DEMO_PASSWORD:-nova-demo}
+    ports: ["127.0.0.1:8280:8080"]
+    volumes:
+      - ./infrastructure/keycloak/nova-realm.json:/opt/keycloak/data/import/nova-realm.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  api:
+    <<: *backend
+    command: ["api"]
+    environment:
+      <<: *backend-env
+    ports: ["127.0.0.1:8200:8200"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8200/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  worker:
+    <<: *backend
+    command: ["worker"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      api:
+        condition: service_healthy
+
+  beat:
+    <<: *backend
+    command: ["beat"]
+    environment:
+      <<: *backend-env
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+    image: nova-web:latest
+    restart: unless-stopped
+    environment:
+      NOVA_API_URL: http://api:8200
+    ports: ["127.0.0.1:3200:3000"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # --- Optional inference servers (open-weight models, self-hosted) -------------------------------
+  vllm:
+    profiles: ["gpu"]
+    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-latest}
+    command: ["--model", "${NOVA_LLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}", "--max-model-len", "32768"]
+    environment:
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-0}
+    volumes: [nova_models:/root/.cache/huggingface]
+    ports: ["127.0.0.1:8001:8000"]
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
+  ollama:
+    profiles: ["cpu-llm"]
+    image: ollama/ollama:latest
+    volumes: [nova_ollama:/root/.ollama]
+    ports: ["127.0.0.1:11434:11434"]
+
+  jaeger:
+    profiles: ["observability"]
+    image: jaegertracing/all-in-one:latest
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports: ["127.0.0.1:16686:16686", "127.0.0.1:4318:4318"]
+
+volumes:
+  nova_pg:
+  nova_valkey:
+  nova_models:
+  nova_ollama:

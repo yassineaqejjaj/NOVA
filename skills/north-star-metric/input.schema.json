@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "North Star Metric — inputs",
+  "type": "object",
+  "properties": {
+    "product": {
+      "type": "string",
+      "description": "The product or product area, if not obvious from context"
+    },
+    "business_model": {
+      "type": "string",
+      "description": "How the product creates and captures value, if known"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

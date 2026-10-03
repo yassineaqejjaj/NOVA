@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/milestone",
+  "title": "milestone",
+  "description": "Milestone or release",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string"
+    },
+    "deliverables": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "at_risk",
+        "done"
+      ]
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

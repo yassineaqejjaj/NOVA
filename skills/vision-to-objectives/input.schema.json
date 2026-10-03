@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Vision to Objectives — inputs",
+  "type": "object",
+  "properties": {
+    "vision": {
+      "type": "string",
+      "description": "The product vision or its location (usually found in context)"
+    },
+    "horizon": {
+      "type": "string",
+      "description": "Planning horizon (e.g. next two quarters)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

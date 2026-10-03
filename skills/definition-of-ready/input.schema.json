@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Definition of Ready — inputs",
+  "type": "object",
+  "properties": {
+    "team_context": {
+      "type": "string",
+      "description": "The team, its ways of working and recurring problems (e.g. stories blocked mid-sprint)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

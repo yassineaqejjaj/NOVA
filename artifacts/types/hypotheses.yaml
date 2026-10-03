@@ -1,0 +1,19 @@
+type: hypotheses
+name: Hypotheses
+description: Testable product hypotheses
+icon: flask-conical
+sections:
+- key: summary
+  title: Context
+  kind: rich_text
+  description: ''
+- key: hypotheses
+  title: Hypotheses
+  kind: items
+  item_kind: hypothesis
+  description: ''
+- key: assumptions
+  title: Underlying assumptions
+  kind: items
+  item_kind: assumption
+  description: ''

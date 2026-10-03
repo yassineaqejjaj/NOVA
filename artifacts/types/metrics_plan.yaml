@@ -1,0 +1,28 @@
+type: metrics_plan
+name: Product Metrics
+description: Metrics framework and instrumentation
+icon: activity
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: metrics
+  title: Metrics
+  kind: items
+  item_kind: metric
+  description: ''
+- key: instrumentation
+  title: Instrumentation
+  kind: rich_text
+  description: ''
+- key: events
+  title: Events to track
+  kind: items
+  item_kind: note
+  description: ''
+- key: risks
+  title: Data risks
+  kind: items
+  item_kind: risk
+  description: ''

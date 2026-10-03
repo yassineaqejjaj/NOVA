@@ -1,0 +1,66 @@
+id: experiment-analysis
+name: Experiment Analysis
+version: 1.0.0
+category: analysis
+summary: Analyse experiment results against the pre-set hypothesis and decision rule, and turn them into a decision.
+purpose: >
+  Draw honest conclusions from an experiment: what happened, how confident we can be and what we decide.
+  Comparing results with the original hypothesis and decision rule prevents post-hoc rationalization.
+triggers: [analyse the experiment, experiment results, a/b test results, did the test work, experiment readout, analyse de l'expérimentation]
+inputs:
+  - name: experiment
+    description: The experiment to analyse, if not in context
+  - name: results
+    description: Result data, if not in context
+expected_context:
+  orbit_intent: analysis
+  query_hint: experiment design, hypothesis, decision rule, results data, metrics, segments, incidents during the test
+  token_budget: 5000
+methodology:
+  name: Pre-registered experiment readout
+  principles:
+    - Compare results with the hypothesis and decision rule set before the test
+    - Report effect size with uncertainty (confidence interval or significance) and sample sizes
+    - "Check validity: sample ratio mismatch, novelty effects, instrumentation issues, peeking"
+    - Separate what was observed from how it is interpreted
+  references: ["Ron Kohavi, Diane Tang & Ya Xu — Trustworthy Online Controlled Experiments", Eric Ries — The Lean Startup]
+steps:
+  - id: setup
+    title: Recalling the setup
+    instruction: >
+      Write the summary as the answer first: hypothesis supported, refuted or inconclusive, and the decision
+      proposed. Describe the setup (hypothesis, variants, audience, duration, primary metric, threshold and
+      decision rule), citing the experiment design.
+    fills: [summary, setup]
+  - id: results
+    title: Reporting the results
+    instruction: >
+      Report each primary and guardrail metric as a metric item (type success or guardrail) with its
+      definition, baseline = the control value, and in the description the treatment value, absolute and
+      relative difference, confidence interval or p-value and sample sizes — only figures found in context.
+    fills: [results]
+  - id: validity
+    title: Checking validity
+    instruction: >
+      Assess validity and limitations: sample ratio mismatch, duration and seasonality, novelty or learning
+      effects, instrumentation issues, segment imbalances, external events, and the resulting confidence
+      level.
+    fills: [validity]
+  - id: insights
+    title: Drawing insights
+    instruction: >
+      List 2–5 insights (theme, evidence, severity) of what was learned, including segment differences;
+      label each as an observation or an interpretation in the description.
+    fills: [insights]
+  - id: decision
+    title: Deciding and planning next steps
+    instruction: >
+      Record the decision as one decision item (scale, iterate, stop or rerun) applying the pre-set decision
+      rule: alternatives, consequences, decided_by role, status accepted only when recorded in context. List
+      next steps as note items.
+    fills: [decisions, next_steps]
+tools: [search_orbit, retrieve_orbit_context]
+outputs:
+  artifact_type: experiment_analysis
+  mode: create
+composes_with: [decision-record, product-update, hypothesis-generation]

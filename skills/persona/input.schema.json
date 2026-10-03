@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Persona — inputs",
+  "type": "object",
+  "properties": {
+    "segment": {
+      "type": "string",
+      "description": "The user segment to describe"
+    },
+    "research": {
+      "type": "string",
+      "description": "Research notes or sources to use, if not in context"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

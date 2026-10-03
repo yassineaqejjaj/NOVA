@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.grounding
+    question: Are refined stories taken from the actual backlog in context, with ids kept?
+    weight: 2
+  - key: quality.story_quality
+    question: Are refined stories clear, small and testable?
+    weight: 2
+  - key: quality.splits
+    question: Are proposed splits vertical slices using sound splitting patterns?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Refined stories, Questions for the team]}
+    description: Core refinement sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: Stories cite the backlog they come from

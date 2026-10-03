@@ -1,0 +1,20 @@
+criteria:
+  - key: quality.clarity
+    question: Is the vision statement concise, concrete and memorable?
+    weight: 2
+  - key: quality.customer_focus
+    question: Is the vision anchored in a real problem of clearly identified target users?
+    weight: 2
+  - key: quality.decision_power
+    question: Do principles, differentiators and non-goals help settle real trade-offs?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Vision statement, Problem & opportunity, Target users, Value proposition, Long-term outcomes]}
+    description: Core vision sections are present
+  - type: citation_required
+    params: {min: 1}
+    description: The vision is grounded in cited context when context was provided
+  - type: max_length
+    params: {words: 1500}
+    description: The vision stays short enough to be shared and remembered

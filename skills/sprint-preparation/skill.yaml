@@ -1,0 +1,60 @@
+id: sprint-preparation
+name: Sprint Preparation
+version: 1.0.0
+category: delivery
+summary: "Check that the top backlog items are ready before sprint planning: refine them, propose splits, raise questions and run a readiness check."
+purpose: >
+  Avoid discovering unclear or oversized stories during the planning meeting. Preparing a few days ahead
+  leaves time to answer questions, resolve dependencies and split stories, so planning focuses on
+  commitment.
+triggers: [sprint preparation, prepare for sprint planning, are we ready for the sprint, readiness check, pre-planning, ready for planning, préparation de sprint]
+inputs:
+  - name: sprint
+    description: Sprint name or number (e.g. Sprint 19)
+  - name: sprint_goal
+    description: The proposed sprint goal, if known
+expected_context:
+  orbit_intent: engineering
+  query_hint: sprint goal, top of backlog, user stories, acceptance criteria, estimates, dependencies, definition of ready, team questions
+  token_budget: 6000
+  required: true
+methodology:
+  name: Pre-planning readiness review
+  principles:
+    - Focus on the items likely to enter the next sprint (about 1.5× the expected capacity)
+    - Check each item against the team's Definition of Ready, or a standard one if none exists
+    - Resolve or escalate blocking questions and dependencies before the meeting
+    - Split items that cannot be finished within one sprint
+  references: [Scrum Guide 2020, Richard Lawrence — Patterns for Splitting User Stories]
+steps:
+  - id: candidates
+    title: Selecting the candidate items
+    instruction: >
+      Summarize the sprint, its goal (from context when available), the candidate items selected from the
+      top of the backlog (cited), the Definition of Ready used and an overall readiness verdict.
+    fills: [summary]
+  - id: refine
+    title: Refining the candidate stories
+    instruction: >
+      For each candidate, keep its key or id from context, clarify the story, complete 2–4 Given/When/Then
+      acceptance criteria, and set status ready only when it meets the Definition of Ready, otherwise draft.
+      Keep estimates only when they exist in context.
+    fills: [stories]
+  - id: splits
+    title: Proposing splits
+    instruction: >
+      For candidates too large to finish within the sprint, propose splits as note items (parent_id = the
+      original story id, description = the splitting pattern and which slice serves the sprint goal).
+    fills: [splits]
+  - id: readiness
+    title: Running the readiness check
+    instruction: >
+      List 6–10 readiness criteria as checklist items checked against the candidates: checked true only when
+      context shows all candidates meet it; when a criterion fails for specific stories, category is the
+      story id. List the questions to resolve before planning, with owner role and status open.
+    fills: [ready, questions]
+tools: [search_orbit, retrieve_orbit_context, list_artifacts]
+outputs:
+  artifact_type: refinement
+  mode: create
+composes_with: [sprint-planning, dependency-analysis, definition-of-ready]

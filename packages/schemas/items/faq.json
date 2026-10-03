@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/faq",
+  "title": "faq",
+  "description": "Question and answer",
+  "type": "object",
+  "properties": {
+    "audience": {
+      "type": "string",
+      "enum": [
+        "customer",
+        "internal"
+      ]
+    },
+    "answer": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "answer"
+  ],
+  "additionalProperties": false
+}

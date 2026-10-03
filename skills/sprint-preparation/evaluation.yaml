@@ -1,0 +1,17 @@
+criteria:
+  - key: quality.readiness
+    question: Does the output clearly show which candidates are ready and why the others are not?
+    weight: 2
+  - key: quality.grounding
+    question: Are candidates taken from the actual backlog in context, with ids kept?
+    weight: 2
+  - key: quality.actionability
+    question: Are blocking questions and splits concrete enough to resolve before planning?
+    weight: 1
+checks:
+  - type: sections_present
+    params: {sections: [Summary, Refined stories, Ready check]}
+    description: Summary, refined stories and ready check are present
+  - type: citation_required
+    params: {min: 1}
+    description: Candidates cite the backlog they come from

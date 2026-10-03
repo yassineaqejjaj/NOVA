@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RICE Prioritization — inputs",
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "string",
+      "description": "The initiatives, epics or features to rank, if not in context"
+    },
+    "period": {
+      "type": "string",
+      "description": "Time period used for Reach (e.g. per quarter)"
+    },
+    "effort_unit": {
+      "type": "string",
+      "description": "Effort unit (e.g. person-months)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

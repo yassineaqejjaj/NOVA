@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/metric",
+  "title": "metric",
+  "description": "Product metric",
+  "type": "object",
+  "properties": {
+    "definition": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "north_star",
+        "input",
+        "success",
+        "guardrail",
+        "health"
+      ]
+    },
+    "baseline": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "timeframe": {
+      "type": "string"
+    },
+    "data_source": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "definition"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Product Strategy — inputs",
+  "type": "object",
+  "properties": {
+    "vision": {
+      "type": "string",
+      "description": "The product vision to build on (usually found in context)"
+    },
+    "horizon": {
+      "type": "string",
+      "description": "Strategy horizon (e.g. next 12–18 months)"
+    },
+    "constraints": {
+      "type": "string",
+      "description": "Known constraints (budget, team size, regulation, technology)"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}
