@@ -1,0 +1,143 @@
+/** Landing page copy (FR / EN). Product facts only: every number here comes from the product itself. */
+export type Lang = "fr" | "en";
+
+export const COPY = {
+  fr: {
+    nav: { vision: "Vision", product: "Produit", useCases: "Cas d'usage", security: "Sécurité" },
+    signIn: "Se connecter",
+    bookDemo: "Réserver une démo",
+    discover: "Découvrir Nova",
+    menu: "Menu",
+    theme: { light: "Thème clair", dark: "Thème sombre" },
+    hero: {
+      eyebrow: "Le work OS agentique",
+      title: "L’IA agentique qui transforme votre équipe en force augmentée.",
+      subtitle: "Nova orchestre vos experts et ses agents autour d’un même contexte pour cadrer, décider et livrer sans perte d’information.",
+      chips: ["Contexte structuré", "Décision prise", "Risque détecté", "Artefact créé"],
+      hub: "Contexte partagé",
+      synced: "4 agents synchronisés",
+      agents: [
+        { name: "Produit", role: "Cadre la valeur" },
+        { name: "Design", role: "Défend l’usage" },
+        { name: "Tech", role: "Sécurise la solution" },
+        { name: "Delivery", role: "Orchestre l’impact" },
+      ],
+    },
+    vision: {
+      eyebrow: "Vision",
+      title: "Un seul contexte. Toute l’équipe. Aucune perte d’information.",
+      subtitle: "Nova fait partie d’ORION : chaque produit a une responsabilité claire, et ils travaillent ensemble.",
+      pillars: [
+        { name: "NOVA agit", body: "Comprend l’intention, planifie, choisit les bonnes méthodes et produit un travail durable et éditable." },
+        { name: "ORBIT sait", body: "Contexte, mémoire, décisions et documents de vos projets — avec les permissions et la classification de chacun." },
+        { name: "FORGE apprend", body: "Traces, évaluations et régressions : la qualité de Nova se mesure et s’améliore en continu." },
+      ],
+    },
+    product: {
+      eyebrow: "Produit",
+      title: "De l’intention à l’artefact, en une conversation.",
+      subtitle: "Exprimez ce que vous voulez obtenir. Nova trouve le contexte, choisit la méthode, exécute le workflow et vous rend un livrable structuré.",
+      steps: ["Intention", "Contexte ORBIT", "Plan", "Skills", "Artefact", "Approbation", "Évaluation FORGE"],
+      features: [
+        { title: "48 Skills versionnées", body: "Stratégie, discovery, priorisation, définition, delivery, analyse, communication — combinées automatiquement en workflows." },
+        { title: "38 types d’artefacts", body: "PRD en 23 sections, backlog, sprint plan, decision record… Versions, comparaison, commentaires et export." },
+        { title: "Provenance vérifiable", body: "« Pourquoi cette exigence ? » Nova cite les sources ORBIT réellement utilisées — jamais de source inventée." },
+        { title: "Autonomie réglable", body: "Suggérer, assister, exécuter avec approbation ou automatiquement : vous décidez de ce que Nova peut faire seul." },
+      ],
+    },
+    useCases: {
+      eyebrow: "Cas d’usage",
+      title: "Le quotidien d’une équipe produit, accéléré.",
+      items: [
+        { prompt: "Transforme la vision FORGE en backlog.", result: "Objectifs, initiatives, epics et user stories, chacun relié à ses sources." },
+        { prompt: "Prépare le sprint 19.", result: "Objectif de sprint, périmètre engagé, capacité, risques et dépendances." },
+        { prompt: "/prd Check-in par QR code pour Atlas", result: "Un PRD complet, section par section, que vous éditez et faites évoluer avec Nova." },
+        { prompt: "Qu’a décidé l’équipe sur l’authentification ?", result: "Une réponse sourcée, avec la décision, sa date et le document d’origine." },
+      ],
+    },
+    security: {
+      eyebrow: "Sécurité",
+      title: "Conçu pour les données sensibles de l’entreprise.",
+      items: [
+        { title: "SSO et rôles", body: "Connexion via votre fournisseur d’identité (OIDC), contrôle d’accès par projet." },
+        { title: "Classification C0–C3", body: "Nova voit uniquement ce que vous voyez dans ORBIT et signale les contenus confidentiels ou secrets." },
+        { title: "Humain dans la boucle", body: "Les modifications importantes et les actions externes attendent votre approbation." },
+        { title: "Défense contre l’injection", body: "Le contenu récupéré est traité comme une donnée, jamais comme une instruction." },
+        { title: "Audit et confidentialité", body: "Journal d’audit des actions, masquage des données personnelles dans les traces." },
+        { title: "Open source et auto-hébergeable", body: "Modèles open-weight sur votre infrastructure : aucune API de modèle propriétaire." },
+      ],
+    },
+    cta: { title: "Prêt à travailler avec Nova ?", subtitle: "Découvrez comment Nova s’intègre à vos équipes et à vos outils." },
+    footer: { rights: "Tous droits réservés.", tagline: "NOVA agit · ORBIT sait · FORGE apprend" },
+    demoSubject: "Demande de démo NOVA",
+  },
+  en: {
+    nav: { vision: "Vision", product: "Product", useCases: "Use cases", security: "Security" },
+    signIn: "Sign in",
+    bookDemo: "Book a demo",
+    discover: "Discover Nova",
+    menu: "Menu",
+    theme: { light: "Light theme", dark: "Dark theme" },
+    hero: {
+      eyebrow: "The agentic work OS",
+      title: "Agentic AI that turns your team into an augmented force.",
+      subtitle: "Nova orchestrates your experts and its agents around one shared context to frame, decide and deliver without losing information.",
+      chips: ["Structured context", "Decision made", "Risk detected", "Artifact created"],
+      hub: "Shared context",
+      synced: "4 agents in sync",
+      agents: [
+        { name: "Product", role: "Frames the value" },
+        { name: "Design", role: "Champions the user" },
+        { name: "Tech", role: "Secures the solution" },
+        { name: "Delivery", role: "Drives the impact" },
+      ],
+    },
+    vision: {
+      eyebrow: "Vision",
+      title: "One context. The whole team. Nothing lost.",
+      subtitle: "Nova is part of ORION: each product has one clear responsibility, and they work together.",
+      pillars: [
+        { name: "NOVA acts", body: "Understands intent, plans, picks the right methods and produces durable, editable work." },
+        { name: "ORBIT knows", body: "Context, memory, decisions and documents of your projects — with everyone’s permissions and classification." },
+        { name: "FORGE learns", body: "Traces, evaluations and regressions: Nova’s quality is measured and continuously improved." },
+      ],
+    },
+    product: {
+      eyebrow: "Product",
+      title: "From intent to artifact, in one conversation.",
+      subtitle: "Say what you want to achieve. Nova finds the context, picks the method, runs the workflow and hands you a structured deliverable.",
+      steps: ["Intent", "ORBIT context", "Plan", "Skills", "Artifact", "Approval", "FORGE evaluation"],
+      features: [
+        { title: "48 versioned Skills", body: "Strategy, discovery, prioritization, definition, delivery, analysis, communication — combined into workflows automatically." },
+        { title: "38 Artifact types", body: "23-section PRD, backlog, sprint plan, decision record… Versions, compare, comments and export." },
+        { title: "Verifiable provenance", body: "“Why did you include this requirement?” Nova cites the ORBIT sources it actually used — never an invented one." },
+        { title: "Adjustable autonomy", body: "Suggest, assist, execute with approval or automatically: you decide what Nova may do on its own." },
+      ],
+    },
+    useCases: {
+      eyebrow: "Use cases",
+      title: "A product team’s daily work, accelerated.",
+      items: [
+        { prompt: "Turn the FORGE vision into a backlog.", result: "Objectives, initiatives, epics and user stories, each linked to its sources." },
+        { prompt: "Prepare Sprint 19.", result: "Sprint goal, committed scope, capacity, risks and dependencies." },
+        { prompt: "/prd QR-code desk check-in for Atlas", result: "A complete PRD, section by section, that you edit and evolve with Nova." },
+        { prompt: "What did the team decide about authentication?", result: "A sourced answer with the decision, its date and the original document." },
+      ],
+    },
+    security: {
+      eyebrow: "Security",
+      title: "Built for sensitive enterprise data.",
+      items: [
+        { title: "SSO and roles", body: "Sign in with your identity provider (OIDC), access control per project." },
+        { title: "C0–C3 classification", body: "Nova only sees what you see in ORBIT and flags confidential or secret content." },
+        { title: "Human in the loop", body: "Significant changes and external actions wait for your approval." },
+        { title: "Injection defenses", body: "Retrieved content is treated as data, never as instructions." },
+        { title: "Audit and privacy", body: "Audit log of actions, personal data redacted from traces." },
+        { title: "Open source, self-hostable", body: "Open-weight models on your infrastructure: no proprietary model API." },
+      ],
+    },
+    cta: { title: "Ready to work with Nova?", subtitle: "See how Nova fits your teams and your tools." },
+    footer: { rights: "All rights reserved.", tagline: "NOVA acts · ORBIT knows · FORGE learns" },
+    demoSubject: "NOVA demo request",
+  },
+} as const;

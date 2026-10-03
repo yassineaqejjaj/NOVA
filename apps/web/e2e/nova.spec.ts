@@ -163,3 +163,21 @@ test("execute-with-approval: NOVA's edit opens the approval dialog with the real
   await expect(dialog).toBeHidden();
   await expect(page.getByText("approved", { exact: true })).toBeVisible({ timeout: 30_000 });
 });
+
+test.describe("landing (French browser)", () => {
+  test.use({ locale: "fr-FR" });
+
+  test("visitors see the landing page at /, with the demo CTA and sign-in", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("L’IA agentique");
+    await expect(page.getByRole("link", { name: "Réserver une démo" }).first()).toHaveAttribute("href", /^mailto:/);
+    await page.getByRole("button", { name: "English" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Agentic AI");
+    await page.getByRole("link", { name: "Sign in" }).first().click();
+    await expect(page).toHaveURL(/\/login/);
+
+    await signIn(page);
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: /Here's what matters/ })).toBeVisible();
+  });
+});

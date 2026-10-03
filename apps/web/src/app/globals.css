@@ -1,4 +1,7 @@
 @import "tailwindcss";
+
+/* `dark:` follows NOVA's theme toggle (class on <html>), not the OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
 @source "../../../../packages/ui/src";
 
 /* NOVA design tokens — warm light theme with a coral accent (default), dark variant via `.dark`. */
@@ -66,6 +69,8 @@
   --color-glow: var(--glow);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-landing: var(--font-montserrat), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-montserrat), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -150,4 +155,16 @@ body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Landing page brand tokens (devoteam coral). */
+.landing {
+  --brand: #f6475f;
+  --brand-soft: rgb(246 71 95 / 0.07);
+  --brand-glow: rgb(246 71 95 / 0.22);
+}
+:root.dark .landing {
+  --brand: #ff5c72;
+  --brand-soft: rgb(255 92 114 / 0.1);
+  --brand-glow: rgb(255 92 114 / 0.2);
 }
