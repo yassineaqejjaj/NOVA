@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -64,10 +65,30 @@ async def open_checkpointer(database_url: str) -> AsyncIterator[Any]:
         yield saver
 
 
+CHECKPOINT_SETUP_LOCK = 7_262_016  # pg advisory lock: several API processes start at once
+
+
+async def _try_lock(conn: Any) -> bool:
+    row = await (await conn.execute("SELECT pg_try_advisory_lock(%s) AS locked", (CHECKPOINT_SETUP_LOCK,))).fetchone()
+    return bool(row["locked"] if isinstance(row, dict) else row[0])
+
+
 async def setup_checkpointer(database_url: str) -> None:
     async with open_checkpointer(database_url) as saver:
-        if hasattr(saver, "setup"):
+        if not hasattr(saver, "setup"):
+            return
+        conn = getattr(saver, "conn", None)
+        if conn is None or database_url.startswith("sqlite"):
             await saver.setup()
+            return
+        # Non-blocking attempts: LangGraph's migrations use CREATE INDEX CONCURRENTLY, which waits for every open
+        # transaction, including a session blocked in pg_advisory_lock (deadlock).
+        while not await _try_lock(conn):  # noqa: ASYNC110 — polling a database lock, not an in-process event
+            await asyncio.sleep(0.5)
+        try:
+            await saver.setup()
+        finally:
+            await conn.execute("SELECT pg_advisory_unlock(%s)", (CHECKPOINT_SETUP_LOCK,))
 
 
 @dataclass

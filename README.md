@@ -36,6 +36,12 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Artifact
 * **Open source only** — vLLM (or any OpenAI-compatible server), PostgreSQL, Valkey, Keycloak, OpenTelemetry.
   Runs offline. See [`OPEN_SOURCE_COMPONENTS.md`](OPEN_SOURCE_COMPONENTS.md).
 
+## Production
+
+Live on **Vercel** (web) + **Railway** (API, worker, beat, Keycloak, Valkey, PostgreSQL):
+<https://nova-six-orcin-96.vercel.app>, connected to the deployed ORBIT and FORGE. See
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the topology, variables, release process and how to connect FORGE.
+
 ## Quick start (Docker)
 
 Prerequisites: Docker (Compose v2). ORBIT and FORGE run from their own repositories.
@@ -122,4 +128,5 @@ tests/              unit, integration, support (test doubles)
 * [Integration analysis](docs/integration-analysis.md) — ORBIT & FORGE contracts, gaps, differences with the brief
 * [Architecture](docs/ARCHITECTURE.md) — execution model, Skills, Artifacts, data model, API, security
 * [Skills](docs/SKILLS.md) — writing and versioning Skills
+* [Deployment](docs/DEPLOYMENT.md) — Railway + Vercel production setup, releases, FORGE/ORBIT connection
 * [Operations](docs/OPERATIONS.md) — production configuration, scaling, observability
