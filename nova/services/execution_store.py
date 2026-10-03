@@ -65,6 +65,10 @@ class SqlExecutionStore:
             await session.execute(update(Task).where(Task.id == tid).values(phase=phase.value, phase_label=label))
             await emit_event(session, self.publisher, tid, EventType.status, {"phase": phase.value, "label": label})  # type: ignore[arg-type]
 
+    async def is_paused(self, task_id: str) -> bool:
+        async with session_scope() as session:
+            return await session.scalar(select(Task.status).where(Task.id == _uuid(task_id))) == "paused"
+
     async def is_cancelled(self, task_id: str) -> bool:
         async with session_scope() as session:
             return await session.scalar(select(Task.status).where(Task.id == _uuid(task_id))) == "cancelled"

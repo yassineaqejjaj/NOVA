@@ -29,6 +29,10 @@ class NodeFailure(Exception):
         self.message = message
 
 
+class ExecutionPaused(Exception):
+    """Raised at a node boundary when the user paused the execution (not retried by the RetryPolicy)."""
+
+
 def node(name: str) -> Callable[[NodeFn], NodeFn]:
     """Span per node; converts non-retryable failures into state errors (retryable ones are re-raised
     so that LangGraph's RetryPolicy, then Celery, can retry from the last checkpoint)."""
@@ -45,6 +49,13 @@ def node(name: str) -> Callable[[NodeFn], NodeFn]:
                     and await runtime.context.store.is_cancelled(state.task_id)
                 ):
                     return {"status": "cancelled"}  # cooperative cancellation at node boundaries
+                if (
+                    name not in ("finalize", "emit_forge_trace")
+                    and state.status == "running"
+                    and await runtime.context.store.is_paused(state.task_id)
+                ):
+                    # Stop before this node: the last checkpoint is kept and the run resumes from here.
+                    raise ExecutionPaused(state.task_id)
                 try:
                     return await fn(state, runtime)
                 except LLMError as exc:

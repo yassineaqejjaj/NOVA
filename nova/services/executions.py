@@ -11,6 +11,7 @@ from opentelemetry.propagate import extract
 from sqlalchemy import select
 
 from nova.agent.deps import AgentDeps
+from nova.agent.nodes.common import ExecutionPaused
 from nova.agent.runtime import AgentRuntime, open_checkpointer
 from nova.agent.tools.registry import get_tool_registry
 from nova.artifacts.registry import get_artifact_registry
@@ -127,6 +128,9 @@ async def run_task(
             else:  # failed before the first checkpoint: start again
                 initial = NovaState.model_validate({**initial_input, "task_id": task_id, "user_id": user_id})
                 outcome = await runtime.run(task_id, deps, initial=initial, parent=parent)
+    except ExecutionPaused:
+        await _set_status(tid, TaskStatus.paused, phase=NovaPhase.waiting_user.value)
+        return TaskStatus.paused
     except (LLMError, ContextError, ConnectionError, TimeoutError, OSError) as exc:
         retryable = getattr(exc, "retryable", True)
         if retryable and not final_attempt:

@@ -10,12 +10,13 @@ class TaskStatus(StrEnum):
     scheduled = "scheduled"
     running = "running"
     waiting_user = "waiting_user"
+    paused = "paused"  # stopped by the user at a step boundary; resumes from the last checkpoint
     completed = "completed"
     failed = "failed"
     cancelled = "cancelled"
 
 
-ACTIVE_TASK_STATUSES = frozenset({TaskStatus.queued, TaskStatus.running, TaskStatus.waiting_user})
+ACTIVE_TASK_STATUSES = frozenset({TaskStatus.queued, TaskStatus.running, TaskStatus.waiting_user, TaskStatus.paused})
 TERMINAL_TASK_STATUSES = frozenset({TaskStatus.completed, TaskStatus.failed, TaskStatus.cancelled})
 
 

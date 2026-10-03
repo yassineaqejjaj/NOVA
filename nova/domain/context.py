@@ -75,6 +75,18 @@ class ContextProjectInfo(BaseModel):
     stats: dict[str, int] = Field(default_factory=dict)
 
 
+class ContextOverview(BaseModel):
+    """What the context system holds for a project (real counts reported by ORBIT)."""
+
+    project_slug: str
+    documents: int = 0
+    memory_items: int = 0
+    decisions: int = 0
+    sources: int = 0
+    snapshots: int = 0
+    memory_by_kind: dict[str, int] = Field(default_factory=dict)
+
+
 class ContextChange(BaseModel):
     """A change in the user's context (feeds Today recommendations)."""
 
@@ -136,6 +148,8 @@ class ContextProvider(Protocol):
     async def list_projects(self, user_id: str) -> list[ContextProjectInfo]: ...
 
     async def recent_changes(self, user_id: str, project_slug: str, since: datetime | None) -> list[ContextChange]: ...
+
+    async def overview(self, user_id: str, project_slug: str) -> ContextOverview: ...
 
     async def search(self, user_id: str, project_slug: str, query: str, limit: int = 10) -> list[SearchResult]: ...
 

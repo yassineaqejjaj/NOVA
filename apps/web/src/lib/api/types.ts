@@ -1,6 +1,6 @@
 // Types of the NOVA API (apps/api/nova_api). Kept in sync by hand with the routers.
 
-export type TaskStatus = "queued" | "scheduled" | "running" | "waiting_user" | "completed" | "failed" | "cancelled";
+export type TaskStatus = "queued" | "scheduled" | "running" | "waiting_user" | "paused" | "completed" | "failed" | "cancelled";
 export type NovaPhase = "idle" | "retrieving_context" | "planning" | "executing" | "waiting_user" | "completed" | "failed";
 export type AutonomyMode = "suggest" | "assist" | "execute_with_approval" | "execute_automatically";
 export type BlockType =
@@ -93,28 +93,68 @@ export interface ComposerPayload {
   scheduled_for?: string | null;
 }
 
+export type RecommendationAction =
+  | { kind: "fix"; label: string; prompt: string; artifact_id?: string; artifact_title?: string }
+  | { kind: "review"; label: string; href: string }
+  | { kind: "retry"; label: string; task_id: string }
+  | { kind: "ignore"; label: string };
+
+/** A business object that needs the user: what, where, why it matters and what NOVA can do about it. */
 export interface Recommendation {
   id: string;
   source: "orbit" | "nova";
   title: string;
   subtitle?: string;
-  action: string;
-  prompt?: string;
-  href?: string;
+  context: string;
+  suggestion: string;
+  actions: RecommendationAction[];
   task_id?: string;
   conversation_id?: string | null;
   project_id?: string | null;
-  project_name?: string;
+  project_name?: string | null;
   artifact_id?: string;
   classification?: number;
+  urgent?: boolean;
+  risk?: boolean;
   at: string;
+}
+
+export type OrbState = "idle" | "thinking" | "working" | "waiting" | "clarification" | "completed";
+
+export interface ContextProjectOverview {
+  id: string;
+  name: string;
+  url: string | null;
+  documents: number;
+  memory_items: number;
+  decisions: number;
+  sources: number;
+  snapshots: number;
 }
 
 export interface Today {
   user: { display_name: string; first_name: string; title: string };
-  nova: { name: string; avatar?: string };
+  nova: { name: string; avatar?: string; state: OrbState };
   onboarding_completed: boolean;
+  brief: { actions_required: number; running: number; paused: number; waiting: number; results_ready: number; projects_at_risk: string[] };
   recommendations: Recommendation[];
+  continue: { conversation_id: string; title: string; project_name: string | null; updated_at: string }[];
+  context: {
+    system: "ORBIT";
+    linked: boolean;
+    account: string | null;
+    error: string | null;
+    projects: ContextProjectOverview[];
+    totals: { documents: number; memory_items: number; decisions: number; sources: number };
+    changes_24h: number;
+    last_change_at: string | null;
+  };
+  quality: {
+    system: "FORGE";
+    monitoring: boolean;
+    last_evaluation: { score: number | null; passed: boolean | null; status: string | null; url: string | null; at: string } | null;
+    url: string;
+  };
   orbit: { linked: boolean; error: string | null };
 }
 
@@ -323,7 +363,10 @@ export interface CommentInfo { id: string; section_key: string; item_id: string 
 
 export interface ActivityEvent {
   kind: string;
-  category: "work" | "artifact" | "decision" | "context";
+  category: "work" | "artifact" | "decision" | "context" | "quality";
+  system?: "ORBIT" | "NOVA" | "FORGE" | "You";
+  href?: string | null;
+  classification?: number;
   project_name?: string | null;
   author?: "user" | "nova";
   at: string;

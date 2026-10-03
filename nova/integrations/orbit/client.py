@@ -86,6 +86,9 @@ class OrbitClient:
     async def changes(self, auth: OrbitAuth, slug: str, params: dict[str, Any]) -> dict[str, Any]:
         return (await self._request("GET", f"/projects/{slug}/changes", auth, params=params)).json()
 
+    async def overview(self, auth: OrbitAuth, slug: str) -> dict[str, Any]:
+        return (await self._request("GET", f"/projects/{slug}/overview", auth)).json()
+
     async def search(self, auth: OrbitAuth, slug: str, query: str, limit: int) -> list[dict[str, Any]]:
         return (await self._request("GET", f"/projects/{slug}/search", auth, params={"q": query, "limit": limit})).json()
 

@@ -3,6 +3,7 @@
 import {
   Button,
   cn,
+  Kbd,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -10,7 +11,7 @@ import {
   Select,
   Tooltip,
 } from "@nova/ui";
-import { ArrowUp, FileText, Orbit, Paperclip, Plus, X } from "lucide-react";
+import { ArrowUp, FileText, Orbit, Paperclip, Plus, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -32,8 +33,9 @@ export interface ComposerProps {
   autoFocus?: boolean;
   compact?: boolean;
   disabled?: boolean;
-  /** "pill": floating home composer (orb, single line; controls appear when focused). */
-  variant?: "default" | "pill";
+  /** "pill": floating composer (orb, single line; controls appear when focused).
+   *  "command": Home's central "Ask NOVA" zone (large, every control visible, keyboard hints). */
+  variant?: "default" | "pill" | "command";
 }
 
 export function Composer({ conversationId, activeArtifactId, placeholder, autoFocus, compact, disabled, variant = "default" }: ComposerProps) {
@@ -135,6 +137,11 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
   };
 
   const projectOptions = [{ value: "none", label: "No project" }, ...(projects ?? []).map((p) => ({ value: p.id, label: p.name }))];
+  const command = variant === "command";
+  const startSkill = () => {
+    state.setDraft(`${state.draft.replace(/\s*$/, state.draft.trim() ? " " : "")}/`);
+    textarea.current?.focus();
+  };
   const chips = state.pinned.length + state.artifactRefs.length + attachments.length + state.excluded.length;
 
   return (
@@ -147,8 +154,11 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
         if (!e.currentTarget.contains(next) && !next?.closest("[data-radix-popper-content-wrapper]")) setFocused(false);
       }}
       className={cn(
-        "relative border border-border-strong bg-surface shadow-panel transition-colors focus-within:border-accent/40",
-        variant === "pill" ? "rounded-[26px]" : "rounded-[16px]",
+        "relative border bg-surface transition-[border-color,box-shadow] focus-within:border-accent/40",
+        command
+          ? "rounded-[24px] border-border shadow-[0_18px_50px_-28px_rgb(0_0_0/0.25)] focus-within:shadow-[0_0_0_4px_var(--accent-soft),0_18px_50px_-28px_rgb(0_0_0/0.25)]"
+          : "border-border-strong shadow-panel",
+        variant === "pill" ? "rounded-[26px]" : variant === "default" && "rounded-[16px]",
       )}
     >
       {slash.length ? (
@@ -190,9 +200,9 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
         </div>
       ) : null}
 
-      {variant === "pill" ? (
-        <div className="flex items-center gap-3 pl-3 pr-2">
-          <NovaMark size={30} />
+      {variant !== "default" ? (
+        <div className={cn("flex items-center gap-3", command ? "pl-4 pr-3 pt-2" : "pl-3 pr-2")}>
+          <NovaMark size={command ? 36 : 30} />
           <textarea
             id="nova-composer"
             ref={textarea}
@@ -207,9 +217,10 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
             className={cn(
               "block w-full resize-none bg-transparent px-4 text-[15px] leading-relaxed text-text outline-none placeholder:text-subtle",
               "min-h-[52px] flex-1 px-0 py-[14px]",
+              command && "min-h-[64px] py-[18px] text-[17px]",
             )}
           />
-          <Button variant="primary" size="icon" className="size-9 shrink-0 rounded-full" onClick={() => void submit()} disabled={!state.draft.trim() || send.isPending || disabled} aria-label="Send">
+          <Button variant="primary" size="icon" className={cn("shrink-0 rounded-full", command ? "size-11" : "size-9")} onClick={() => void submit()} disabled={!state.draft.trim() || send.isPending || disabled} aria-label="Send">
             <ArrowUp />
           </Button>
         </div>
@@ -233,9 +244,30 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
       )}
 
       <div className={cn("flex flex-wrap items-center gap-1.5 px-2.5 pb-2.5", variant === "pill" && !(focused || state.draft || chips) && "hidden")}>
+        {command ? (
+          <>
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[12.5px] text-muted" onClick={() => fileInput.current?.click()}>
+              <Paperclip /> File
+            </Button>
+            <Tooltip content={state.projectId ? "Pin ORBIT sources for this request" : "Choose a project to add ORBIT sources"}>
+              <span>
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[12.5px] text-muted" onClick={() => setPickerOpen(true)} disabled={!state.projectId}>
+                  <Orbit /> ORBIT source
+                </Button>
+              </span>
+            </Tooltip>
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[12.5px] text-muted" onClick={() => setArtifactMenu(true)}>
+              <FileText /> Artifact
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[12.5px] text-muted" onClick={startSkill}>
+              <Sparkles /> Skill
+            </Button>
+            <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+          </>
+        ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Add">
+            <Button variant="ghost" size="icon" aria-label="Add" className={cn(command && "hidden")}>
               <Plus />
             </Button>
           </DropdownMenuTrigger>
@@ -277,8 +309,14 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
         </Tooltip>
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden whitespace-nowrap text-[11px] text-subtle xl:inline">/ for Skills · ⇧↵ new line</span>
-          {variant === "pill" ? null : (
+          {command ? (
+            <span className="hidden items-center gap-2 whitespace-nowrap text-[11px] text-subtle lg:flex">
+              <Kbd>↵</Kbd> send <Kbd>⇧↵</Kbd> new line <Kbd>/</Kbd> skills <Kbd>⌘K</Kbd> search
+            </span>
+          ) : (
+            <span className="hidden whitespace-nowrap text-[11px] text-subtle xl:inline">/ for Skills · ⇧↵ new line</span>
+          )}
+          {variant !== "default" ? null : (
             <Button variant="primary" size="icon" onClick={() => void submit()} disabled={!state.draft.trim() || send.isPending || disabled} aria-label="Send">
               <ArrowUp />
             </Button>

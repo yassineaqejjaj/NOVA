@@ -8,10 +8,11 @@ import { ActivityFeed } from "@/components/activity-feed";
 import { useProjects } from "@/lib/api/hooks";
 
 const TABS = [
-  { value: "all", label: "All activity" },
+  { value: "all", label: "Everything" },
   { value: "projects", label: "My projects" },
   { value: "artifact", label: "Artifacts" },
   { value: "decision", label: "Decisions" },
+  { value: "quality", label: "Quality" },
 ];
 
 export default function ActivityPage() {
@@ -21,8 +22,8 @@ export default function ActivityPage() {
   const [query, setQuery] = useState("");
   return (
     <div className="mx-auto w-full max-w-[960px] px-5 pb-16 pt-8 md:px-8">
-      <h1 className="text-[28px] font-semibold tracking-tight">Activity</h1>
-      <p className="mt-1 text-[14px] text-muted">Everything NOVA did for you, and every decision you made.</p>
+      <h1 className="text-[28px] font-semibold tracking-tight">Timeline</h1>
+      <p className="mt-1 text-[14px] text-muted">How your work moved: ORBIT supplies the context, NOVA acts, FORGE evaluates — and what you decided.</p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3 border-b border-border pb-3">
         <Tabs value={tab} onValueChange={setTab} className="-mx-1 max-w-full overflow-x-auto px-1">

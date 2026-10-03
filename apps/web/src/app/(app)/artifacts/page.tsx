@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
-import { LibraryTabs } from "@/components/shell/library-tabs";
 import { ClassificationBadge, EmptyState, Page, PageHeader } from "@/components/shell/page";
 import { api } from "@/lib/api/client";
 import { useArtifacts, useArtifactTypes, useProjects } from "@/lib/api/hooks";
@@ -34,8 +33,7 @@ function ArtifactsPage() {
 
   return (
     <Page wide>
-      <PageHeader title="Library" description="Everything NOVA produced with you, and the Skills it uses." actions={<Button size="sm" onClick={() => setOpen(true)}><Plus /> New</Button>} />
-      <LibraryTabs />
+      <PageHeader title="Library" description="Everything NOVA produced with you — versioned, cited, editable." actions={<Button size="sm" onClick={() => setOpen(true)}><Plus /> New</Button>} />
       <div className="mb-4 flex flex-wrap gap-2">
         <div className="relative min-w-[240px] flex-1">
           <Search className="absolute left-3 top-2.5 size-4 text-subtle" />

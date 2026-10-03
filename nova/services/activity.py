@@ -18,6 +18,7 @@ from nova.infra.models import (
     AuditEvent,
     ContextRetrievalReference,
     Conversation,
+    IntegrationReference,
     Project,
     ProjectMember,
     ProjectReference,
@@ -61,6 +62,7 @@ async def activity(
         names = [skills.get(s.skill_id).name for s in task.steps if s.skill_id and skills.has(s.skill_id)]
         base = {
             "category": "work",
+            "system": "NOVA",
             "task_id": str(task.id),
             "project_id": str(task.project_id) if task.project_id else None,
             "conversation_id": str(task.conversation_id) if task.conversation_id else None,
@@ -114,6 +116,7 @@ async def activity(
                 {
                     "kind": "artifact",
                     "category": "artifact",
+                    "system": "NOVA" if version.author_type == "nova" else "You",
                     "author": version.author_type,
                     "at": version.created_at.isoformat(),
                     "artifact_id": str(artifact.id),
@@ -130,16 +133,58 @@ async def activity(
         for ref in (await session.scalars(refs_q.order_by(ContextRetrievalReference.created_at.desc()).limit(limit))).all():
             if project_id and ref.task_id is None:
                 continue
+            titles = [str(i.get("title")) for i in (ref.items or []) if isinstance(i, dict) and i.get("title")]
+            count = len(ref.items)
+            shown = ", ".join(titles[:2]) + (f" and {count - 2} more" if count > 2 else "")
             events.append(
                 {
                     "kind": "context",
                     "category": "context",
+                    "system": "ORBIT" if ref.system == "orbit" else ref.system.upper(),
                     "at": ref.created_at.isoformat(),
                     "task_id": str(ref.task_id) if ref.task_id else None,
-                    "text": f"{'ORBIT' if ref.system == 'orbit' else ref.system.upper()} supplied {len(ref.items)} context item{'s' if len(ref.items) != 1 else ''}",
-                    "detail": ref.project_slug or "",
+                    "text": f"Retrieved {titles[0]}"
+                    if count == 1 and titles
+                    else f"Retrieved {count} context item{'s' if count != 1 else ''}",
+                    "detail": shown if count > 1 else (ref.project_slug or ""),
+                    "classification": ref.max_classification,
                 }
             )
+
+        # FORGE: evaluations of the user's executions (the learning end of the chain).
+        evals_q = select(IntegrationReference).where(
+            IntegrationReference.system == "forge",
+            IntegrationReference.kind == "evaluation",
+            IntegrationReference.nova_type == "task",
+        )
+        if since:
+            evals_q = evals_q.where(IntegrationReference.updated_at >= since)
+        own = {
+            str(t)
+            for t in (
+                await session.scalars(select(Task.id).where(Task.user_id == uid).order_by(Task.created_at.desc()).limit(200))
+            ).all()
+        }
+        for ref in (await session.scalars(evals_q.order_by(IntegrationReference.updated_at.desc()).limit(limit))).all():
+            if ref.nova_id not in own:
+                continue
+            data = ref.data or {}
+            score = data.get("composite_score")
+            events.append(
+                {
+                    "kind": "evaluation",
+                    "category": "quality",
+                    "system": "FORGE",
+                    "at": ref.updated_at.isoformat(),
+                    "task_id": ref.nova_id,
+                    "text": "FORGE evaluated the output" if score is not None else "FORGE evaluation queued",
+                    "detail": f"Score {round(float(score))}" + (" · passed" if data.get("passed") else "")
+                    if score is not None
+                    else (data.get("status") or ""),
+                    "href": data.get("url"),
+                }
+            )
+
     if not (skill_id or status):
         # Decisions: what the user approved, rejected or confirmed (recorded in the audit log).
         decisions_q = select(AuditEvent).where(
@@ -191,6 +236,7 @@ def _decision(row: AuditEvent) -> dict[str, Any]:
     return {
         "kind": "decision",
         "category": "decision",
+        "system": "You",
         "at": row.created_at.isoformat(),
         "text": text,
         "detail": "",

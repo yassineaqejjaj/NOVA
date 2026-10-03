@@ -120,6 +120,16 @@ async def changes(slug: str, request: Request) -> dict[str, Any]:
     return {"items": [item], "total": 1, "page": 1, "page_size": 20}
 
 
+@app.get("/api/v1/projects/{slug}/overview")
+async def overview(slug: str, request: Request) -> dict[str, Any]:
+    _auth(request)
+    _project(slug)
+    return {
+        "stats": {"sources": 2, "documents": 14, "memory_items": 9, "validated_decisions": 4, "snapshots": 1},
+        "memory_by_scope": {},
+    }
+
+
 @app.get("/api/v1/projects/{slug}/search")
 async def search(slug: str, request: Request, q: str = "", limit: int = 10) -> list[dict[str, Any]]:
     _auth(request)

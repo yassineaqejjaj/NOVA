@@ -16,6 +16,7 @@ from nova.domain.context import (
     ContextError,
     ContextIdentity,
     ContextItem,
+    ContextOverview,
     ContextProjectInfo,
     ContextQuery,
     SearchResult,
@@ -135,6 +136,9 @@ class FakeContextProvider:
 
     async def recent_changes(self, user_id: str, project_slug: str, since: datetime | None) -> list[ContextChange]:
         return [c for c in self.changes if c.project_slug == project_slug]
+
+    async def overview(self, user_id: str, project_slug: str) -> ContextOverview:
+        return ContextOverview(project_slug=project_slug, documents=12, memory_items=6, decisions=3, sources=2, snapshots=1)
 
     async def search(self, user_id: str, project_slug: str, query: str, limit: int = 10) -> list[SearchResult]:
         return [SearchResult(ref_id="chunk-1", project_slug=project_slug, title="FORGE Vision v2", snippet="…")]

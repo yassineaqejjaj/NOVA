@@ -28,7 +28,7 @@ router = APIRouter(tags=["work"])
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 TAB_STATUSES = {
-    "active": ["queued", "running", "waiting_user"],
+    "active": ["queued", "running", "waiting_user", "paused"],
     "scheduled": ["scheduled"],
     "completed": ["completed"],
     "failed": ["failed", "cancelled"],
@@ -206,6 +206,17 @@ async def get_workflow(workflow_id: str, principal: CurrentPrincipal, session: S
 @router.get("/today")
 async def today(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
     return await today_service.today(session, principal)
+
+
+class DismissIn(BaseModel):
+    id: str = Field(min_length=1, max_length=200)
+
+
+@router.post("/today/dismiss", status_code=204)
+async def dismiss_recommendation(body: DismissIn, principal: CurrentPrincipal, session: SessionDep) -> None:
+    """Ignore a Home recommendation (kept per user; a recommendation with new facts gets a new id)."""
+    await today_service.dismiss(session, principal, body.id)
+    await session.commit()
 
 
 @router.get("/activity")

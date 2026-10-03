@@ -147,3 +147,28 @@ async def test_requested_deliverable_skill_is_always_planned(user, project, llm)
     blocks = await _blocks(message_id)
     assert blocks["workflow"]["steps"][0]["skill_id"] == "prd"
     assert "plan" not in blocks  # the plan block appears only once the workflow is confirmed
+
+
+async def test_pause_stops_at_a_step_boundary_and_continue_resumes_from_the_checkpoint(user, project, llm, orbit, monkeypatch):
+    from nova.services.execution_store import SqlExecutionStore as ExecutionStore
+
+    task_id, _ = await _start(user, project, "Create a PRD for scheduled CSV exports in FORGE")
+    calls = {"n": 0}
+    original = ExecutionStore.is_paused
+
+    async def paused_after_two_nodes(self, tid):  # the user presses Pause while NOVA works
+        calls["n"] += 1
+        return calls["n"] >= 3
+
+    monkeypatch.setattr(ExecutionStore, "is_paused", paused_after_two_nodes)
+    assert await run_task(task_id, "start") == "paused"
+    task = await _task(task_id)
+    assert task.status == "paused" and task.finished_at is None
+
+    monkeypatch.setattr(ExecutionStore, "is_paused", original)
+    async with db.session_scope() as session:
+        (await session.get(Task, uuid.UUID(task_id))).status = "queued"  # what POST /continue does
+    assert await run_task(task_id, "retry") == "completed"
+    async with db.session_scope() as session:
+        artifacts = (await session.scalars(select(Artifact).where(Artifact.task_id == uuid.UUID(task_id)))).all()
+    assert len(artifacts) == 1  # resumed, not restarted: one PRD

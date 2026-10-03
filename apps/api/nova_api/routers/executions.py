@@ -76,7 +76,7 @@ async def events(
         for row in rows:
             last = row.seq
             yield {"id": str(row.seq), "event": row.type, "data": json.dumps({"seq": row.seq, "type": row.type, **row.payload})}
-        if status in TERMINAL or status == "waiting_user":
+        if status in TERMINAL or status in ("waiting_user", "paused"):
             first.cancel()
             yield {"event": "end", "data": json.dumps({"status": status})}
             return
@@ -132,13 +132,39 @@ async def cancel(task_id: str, principal: CurrentPrincipal, session: SessionDep)
     task = await require_task(session, task_id, principal)
     if task.status in TERMINAL:
         return {"status": task.status}
-    idle = task.status in (TaskStatus.waiting_user, TaskStatus.scheduled, TaskStatus.queued)
+    idle = task.status in (TaskStatus.waiting_user, TaskStatus.scheduled, TaskStatus.queued, TaskStatus.paused)
     task.status = TaskStatus.cancelled.value
     task.waiting_for = None
     if idle:  # no worker will observe it: close the stream now
         await emit_event(session, get_publisher(), task.id, "done", {"status": "cancelled"})
     await session.commit()
     return {"status": "cancelled"}
+
+
+@router.post("/{task_id}/pause")
+async def pause(task_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, str]:
+    """Pause at the next step boundary (the current model call completes); completed steps are kept."""
+    task = await require_task(session, task_id, principal)
+    if task.status not in (TaskStatus.running, TaskStatus.queued):
+        raise ApiError(409, "not_running", "Only a running task can be paused.")
+    idle = task.status == TaskStatus.queued
+    task.status = TaskStatus.paused.value
+    if idle:  # no worker is running it yet: close the stream now
+        await emit_event(session, get_publisher(), task.id, "done", {"status": "paused"})
+    await session.commit()
+    return {"status": "paused"}
+
+
+@router.post("/{task_id}/continue", status_code=202)
+async def continue_(task_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, str]:
+    """Resume a paused task from its last checkpoint."""
+    task = await require_task(session, task_id, principal)
+    if task.status != TaskStatus.paused:
+        raise ApiError(409, "not_paused", "This task is not paused.")
+    task.status = TaskStatus.queued.value
+    await session.commit()
+    await dispatch(str(task.id), "retry")
+    return {"status": "queued"}
 
 
 @router.post("/{task_id}/retry", status_code=202)

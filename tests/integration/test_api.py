@@ -58,6 +58,25 @@ async def test_auth_required_and_me(app):
     assert today["user"]["first_name"] == "Yassine"
 
 
+async def test_home_command_center_is_computed_from_real_work(app, llm):
+    client = await _client(app)
+    empty = (await client.get("/api/v1/today")).json()
+    assert empty["nova"]["state"] == "idle" and empty["brief"]["results_ready"] == 0 and empty["continue"] == []
+    assert empty["context"]["system"] == "ORBIT" and empty["quality"]["last_evaluation"] is None
+
+    await _ask(client, "Create a PRD for scheduled CSV exports")
+    home = (await client.get("/api/v1/today")).json()
+    assert home["nova"]["state"] == "completed" and home["brief"]["results_ready"] == 1
+    assert home["continue"][0]["title"]
+    for rec in home["recommendations"]:
+        assert rec["actions"] and rec["context"] and rec["suggestion"]
+    if home["recommendations"]:
+        target = home["recommendations"][0]["id"]
+        assert (await client.post("/api/v1/today/dismiss", json={"id": target})).status_code == 204
+        after = (await client.get("/api/v1/today")).json()
+        assert target not in {r["id"] for r in after["recommendations"]}
+
+
 async def test_prd_flow_edit_conflict_versions_compare_export(app, llm):
     client = await _client(app)
     result = await _ask(client, "Create a PRD for scheduled CSV exports")

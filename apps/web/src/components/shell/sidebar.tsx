@@ -10,7 +10,7 @@ import {
   Kbd,
   Tooltip,
 } from "@nova/ui";
-import { Activity, FolderKanban, Library, ListTodo, LogOut, Moon, Orbit, Search, Settings, Sun } from "lucide-react";
+import { FolderKanban, History, Library, ListTodo, LogOut, Moon, Orbit, Search, Settings, Sparkles, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -20,24 +20,53 @@ import { useNovaState, useUi } from "@/stores/ui";
 
 import { NovaLogo, NovaMark, PHASE_LABEL } from "./nova-mark";
 
-export const NAV = [
-  { href: "/", label: "NOVA", icon: "orb" as const },
+type NavItem = { href: string; label: string; icon: "orb" | typeof FolderKanban };
+
+/** Compact, grouped navigation (7 entries): workspace, knowledge, NOVA itself. */
+export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Workspace",
+    items: [
+      { href: "/", label: "Home", icon: "orb" },
+      { href: "/projects", label: "Projects", icon: FolderKanban },
+      { href: "/work", label: "Tasks", icon: ListTodo },
+    ],
+  },
+  {
+    label: "Knowledge",
+    items: [
+      { href: "/artifacts", label: "Library", icon: Library },
+      { href: "/context", label: "Context", icon: Orbit },
+    ],
+  },
+  {
+    label: "NOVA",
+    items: [
+      { href: "/skills", label: "Skills", icon: Sparkles },
+      { href: "/activity", label: "Timeline", icon: History },
+    ],
+  },
+];
+
+/** Bottom tab bar on phones (5 entries). */
+export const NAV: NavItem[] = [
+  { href: "/", label: "Home", icon: "orb" },
   { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/library", label: "Library", icon: Library },
-  { href: "/activity", label: "Activity", icon: Activity },
+  { href: "/work", label: "Tasks", icon: ListTodo },
+  { href: "/artifacts", label: "Library", icon: Library },
+  { href: "/activity", label: "Timeline", icon: History },
 ];
 
 export function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/" || pathname.startsWith("/c/");
-  if (href === "/library") return pathname.startsWith("/library") || pathname.startsWith("/artifacts") || pathname.startsWith("/skills");
-  if (href === "/activity") return pathname.startsWith("/activity") || pathname.startsWith("/work");
+  if (href === "/artifacts") return pathname.startsWith("/library") || pathname.startsWith("/artifacts");
   return pathname.startsWith(href);
 }
 
-function NavIcon({ icon, active, phase }: { icon: (typeof NAV)[number]["icon"]; active: boolean; phase?: Parameters<typeof NovaMark>[0]["phase"] }) {
+function NavIcon({ icon, active, phase }: { icon: NavItem["icon"]; active: boolean; phase?: Parameters<typeof NovaMark>[0]["phase"] }) {
   if (icon === "orb") return <NovaMark size={18} phase={phase} />;
   const Icon = icon;
-  return <Icon className={cn("size-[18px]", active ? "text-accent" : "text-subtle")} />;
+  return <Icon className={cn("size-[18px]", active ? "text-text" : "text-subtle")} />;
 }
 
 export function UserMenu({ compact = false }: { compact?: boolean }) {
@@ -67,8 +96,6 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="top" className="w-56">
         <DropdownMenuItem onSelect={() => router.push("/settings")}><Settings /> Settings</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => router.push("/context")}><Orbit /> ORBIT Context</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => router.push("/work")}><ListTodo /> Work</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? <Sun /> : <Moon />} {theme === "dark" ? "Light theme" : "Dark theme"}
         </DropdownMenuItem>
@@ -88,46 +115,65 @@ export function Sidebar() {
       <Link href="/" className="mb-8 px-2">
         <NovaLogo height={26} />
       </Link>
-      <nav className="flex flex-col gap-1">
-        {NAV.map((item) => {
-          const active = isActive(pathname, item.href);
-          const link = (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex h-10 items-center gap-3 rounded-[12px] px-3 text-[14px] transition-colors",
-                active ? "bg-accent-soft font-medium text-accent" : "text-muted hover:bg-surface-2 hover:text-text",
-              )}
-            >
-              <NavIcon icon={item.icon} active={active} phase={item.icon === "orb" ? current?.phase : undefined} />
-              {item.label}
-            </Link>
-          );
-          return item.icon === "orb" && current ? (
-            <Tooltip key={item.href} content={current.label || PHASE_LABEL[current.phase]} side="right">{link}</Tooltip>
-          ) : (
-            link
-          );
-        })}
+      <nav className="flex flex-col gap-5" aria-label="Main">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-subtle">{group.label}</div>
+            <div className="flex flex-col gap-0.5">
+              {group.items.map((item) => {
+                const active = isActive(pathname, item.href);
+                const link = (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex h-9 items-center gap-3 rounded-[10px] px-3 text-[14px] transition-colors",
+                      active ? "bg-surface-2 font-medium text-text" : "text-muted hover:bg-surface-2/70 hover:text-text",
+                    )}
+                  >
+                    <NavIcon icon={item.icon} active={active} phase={item.icon === "orb" ? current?.phase : undefined} />
+                    {item.label}
+                  </Link>
+                );
+                return item.icon === "orb" && current ? (
+                  <Tooltip key={item.href} content={current.label || PHASE_LABEL[current.phase]} side="right">{link}</Tooltip>
+                ) : (
+                  link
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
-      <div className="mt-auto">
+      <div className="mt-auto space-y-0.5">
+        <Link
+          href="/settings"
+          className={cn(
+            "flex h-9 items-center gap-3 rounded-[10px] px-3 text-[14px] transition-colors",
+            pathname.startsWith("/settings") ? "bg-surface-2 font-medium text-text" : "text-muted hover:bg-surface-2/70 hover:text-text",
+          )}
+        >
+          <Settings className="size-[18px] text-subtle" /> Settings
+        </Link>
         <UserMenu />
       </div>
     </aside>
   );
 }
 
+/** Search finds what already exists (⌘K); asking NOVA to act happens in the composer. */
 export function TopSearch() {
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
   return (
     <button
       onClick={() => setPaletteOpen(true)}
-      className="flex h-10 w-full max-w-[420px] items-center gap-2.5 rounded-full border border-border bg-surface px-4 text-[13.5px] text-subtle shadow-panel transition-colors hover:text-muted"
+      aria-label="Search (⌘K)"
+      className="flex h-9 items-center gap-2 rounded-full bg-surface-2/80 px-3.5 text-[13px] text-subtle transition-colors hover:bg-surface-3 hover:text-muted"
     >
       <Search className="size-4" />
-      <span className="flex-1 text-left">Search anything…</span>
-      <Kbd>⌘ K</Kbd>
+      <span>Search</span>
+      <Kbd className="ml-3">⌘K</Kbd>
     </button>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn, Skeleton } from "@nova/ui";
-import { Check, CircleCheckBig, FileText, Orbit, Play, X } from "lucide-react";
+import { Check, CircleCheckBig, FileText, Gauge, Orbit, Play, X } from "lucide-react";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/shell/page";
@@ -21,12 +21,26 @@ function look(e: ActivityEvent): { icon: React.ReactNode; tone: keyof typeof TON
   if (e.category === "decision") return { icon: <CircleCheckBig />, tone: e.status === "reject" || e.status === "cancel" ? "danger" : "violet" };
   if (e.category === "artifact") return { icon: <FileText />, tone: "accent" };
   if (e.category === "context") return { icon: <Orbit />, tone: "neutral" };
+  if (e.category === "quality") return { icon: <Gauge />, tone: "violet" };
   if (e.kind === "task_completed") return { icon: <Check />, tone: "success" };
   if (e.kind === "task_failed" || e.kind === "task_cancelled") return { icon: <X />, tone: "danger" };
   return { icon: <Play />, tone: "neutral" };
 }
 
+const SYSTEM_TONE: Record<string, string> = {
+  ORBIT: "bg-[#e8f1fd] text-[#2f6fd1] dark:bg-[#2f6fd1]/20 dark:text-[#8fb7f2]",
+  NOVA: "bg-accent-soft text-accent",
+  FORGE: "bg-[#efeafd] text-[#6d4fd8] dark:bg-[#6d4fd8]/20 dark:text-[#b7a6f5]",
+  You: "bg-surface-3 text-muted",
+};
+
+function SystemTag({ system }: { system?: string }) {
+  if (!system) return null;
+  return <span className={cn("rounded-full px-2 py-px text-[10.5px] font-semibold uppercase tracking-wide", SYSTEM_TONE[system] ?? SYSTEM_TONE.You)}>{system}</span>;
+}
+
 function target(e: ActivityEvent): { href: string; label: string } | null {
+  if (e.category === "quality" && e.href) return { href: e.href, label: "Open in FORGE" };
   if (e.artifact_id) return { href: `/artifacts/${e.artifact_id}`, label: "View artifact" };
   if (e.conversation_id) return { href: `/c/${e.conversation_id}`, label: e.category === "decision" ? "View decision" : "View work" };
   if (e.task_id) return { href: `/work?task=${e.task_id}`, label: "View work" };
@@ -80,7 +94,9 @@ export function ActivityFeed({
                   </div>
                   <div className={cn("flex min-w-0 flex-1 items-start gap-3 rounded-[14px] px-3 py-2", !compact && "hover:bg-surface-2/70")}>
                     <div className="min-w-0 flex-1">
-                      <div className="text-[13.5px] font-medium leading-snug text-text">{e.text}</div>
+                      <div className="flex flex-wrap items-center gap-2 text-[13.5px] font-medium leading-snug text-text">
+                        <SystemTag system={e.system} /> {e.text}
+                      </div>
                       {e.detail ? <div className="mt-0.5 line-clamp-2 text-[12.5px] text-muted">{e.detail}</div> : null}
                       {e.project_name && !compact ? (
                         <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11.5px] text-subtle">
@@ -91,7 +107,11 @@ export function ActivityFeed({
                     </div>
                     {link && !compact ? (
                       <Button variant="secondary" size="sm" className="shrink-0 rounded-full max-sm:hidden" asChild>
-                        <Link href={link.href}>{link.label}</Link>
+                        {link.href.startsWith("http") ? (
+                          <a href={link.href} target="_blank" rel="noreferrer">{link.label}</a>
+                        ) : (
+                          <Link href={link.href}>{link.label}</Link>
+                        )}
                       </Button>
                     ) : null}
                     {link && compact ? <Link href={link.href} className="shrink-0 text-[12px] text-accent hover:underline">View</Link> : null}

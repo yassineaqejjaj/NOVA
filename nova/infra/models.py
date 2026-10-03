@@ -62,6 +62,7 @@ class UserPreferences(Base):
     artifact_format: Mapped[str] = mapped_column(String(40), default="structured")
     default_autonomy: Mapped[str] = mapped_column(String(40), default="assist")
     theme: Mapped[str] = mapped_column(String(10), default="dark")
+    dismissed_recommendations: Mapped[list] = mapped_column(JSONType, default=list, server_default="[]")
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 

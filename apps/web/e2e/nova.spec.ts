@@ -35,7 +35,13 @@ test("first run: Meet your NOVA, then a conversation with a cited answer", async
 
   await expect(page.getByText(/, Yassine\./)).toBeVisible();
   await expect(page.getByRole("heading", { name: /Here's what matters/ })).toBeVisible();
-  await expect(page.getByPlaceholder("Tell NOVA what you need…")).toBeVisible();
+  await expect(page.getByPlaceholder(/Ask NOVA anything/)).toBeVisible();
+  await expect(page.getByLabel("NOVA status")).toContainText("Ready");
+  await expect(page.getByText("ORBIT · Not linked")).toBeVisible();
+  await expect(page.getByText("No evaluation yet")).toBeVisible();
+  await page.getByRole("button", { name: "Prepare my next sprint" }).click();
+  await expect(page.getByLabel("Ask NOVA")).toHaveValue(/^\/sprint-planning /);
+  await page.getByLabel("Ask NOVA").fill("");
   await ask(page, "What is a good north star metric for an evaluation platform?");
   await expect(page.locator(".prose-nova").last()).toBeVisible();
   await expect(page.getByRole("button", { name: "Useful", exact: true })).toBeVisible();
@@ -127,7 +133,7 @@ test("the full-page Artifact editor shows numbered sections, Ask NOVA actions an
 
   await page.goto("/library");
   await expect(page).toHaveURL(/\/artifacts/);
-  await expect(page.getByRole("navigation", { name: "Library" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Library" })).toBeVisible();
 });
 
 test("the slash menu stays inside the viewport, below the composer when there is room", async ({ page }) => {
@@ -180,4 +186,19 @@ test.describe("landing (French browser)", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /Here's what matters/ })).toBeVisible();
   });
+});
+
+test("Home is a command center: brief, continue, real results and the Timeline chain", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/");
+  await ask(page, "/prd Scheduled CSV exports of evaluation results for stakeholders");
+  await expect(page.getByLabel("Artifact title")).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByLabel("Your day")).toContainText("1result ready");
+  await expect(page.getByRole("link", { name: /Continue where you left off/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recent results" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Timeline" })).toBeVisible();
+  await page.goto("/activity");
+  await expect(page.getByRole("heading", { name: "Timeline" })).toBeVisible();
+  await expect(page.getByText("NOVA", { exact: true }).first()).toBeVisible();
 });

@@ -20,6 +20,7 @@ from nova.domain.context import (
     ContextChange,
     ContextError,
     ContextIdentity,
+    ContextOverview,
     ContextProjectInfo,
     ContextQuery,
     SearchResult,
@@ -128,6 +129,20 @@ class OrbitContextProvider:
             params["since"] = since.isoformat()
         page = await self.client.changes(auth, project_slug, params)
         return [mapper.change(raw, project_slug) for raw in page.get("items", [])]
+
+    async def overview(self, user_id: str, project_slug: str) -> ContextOverview:
+        auth = await self._auth(user_id, project_slug, user_endpoint=True)
+        raw = await self.client.overview(auth, project_slug)
+        stats = raw.get("stats") or {}
+        return ContextOverview(
+            project_slug=project_slug,
+            documents=int(stats.get("documents", 0)),
+            memory_items=int(stats.get("memory_items", 0)),
+            decisions=int(stats.get("validated_decisions", 0)),
+            sources=int(stats.get("sources", 0)),
+            snapshots=int(stats.get("snapshots", 0)),
+            memory_by_kind={str(k): int(v) for k, v in (raw.get("memory_by_scope") or {}).items()},
+        )
 
     async def search(self, user_id: str, project_slug: str, query: str, limit: int = 10) -> list[SearchResult]:
         auth = await self._auth(user_id, project_slug, user_endpoint=True)

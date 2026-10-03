@@ -6,7 +6,6 @@ import { Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { LibraryTabs } from "@/components/shell/library-tabs";
 import { Page, PageHeader } from "@/components/shell/page";
 import { useSkill, useSkills } from "@/lib/api/hooks";
 import { useComposer } from "@/stores/ui";
@@ -67,8 +66,7 @@ export default function SkillsPage() {
     <div className="flex min-h-screen">
       <div className="min-w-0 flex-1">
         <Page wide>
-          <PageHeader title="Library" description="Everything NOVA produced with you, and the Skills it uses." />
-          <LibraryTabs />
+          <PageHeader title="Skills" description="Versioned product workflows NOVA chooses and combines for you. You never have to pick one — but you can." />
           <div className="relative mb-6 max-w-md">
             <Search className="absolute left-3 top-2.5 size-4 text-subtle" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search Skills" className="pl-9" />
