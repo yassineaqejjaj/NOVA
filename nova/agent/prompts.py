@@ -248,6 +248,30 @@ def skill_step_messages(
     return [system_message(state, skill_text + tools_text), LLMMessage(role="user", content="\n\n".join(parts))]
 
 
+# --- Goals ---------------------------------------------------------------------------------------
+
+
+def goal_plan_messages(
+    *, title: str, outcome: str, due: str | None, today: str, lang: str, candidates: list[SkillSpec], project: str | None
+) -> list[LLMMessage]:
+    lines = [f"- {s.id}: {s.name} ({AGENTS[s.agent].name}) — {s.summary} Output: {s.outputs.artifact_type}." for s in candidates]
+    system = (
+        "You are NOVA, a permanent member of a product team. The user entrusted you with a GOAL: build the plan you will "
+        "carry out to reach it. Plan 3 to 8 milestones in execution order:\n"
+        "- kind=skill: work NOVA produces itself with one Skill from CANDIDATE SKILLS (each Skill at most once);\n"
+        "- kind=human: a decision, a meeting or an action only the team can take (e.g. 'Clarify the scope with "
+        "Engineering', 'Validate the PRD with the sponsor'); NOVA will ask the user when it gets there.\n"
+        "Start with understanding (discovery, analysis), then definition, then delivery and communication, as the goal "
+        f"needs. Respect the due date when there is one. Write titles, goals, rationales and the summary in '{lang}'.\n\n"
+        + TRUST_RULES
+    )
+    user = (
+        f"GOAL: {title}\nEXPECTED RESULT: {outcome or '(not specified)'}\nDUE DATE: {due or 'none'}\nTODAY: {today}\n"
+        f"PROJECT: {project or 'none'}\n\nCANDIDATE SKILLS:\n" + "\n".join(lines)
+    )
+    return [LLMMessage(role="system", content=system), LLMMessage(role="user", content=user)]
+
+
 # --- validate_step (NOVA's Validation agent) -----------------------------------------------------
 
 VALIDATION_AGENT = """\

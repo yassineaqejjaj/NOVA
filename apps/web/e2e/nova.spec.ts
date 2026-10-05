@@ -33,8 +33,8 @@ test("first run: Meet your NOVA, then a conversation with a cited answer", async
   await expect(page.getByText(/Your .* is ready\./)).toBeVisible();
   await page.getByRole("button", { name: "Start working" }).click();
 
-  await expect(page.getByText(/, Yassine\./)).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Here's what matters/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Yassine\./ })).toBeVisible();
+  await expect(page.getByText("Nothing new since your last visit — I’m ready when you are.")).toBeVisible();
   await expect(page.getByPlaceholder(/Ask NOVA anything/)).toBeVisible();
   await expect(page.getByLabel("NOVA status")).toContainText("Ready");
   await expect(page.getByText("ORBIT · Not linked")).toBeVisible();
@@ -184,7 +184,7 @@ test.describe("landing (French browser)", () => {
 
     await signIn(page);
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /Here's what matters/ })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /Yassine\./ })).toBeVisible();
   });
 });
 
@@ -194,8 +194,9 @@ test("Home is a command center: brief, continue, real results and the Timeline c
   await ask(page, "/prd Scheduled CSV exports of evaluation results for stakeholders");
   await expect(page.getByLabel("Artifact title")).toBeVisible();
   await page.goto("/");
-  await expect(page.getByLabel("Your day")).toContainText("1result ready");
-  await expect(page.getByRole("link", { name: /Continue where you left off/ })).toBeVisible();
+  await expect(page.getByTestId("today-hero")).toContainText("I worked on 1 topic since your last visit.");
+  await expect(page.getByTestId("today-hero")).toContainText("Scheduled CSV exports of evaluation results for stakeholders");
+  await expect(page.getByRole("heading", { name: "What NOVA recommends today" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Recent results" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Timeline" })).toBeVisible();
   await page.goto("/activity");
@@ -210,12 +211,12 @@ test("Settings: switch the interface to French and pick an orb color (saved to t
   await expect(page.getByRole("radio", { name: "Violet" })).toHaveAttribute("aria-checked", "true");
   await page.getByRole("radio", { name: "Français" }).click();
   await expect(page.getByRole("heading", { name: "Paramètres" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Accueil" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Aujourd’hui" })).toBeVisible();
 
   // Saved server-side: a fresh browser storage still gets French + violet from the profile.
   await page.evaluate(() => localStorage.clear());
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Voici l’essentiel/ })).toBeVisible();
+  await expect(page.getByText("Rien de nouveau depuis votre dernière visite — je suis prêt quand vous l’êtes.")).toBeVisible();
   await expect(page.getByPlaceholder(/Demandez ce que vous voulez à NOVA/)).toBeVisible();
   const me = await page.evaluate(() => fetch("/api/v1/me").then((r) => r.json()));
   expect(me.preferences).toMatchObject({ language: "fr", orb_color: "violet" });
@@ -312,6 +313,50 @@ test("Accounts: sign up with a @devoteam.com address confirmed by an e-mailed co
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/welcome/); // onboarding not finished yet
+});
+
+test("NOVA as a team member: a goal planned and carried out, the Inbox, Mission Control and a routine", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/goals");
+  await page.getByRole("button", { name: "Ship Checkout v2" }).click(); // example from the empty state
+  await page.getByLabel("Expected result").fill("Improve checkout conversion");
+  await page.getByRole("radio", { name: /Autonomous/ }).click();
+  await page.getByRole("button", { name: "Entrust to NOVA" }).click();
+  const detail = page.getByTestId("goal-detail");
+  await expect(detail).toContainText("Ship Checkout v2");
+  const milestones = detail.getByTestId("milestones");
+  await expect(milestones.locator('li[data-status="done"]')).toHaveCount(2, { timeout: 60_000 }); // NOVA ran both Skill milestones
+  await expect(milestones.locator('li[data-status="waiting"]')).toContainText("Clarify the scope with Engineering");
+  await expect(detail).toContainText("Waiting for you");
+
+  await page.goto("/");
+  await expect(page.getByTestId("decisions-callout")).toBeVisible();
+  await expect(page.getByTestId("today-goal")).toContainText("Ship Checkout v2");
+  await expect(page.getByTestId("inbox-badge")).toBeVisible();
+
+  await page.goto("/inbox");
+  const decision = page.getByTestId("inbox-item").filter({ hasText: "Clarify the scope with Engineering" });
+  await expect(decision).toHaveAttribute("data-kind", "decision");
+  await expect(page.getByTestId("inbox-item").filter({ hasText: "is ready" }).first().getByTestId("confidence")).toBeVisible();
+  await decision.getByRole("button", { name: "Mark as done" }).click();
+  await expect(decision).toHaveCount(0);
+
+  await page.goto("/missions");
+  await expect(page.getByTestId("mission").filter({ hasText: "Ship Checkout v2" })).toHaveAttribute("data-mission", "done");
+
+  await page.goto("/routines");
+  await page.getByTestId("routine-template").filter({ hasText: "Weekly Product Brief" }).click();
+  await page.getByRole("button", { name: "Save" }).click();
+  const routine = page.getByTestId("routine").filter({ hasText: "Weekly Product Brief" });
+  await expect(routine).toContainText("Every week · Mon · 08:30");
+  await routine.getByRole("button", { name: "Run now" }).click();
+  await expect(routine).toContainText("1 run");
+  await expect(async () => {
+    await page.goto("/inbox");
+    await page.getByRole("tab", { name: /Results/ }).click();
+    await expect(page.getByTestId("inbox-item").filter({ hasText: "Weekly Product Brief — result ready" })).toBeVisible({ timeout: 3_000 });
+  }).toPass({ timeout: 60_000 });
+  await expect(page.getByTestId("presence")).toBeVisible();
 });
 
 test("Voice: talk to NOVA from the orb — transcript sent as an autonomous request, answer spoken and captioned", async ({ page }) => {

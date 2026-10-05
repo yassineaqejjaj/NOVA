@@ -38,6 +38,7 @@ celery_app.conf.update(
     timezone="UTC",
     beat_schedule={
         "start-scheduled-work": {"task": "nova.start_scheduled", "schedule": 60.0, "options": {"queue": "maintenance"}},
+        "run-missions": {"task": "nova.run_missions", "schedule": 60.0, "options": {"queue": "maintenance"}},
         "requeue-stale-work": {"task": "nova.requeue_stale", "schedule": 120.0, "options": {"queue": "maintenance"}},
         "refresh-evaluations": {"task": "nova.refresh_evaluations", "schedule": 300.0, "options": {"queue": "maintenance"}},
         "retention": {"task": "nova.retention", "schedule": 86400.0, "options": {"queue": "maintenance"}},

@@ -8,6 +8,8 @@ from enum import IntEnum, StrEnum
 class TaskStatus(StrEnum):
     queued = "queued"
     scheduled = "scheduled"
+    goal = "goal"  # a milestone NOVA runs for a Goal it was entrusted with
+    routine = "routine"  # a Routine run (schedule or on demand)
     running = "running"
     waiting_user = "waiting_user"
     paused = "paused"  # stopped by the user at a step boundary; resumes from the last checkpoint
@@ -42,6 +44,7 @@ class StepStatus(StrEnum):
 
 
 class AutonomyMode(StrEnum):
+    observe = "observe"  # NOVA analyses and recommends; it produces nothing on its own
     suggest = "suggest"
     assist = "assist"
     execute_with_approval = "execute_with_approval"

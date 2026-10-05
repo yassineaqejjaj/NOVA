@@ -34,6 +34,32 @@ async def start_due_scheduled_tasks() -> int:
     return len(ids)
 
 
+async def run_missions() -> int:
+    """Minute tick: start due routines and move goals forward (safety net for the task-settled hook)."""
+    from nova.services import goals, routines
+
+    async with session_scope() as session:
+        ids = await routines.run_due(session)
+        ids += await goals.advance_open_goals(session)
+    for task_id in ids:
+        await dispatch(task_id, "start")
+    return len(ids)
+
+
+async def on_task_settled(task_id: str) -> None:
+    """A NOVA execution reached completion, a failure or a question: the goal it serves moves forward."""
+    import uuid as _uuid
+
+    from nova.services import goals
+
+    async with session_scope() as session:
+        task = await session.get(Task, _uuid.UUID(task_id))
+        goal_id = (task.input or {}).get("goal_id") if task is not None and task.origin == "goal" else None
+        ids = await goals.advance_open_goals(session, goal_id=_uuid.UUID(goal_id)) if goal_id else []
+    for tid in ids:
+        await dispatch(tid, "start")
+
+
 async def requeue_stale_tasks(older_than: timedelta = timedelta(minutes=2)) -> int:
     """Re-dispatch tasks still queued (never started) after ``older_than`` — e.g. a lost broker message.
 

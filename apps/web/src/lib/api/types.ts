@@ -160,6 +160,10 @@ export interface Today {
     url: string;
   };
   orbit: { linked: boolean; error: string | null };
+  inbox: import("./missions").Inbox;
+  since: { at: string; count: number; decisions: number; worked_on: { task_id: string; title: string; origin: string; conversation_id: string | null; artifact_ids: string[]; at: string | null }[] };
+  recommended: import("./missions").InboxItem[];
+  goals: import("./missions").Goal[];
 }
 
 export interface Project {

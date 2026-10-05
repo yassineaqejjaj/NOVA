@@ -449,6 +449,8 @@ _DELIVERABLE = re.compile(
 
 def _title(state: NovaState, type_name: str) -> str:
     """'Create a PRD for QR-code desk check-in in Atlas' → 'QR-code desk check-in in Atlas – Product Requirements Document'."""
+    if state.subject:
+        return f"{state.subject.strip()[:120]} – {type_name}"
     objective = _SLASH.sub(" ", (state.plan.objective if state.plan else state.intent)).strip().rstrip(".?!")
     subject = _DELIVERABLE.sub("", _LEAD.sub("", objective)).strip(" ,:-–")
     subject = re.sub(r"^(?:the\s+)?user'?s?\s+question\s+(?:about|on)\s+(?:the\s+)?", "", subject, flags=re.IGNORECASE)

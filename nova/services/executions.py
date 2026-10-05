@@ -93,7 +93,26 @@ async def run_task(
     traceparent: dict[str, str] | None = None,
     final_attempt: bool = True,
 ) -> TaskStatus:
-    """Run one segment of an execution (until completion or the next interrupt)."""
+    """Run one segment of an execution (until completion or the next interrupt), then let missions move forward."""
+    status = await _run_segment(task_id, mode, resume_value, traceparent=traceparent, final_attempt=final_attempt)
+    if status in (TaskStatus.completed, TaskStatus.failed, TaskStatus.waiting_user, TaskStatus.cancelled):
+        from nova.services.maintenance import on_task_settled
+
+        try:
+            await on_task_settled(task_id)
+        except Exception:  # a goal bookkeeping problem must never fail the execution itself
+            log.exception("Mission update after %s failed", task_id)
+    return status
+
+
+async def _run_segment(
+    task_id: str,
+    mode: Literal["start", "resume", "retry"],
+    resume_value: Any = None,
+    *,
+    traceparent: dict[str, str] | None = None,
+    final_attempt: bool = True,
+) -> TaskStatus:
     tid = uuid.UUID(task_id)
     async with session_scope() as session:
         task = await session.get(Task, tid)

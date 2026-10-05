@@ -10,11 +10,14 @@ import {
   Kbd,
   Tooltip,
 } from "@nova/ui";
-import { FolderKanban, History, Library, ListTodo, LogOut, Moon, Orbit, Search, Settings, Sparkles, Sun } from "lucide-react";
+import { FolderKanban, History, Inbox, Library, ListTodo, LogOut, Moon, Orbit, Radar, Repeat, Search, Settings, Sparkles, Sun, Target, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import { M as MM } from "@/components/missions/missions.messages";
+import { PresencePill } from "@/components/missions/ui";
 import { useMe } from "@/lib/api/hooks";
+import { useInbox } from "@/lib/api/missions";
 import { defineMessages, useT } from "@/lib/i18n";
 import { useSystemLabel } from "@/lib/i18n/catalog";
 import { useNovaState, useUi } from "@/stores/ui";
@@ -65,41 +68,47 @@ const M = defineMessages({
 });
 type Label = keyof typeof M.en;
 
-type NavItem = { href: string; label: Label; icon: "orb" | typeof FolderKanban };
+type NavItem = { href: string; label: Label | MissionLabel; icon: "orb" | typeof FolderKanban; badge?: "inbox" };
+type MissionLabel = keyof typeof MM.en;
 
-/** Compact, grouped navigation (7 entries): workspace, knowledge, NOVA itself. */
-export const NAV_GROUPS: { label: Label; items: NavItem[] }[] = [
+/** NOVA as a team member first (Today, Goals, Missions, Tasks, Inbox), then the workspace, automation and activity. */
+export const NAV_GROUPS: { label: MissionLabel; items: NavItem[] }[] = [
   {
-    label: "workspace",
+    label: "navNova",
     items: [
-      { href: "/", label: "home", icon: "orb" },
-      { href: "/projects", label: "projects", icon: FolderKanban },
+      { href: "/", label: "today", icon: "orb" },
+      { href: "/goals", label: "goals", icon: Target },
+      { href: "/missions", label: "missions", icon: Radar },
       { href: "/work", label: "tasks", icon: ListTodo },
+      { href: "/inbox", label: "inbox", icon: Inbox, badge: "inbox" },
     ],
   },
   {
-    label: "knowledge",
+    label: "navWorkspace",
     items: [
-      { href: "/artifacts", label: "library", icon: Library },
-      { href: "/context", label: "context", icon: Orbit },
+      { href: "/projects", label: "projects", icon: FolderKanban },
+      { href: "/artifacts", label: "artifacts", icon: Library },
+      { href: "/context", label: "knowledge", icon: Orbit },
     ],
   },
   {
-    label: "nova",
+    label: "navAutomation",
     items: [
       { href: "/skills", label: "skills", icon: Sparkles },
-      { href: "/activity", label: "timeline", icon: History },
+      { href: "/routines", label: "routines", icon: Repeat },
+      { href: "/team", label: "team", icon: Users },
     ],
   },
+  { label: "navActivity", items: [{ href: "/activity", label: "timeline", icon: History }] },
 ];
 
 /** Bottom tab bar on phones (5 entries). */
 export const NAV: NavItem[] = [
-  { href: "/", label: "home", icon: "orb" },
-  { href: "/projects", label: "projects", icon: FolderKanban },
+  { href: "/", label: "today", icon: "orb" },
+  { href: "/goals", label: "goals", icon: Target },
+  { href: "/inbox", label: "inbox", icon: Inbox, badge: "inbox" },
   { href: "/work", label: "tasks", icon: ListTodo },
-  { href: "/artifacts", label: "library", icon: Library },
-  { href: "/activity", label: "timeline", icon: History },
+  { href: "/artifacts", label: "artifacts", icon: Library },
 ];
 
 export function isActive(pathname: string, href: string): boolean {
@@ -149,21 +158,35 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function useNavLabel() {
+  const t = useT(M);
+  const tm = useT(MM);
+  return (label: NavItem["label"]) => (label in MM.en ? tm(label as MissionLabel) : t(label as Label));
+}
+
+function InboxBadge() {
+  const { data } = useInbox();
+  const n = (data?.counts.decision ?? 0) + (data?.counts.validation ?? 0) + (data?.counts.anomaly ?? 0);
+  return n ? <span className="ml-auto min-w-5 rounded-full bg-accent px-1.5 text-center text-[11px] font-semibold leading-5 text-white" data-testid="inbox-badge">{n}</span> : null;
+}
+
 export function Sidebar() {
   const t = useT(M);
+  const navLabel = useNavLabel();
   const label = useSystemLabel();
   const pathname = usePathname();
   const running = useNovaState((s) => s.running);
   const current = Object.values(running)[0];
   return (
     <aside className="sticky top-0 hidden h-screen w-[224px] shrink-0 flex-col border-r border-border bg-surface px-3 py-5 md:flex">
-      <Link href="/" className="mb-8 px-2">
+      <Link href="/" className="mb-4 px-2">
         <NovaLogo height={26} />
       </Link>
-      <nav className="flex flex-col gap-5" aria-label={t("main")}>
+      <PresencePill className="mb-4" />
+      <nav className="flex flex-col gap-4 overflow-y-auto" aria-label={t("main")}>
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-subtle">{t(group.label)}</div>
+            <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-subtle">{navLabel(group.label)}</div>
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -178,7 +201,8 @@ export function Sidebar() {
                     )}
                   >
                     <NavIcon icon={item.icon} active={active} phase={item.icon === "orb" ? current?.phase : undefined} />
-                    {t(item.label)}
+                    {navLabel(item.label)}
+                    {item.badge === "inbox" ? <InboxBadge /> : null}
                   </Link>
                 );
                 return item.icon === "orb" && current ? (
@@ -225,7 +249,7 @@ export function TopSearch() {
 }
 
 export function MobileTabBar() {
-  const t = useT(M);
+  const navLabel = useNavLabel();
   const pathname = usePathname();
   const running = useNovaState((s) => s.running);
   const current = Object.values(running)[0];
@@ -236,7 +260,7 @@ export function MobileTabBar() {
         return (
           <Link key={item.href} href={item.href} className={cn("flex flex-1 flex-col items-center justify-center gap-1 text-[11px]", active ? "text-accent" : "text-subtle")}>
             <NavIcon icon={item.icon} active={active} phase={item.icon === "orb" ? current?.phase : undefined} />
-            {t(item.label)}
+            {navLabel(item.label)}
           </Link>
         );
       })}

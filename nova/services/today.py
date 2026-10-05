@@ -24,6 +24,7 @@ from nova.infra.models import (
     Artifact,
     ArtifactVersion,
     Conversation,
+    Goal,
     IntegrationReference,
     Project,
     ProjectMember,
@@ -32,7 +33,9 @@ from nova.infra.models import (
     User,
     UserPreferences,
 )
+from nova.services import inbox as inbox_service
 from nova.services import providers
+from nova.services.goals import goal_view
 from nova.services.users import preferences_dict
 
 STORY_ARTIFACTS = ("user_stories", "backlog", "prd", "epic", "story_map", "refinement")
@@ -179,6 +182,7 @@ def _waiting_recommendation(task: Task, project_name: str | None, lang: Lang = "
         "at": task.created_at.isoformat(),
         "urgent": True,
         "clarification": key == "wait_questions",
+        "waiting_kind": (task.waiting_for or {}).get("kind"),
     }
 
 
@@ -198,6 +202,16 @@ def _failed_recommendation(task: Task, project_name: str | None, lang: Lang = "e
         "at": task.created_at.isoformat(),
         "risk": True,
     }
+
+
+USER_ORIGINS = ("interactive", "goal", "routine")
+
+
+def work_title(task: Task) -> str:
+    """The first line of the request, without /skill tokens (goal and routine runs start with them)."""
+    line = task.objective.strip().splitlines()[0] if task.objective.strip() else ""
+    words = [w for w in line.split() if not w.startswith("/")]
+    return " ".join(words)[:140]
 
 
 async def _overview(user_id: str, slug: str) -> ContextOverview | None:
@@ -316,7 +330,7 @@ async def today(session: AsyncSession, principal: Principal, accept_language: st
     active = (
         await session.scalars(
             select(Task)
-            .where(Task.user_id == uid, Task.origin == "interactive", Task.status.in_(("queued", "running", "paused")))
+            .where(Task.user_id == uid, Task.origin.in_(USER_ORIGINS), Task.status.in_(("queued", "running", "paused")))
             .order_by(Task.created_at.desc())
         )
     ).all()
@@ -397,8 +411,43 @@ async def today(session: AsyncSession, principal: Principal, accept_language: st
     else:
         state = "idle"
 
+    # --- Inbox, "since your last visit", what NOVA recommends today, goals -----------------------------
+    names = {pid: name for pid, name in project_names.items()}
+    inbox_items = await inbox_service.collect(session, uid, lang, recommendations, dismissed, names)
+    counts = inbox_service.counts(inbox_items)
+    since = aware(prefs_row.today_seen_at) if prefs_row and prefs_row.today_seen_at else now - timedelta(hours=24)
+    finished = (
+        await session.scalars(
+            select(Task)
+            .where(Task.user_id == uid, Task.origin.in_(USER_ORIGINS), Task.status == "completed", Task.finished_at >= since)
+            .order_by(Task.finished_at.desc())
+            .limit(30)
+        )
+    ).all()
+    worked_on = [
+        {
+            "task_id": str(t.id),
+            "title": work_title(t),
+            "origin": t.origin,
+            "conversation_id": str(t.conversation_id) if t.conversation_id else None,
+            "artifact_ids": [str(s.artifact_id) for s in t.steps if s.artifact_id],
+            "at": aware(t.finished_at).isoformat() if t.finished_at else None,
+        }
+        for t in finished
+    ]
+    goals = (
+        await session.scalars(
+            select(Goal)
+            .where(Goal.user_id == uid, Goal.status.in_(("proposed", "active", "paused")))
+            .order_by(Goal.updated_at.desc())
+            .limit(6)
+        )
+    ).all()
+    priority = {"decision": 0, "anomaly": 1, "validation": 2, "suggestion": 3, "result": 4}
+    recommended = sorted(inbox_items, key=lambda i: (priority.get(i["kind"], 9), not i.get("urgent"), not i.get("risk")))[:3]
+
     recommendations = recommendations[:20]
-    actions_required = len(recommendations)
+    actions_required = counts["decision"] + counts["validation"] + counts["anomaly"]
     return {
         "user": {"display_name": user.display_name, "first_name": user.display_name.split(" ")[0], "title": user.title},
         "nova": {"name": prefs.get("nova_name", "NOVA"), "avatar": prefs.get("avatar"), "state": state},
@@ -412,6 +461,10 @@ async def today(session: AsyncSession, principal: Principal, accept_language: st
             "projects_at_risk": at_risk,
         },
         "recommendations": recommendations[:20],
+        "inbox": {"counts": counts, "items": inbox_items[:60]},
+        "since": {"at": since.isoformat(), "count": len(worked_on), "worked_on": worked_on[:8], "decisions": counts["decision"]},
+        "recommended": recommended,
+        "goals": [goal_view(g, project_name=name_of(g.project_id)) for g in goals],
         "continue": continue_items,
         "context": context,
         "quality": quality,

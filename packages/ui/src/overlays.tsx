@@ -18,8 +18,11 @@ export function DialogContent({
   children,
   title,
   description,
+  closeLabel,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & { title: string; description?: string }) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & { title: string; description?: string; closeLabel?: string }) {
+  // The app keeps <html lang> in sync with the interface language.
+  const close = closeLabel ?? (typeof document !== "undefined" && document.documentElement.lang === "fr" ? "Fermer" : "Close");
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]" />
@@ -33,7 +36,7 @@ export function DialogContent({
         <DialogPrimitive.Title className="text-[15px] font-semibold">{title}</DialogPrimitive.Title>
         {description ? <DialogPrimitive.Description className="mt-1 text-sm text-muted">{description}</DialogPrimitive.Description> : null}
         <div className="mt-4">{children}</div>
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-subtle hover:bg-surface-2 hover:text-text" aria-label="Close">
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-subtle hover:bg-surface-2 hover:text-text" aria-label={close}>
           <X className="size-4" />
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>

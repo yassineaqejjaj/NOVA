@@ -84,6 +84,27 @@ START → understand_intent ─┬─► retrieve_orbit_context ─► plan_exec
   Valkey `nova:exec:{id}`); the SSE endpoint replays from the DB then follows pub/sub. Progress is
   only what actually happened (no timers, no simulated steps).
 
+## 5a. NOVA as a team member: Goals, Missions, Routines, Inbox
+
+NOVA is a permanent member of the product team: the user entrusts it with **results**, not prompts.
+
+* **Goals** (`goals` table, `nova/services/goals.py`): "Ship Checkout v2 by 15 December". NOVA plans 3–8 milestones
+  (`GoalPlanOutput`): *skill* milestones it produces itself (routed to the specialist agent owning the Skill) and
+  *human* milestones (decisions, meetings) it asks the team for. Each skill milestone runs as an ordinary NOVA task
+  in the goal's own conversation (`Task.origin = "goal"`), so questions, approvals and deliverables keep working.
+* **Missions**: a goal being carried out. Milestones move forward when a task settles (`on_task_settled` after every
+  execution segment) and on the beat's minute tick (`nova.run_missions`, safety net). Mission Control (`/missions`)
+  shows every goal, running work and the next routine runs; `/presence` feeds the orb (what NOVA is doing now).
+* **Autonomy levels** for goals and routines: *Observe* (plan and recommend only), *Suggest* (each step waits for the
+  user's go), *Execute with approval* (changes to existing Artifacts wait), *Autonomous* (runs the plan within the
+  limits; stops for decisions and human milestones). Chat requests keep the conversational default (*Assist*).
+* **Routines** (`routines` table, `nova/services/routines.py`): schedules (daily, weekdays, weekly, monthly, in the
+  user's time zone) or on demand; templates: Daily Product Pulse, Weekly Product Brief, Sprint Readiness, Backlog
+  Quality, Product Weekly, Interview synthesis. A run is a task (`origin = "routine"`); its result lands in the Inbox.
+* **Inbox** (`nova/services/inbox.py`): decisions, validations (deliverables of goals and routines, with NOVA
+  confidence from the Validation agent and FORGE), anomalies, suggestions and results. *Validate* makes the
+  Artifact final. Today shows what NOVA did since the last visit (`/today/seen`) and its top 3 recommendations.
+
 ## 5b. NOVA Core: orchestration of the agents
 
 NOVA Core (the graph of §5) is the coordinator of the constellation NOVA / ORBIT / FORGE:

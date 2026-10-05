@@ -50,7 +50,7 @@ async def activity(
     events: list[dict[str, Any]] = []
     types = get_artifact_registry().types
 
-    tasks_q = select(Task).where(Task.user_id == uid, Task.origin == "interactive")
+    tasks_q = select(Task).where(Task.user_id == uid, Task.origin.in_(("interactive", "goal", "routine")))
     if project_id:
         tasks_q = tasks_q.where(Task.project_id == uuid.UUID(project_id))
     if status:

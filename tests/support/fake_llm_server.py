@@ -76,6 +76,22 @@ def answer(user: str) -> dict[str, Any]:
     return {"answer": "No recorded source supports this element; it was proposed from your request.", "citations": []}
 
 
+def goal_plan(user: str) -> dict[str, Any]:
+    """NOVA's plan for a goal: two Skills from the candidates, then a decision for the team."""
+    candidates = re.findall(r"^- ([a-z0-9-]+): ", _between(user, "CANDIDATE SKILLS:\n"), re.MULTILINE)
+    first = "problem-framing" if "problem-framing" in candidates else candidates[0]
+    second = "prd" if "prd" in candidates else candidates[1]
+    return {
+        "summary": "NOVA frames the problem, writes the PRD, then the team agrees on the scope.",
+        "milestones": [
+            {"title": "Frame the problem", "kind": "skill", "skill_id": first, "goal": "A shared problem statement"},
+            {"title": "Write the PRD", "kind": "skill", "skill_id": second, "goal": "A PRD ready for review"},
+            {"title": "Clarify the scope with Engineering", "kind": "human", "goal": "The scope is agreed"},
+        ],
+        "assumptions": [],
+    }
+
+
 def review(user: str) -> dict[str, Any]:
     """NOVA's Validation agent: approves, except when the user asked for a "strict review" (one revision, E2E)."""
     sections = re.findall(r"^- ([a-z_]+): ", _between(user, "SECTIONS (keys):\n", "\n\n"), re.MULTILINE)
@@ -113,6 +129,8 @@ async def completions(request: Request) -> dict[str, Any]:
         value = answer(user)
     elif name == "ValidationReview":
         value = review(user)
+    elif name == "GoalPlanOutput":
+        value = goal_plan(user)
     elif schema:
         labels = re.findall(r'label="(S\d+)"', user)
         value = fake(schema, citations=labels[:1])

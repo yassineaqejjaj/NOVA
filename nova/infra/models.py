@@ -65,6 +65,10 @@ class UserPreferences(Base):
     language: Mapped[str | None] = mapped_column(String(5))  # "en" | "fr"; None = follow the browser
     orb_color: Mapped[str] = mapped_column(String(20), default="coral", server_default="coral")
     profile: Mapped[str] = mapped_column(String(20), default="product", server_default="product")  # AgentProfile
+    # Always / Ask / Never per action ({"artifacts.update": "ask", …}); unset actions follow the autonomy level
+    action_permissions: Mapped[dict] = mapped_column(JSONType, default=dict, server_default="{}")
+    today_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # "since your last visit"
+    teaching_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # Teach NOVA session in progress
     dismissed_recommendations: Mapped[list] = mapped_column(JSONType, default=list, server_default="[]")
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -441,4 +445,66 @@ class DevIdentity(Base):
     name: Mapped[str] = mapped_column(String(200), default="")
     password_hash: Mapped[str] = mapped_column(String(200))
     enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Goal(Base):
+    """A result the user entrusts to NOVA ("Ship Checkout v2 by 15 December"). NOVA plans milestones and runs them."""
+
+    __tablename__ = "goals"
+    __table_args__ = (Index("ix_goals_user_status", "user_id", "status"),)
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("conversations.id", ondelete="SET NULL"))
+    title: Mapped[str] = mapped_column(String(300))
+    outcome: Mapped[str] = mapped_column(Text, default="")  # the expected result, in the user's words
+    due_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # planning | proposed | active | paused | completed | archived
+    status: Mapped[str] = mapped_column(String(20), default="planning")
+    autonomy: Mapped[str] = mapped_column(String(30), default="execute_with_approval")
+    lang: Mapped[str] = mapped_column(String(5), default="en")
+    plan: Mapped[dict] = mapped_column(JSONType, default=dict)  # {summary, assumptions, milestones: [...]}
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Routine(Base):
+    """Work that should not need to be asked twice: runs on a schedule (or on demand) as a NOVA task."""
+
+    __tablename__ = "routines"
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("conversations.id", ondelete="SET NULL"))
+    name: Mapped[str] = mapped_column(String(200))
+    instructions: Mapped[str] = mapped_column(Text)  # the request NOVA runs each time
+    skill_ids: Mapped[list] = mapped_column(JSONType, default=list)
+    template: Mapped[str | None] = mapped_column(String(60))
+    # {"kind": "daily" | "weekly" | "weekdays" | "monthly", "time": "08:30", "days": [0-6], "day": 1, "tz": "Europe/Paris"}
+    schedule: Mapped[dict] = mapped_column(JSONType, default=dict)
+    autonomy: Mapped[str] = mapped_column(String(30), default="execute_automatically")
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_task_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    runs: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class LearnedSkill(Base):
+    """A workflow NOVA learned by watching the user (Teach NOVA): existing Skills chained with the user's own steps."""
+
+    __tablename__ = "learned_skills"
+    __table_args__ = (UniqueConstraint("user_id", "slug"),)
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    slug: Mapped[str] = mapped_column(String(80))
+    name: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(Text, default="")
+    steps: Mapped[list] = mapped_column(JSONType, default=list)  # [{title, instruction, skill_id | null}]
+    source: Mapped[dict] = mapped_column(JSONType, default=dict)  # {observed: [...], started_at, finished_at}
+    lang: Mapped[str] = mapped_column(String(5), default="en")
+    uses: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

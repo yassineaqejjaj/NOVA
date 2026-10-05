@@ -99,6 +99,7 @@ class NovaState(BaseModel):
     attachments: list[dict[str, str]] = Field(default_factory=list)  # {name, text}
     provided_context: list[ContextItem] = Field(default_factory=list)  # FORGE protocol context
     preferences: dict[str, Any] = Field(default_factory=dict)
+    subject: str | None = None  # names the deliverables (a goal's title), instead of deriving it from the request
 
     # Understanding & context
     classification: IntentClassification | None = None

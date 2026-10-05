@@ -50,6 +50,24 @@ class PlannedStep(BaseModel):
     rationale: str = Field(default="", description="Why this step and its Skill are needed, one sentence")
 
 
+class PlannedMilestone(BaseModel):
+    title: str = Field(description="Short operational title, in the user's language")
+    kind: Literal["skill", "human"] = Field(
+        description="skill: NOVA produces it with a Skill; human: a decision or action only the team can take"
+    )
+    skill_id: str | None = Field(default=None, description="Only for kind=skill: a skill id from CANDIDATE SKILLS")
+    goal: str = Field(default="", description="What this milestone delivers toward the goal, one sentence")
+    rationale: str = Field(default="", description="Why it is needed at this point, one sentence")
+
+
+class GoalPlanOutput(BaseModel):
+    """NOVA's plan for a Goal: ordered milestones toward the expected result."""
+
+    summary: str = Field(description="How NOVA will reach the goal, two sentences, in the user's language")
+    milestones: list[PlannedMilestone] = Field(min_length=2, max_length=10)
+    assumptions: list[str] = Field(default_factory=list, max_length=5)
+
+
 class MissingInput(BaseModel):
     key: str
     question: str

@@ -30,6 +30,11 @@ def start_scheduled() -> int:
     return run(maintenance.start_due_scheduled_tasks())
 
 
+@celery_app.task(name="nova.run_missions")
+def run_missions() -> int:
+    return run(maintenance.run_missions())
+
+
 @celery_app.task(name="nova.requeue_stale")
 def requeue_stale() -> int:
     return run(maintenance.requeue_stale_tasks())

@@ -82,7 +82,7 @@ class AutonomyPolicy:
 
     def confirm_workflow(self, step_count: int) -> bool:
         """Should NOVA show the proposed workflow and wait before executing it?"""
-        if self.mode == AutonomyMode.suggest:
+        if self.mode in (AutonomyMode.observe, AutonomyMode.suggest):
             return True
         if self.mode == AutonomyMode.assist:
             return step_count >= 2

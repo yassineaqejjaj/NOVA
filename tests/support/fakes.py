@@ -45,6 +45,20 @@ class ScriptedLLM:
             objective="Write the PRD", steps=[{"id": "1-prd", "title": "Write the PRD", "skill_id": "prd"}]
         )
         self.answer: Handler = lambda m: AnswerOutput(answer="Answer based on [S1].", citations=["S1"])
+        # Goals: a 3-milestone plan (two Skills, one decision for the team)
+        self.goal_plan: Handler = lambda m: {
+            "summary": "Frame the problem, write the PRD, then align with Engineering.",
+            "milestones": [
+                {
+                    "title": "Frame the problem",
+                    "kind": "skill",
+                    "skill_id": "problem-framing",
+                    "goal": "Shared problem statement",
+                },
+                {"title": "Write the PRD", "kind": "skill", "skill_id": "prd", "goal": "PRD ready for review"},
+                {"title": "Clarify the scope with Engineering", "kind": "human", "goal": "Scope agreed"},
+            ],
+        }
         # NOVA's Validation agent: approves by default
         self.review: Handler = lambda m: {"verdict": "pass", "criteria": [], "issues": [], "summary": "Meets the criteria."}
         self.step_citations = ["S1", "S99"]  # S99 does not exist → must be dropped
@@ -79,6 +93,8 @@ class ScriptedLLM:
             value = self.answer(messages)
         elif name == "ValidationReview":
             value = self.review(messages)
+        elif name == "GoalPlanOutput":
+            value = self.goal_plan(messages)
         else:
             assert json_schema is not None
             raw = fake(json_schema, citations=self.step_citations)

@@ -7,12 +7,12 @@ import {
   Attention,
   ContextStatus,
   ContinueList,
-  Hero,
   QualityStatus,
   RecentResults,
   Suggestions,
   WorkingOn,
 } from "@/components/home/command-center";
+import { GoalsStrip, ProactiveHero, RecommendedToday } from "@/components/home/today";
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
 import { TopSearch } from "@/components/shell/sidebar";
 import { useArtifacts, useTasks, useToday } from "@/lib/api/hooks";
@@ -32,7 +32,6 @@ export default function HomePage() {
   const { data: today, isLoading } = useToday();
   const { data: active } = useTasks("active");
   const { data: artifacts } = useArtifacts({});
-  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <div className="mx-auto w-full max-w-[1080px] px-5 pb-16 pt-4 md:px-8">
@@ -45,7 +44,7 @@ export default function HomePage() {
         ) : null}
       </div>
 
-      {today ? <Hero today={today} onScrollTo={scrollTo} /> : <Skeleton className="h-[230px] rounded-[28px]" />}
+      {today ? <ProactiveHero today={today} /> : <Skeleton className="h-[230px] rounded-[28px]" />}
 
       <section aria-label={t("request")} className="mt-6 space-y-3">
         <Suggestions />
@@ -60,7 +59,8 @@ export default function HomePage() {
 
       <div className="mt-10 grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-10">
-          <Attention items={today?.recommendations ?? []} loading={isLoading} />
+          {today ? <RecommendedToday today={today} /> : <Attention items={[]} loading={isLoading} />}
+          {today ? <GoalsStrip today={today} /> : null}
           <WorkingOn tasks={active ?? []} />
           <RecentResults artifacts={(artifacts ?? []).slice(0, 5)} />
         </div>
