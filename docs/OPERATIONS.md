@@ -54,3 +54,15 @@ Then set on `api`, `worker` and `beat`: `NOVA_LLM_PROVIDER=openai_compatible`,
 `NOVA_LLM_BASE_URL=https://<random>.trycloudflare.com/v1`, `NOVA_LLM_MODEL=<model id from GET /v1/models>`,
 `NOVA_LLM_API_KEY=<key>`, `NOVA_LLM_TIMEOUT_SECONDS=900`. The quick-tunnel URL changes on every restart and
 the laptop must stay awake: use a GPU vLLM server for real production.
+
+### Permanent install on the Mac (launchd)
+
+```bash
+infrastructure/llm-tunnel/install-macos.sh <railway-project-id> /path/to/cloudflared http://127.0.0.1:1234
+```
+
+Installs two user services that start at login and restart on failure: `com.nova.llm-proxy` (authenticated proxy)
+and `com.nova.llm-tunnel` (`supervisor.py`: Cloudflare quick tunnel; every new URL is pushed to
+`NOVA_LLM_BASE_URL` on `api`, `worker`, `beat`; a tunnel deleted by Cloudflare is recreated). State and logs live in
+`~/.nova-llm-tunnel/` (key `0600`). LM Studio must keep its server running (Developer → Start server, or "start on
+login"). The Mac must stay awake for NOVA to answer.
