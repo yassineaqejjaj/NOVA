@@ -2,6 +2,7 @@ id: north-star-metric
 name: North Star Metric
 version: 1.0.0
 category: strategy
+agent: product
 summary: Identify the single metric that best captures the value customers get, with its input and guardrail metrics.
 purpose: >
   Give the whole team one metric that reflects delivered customer value and leads to sustainable business

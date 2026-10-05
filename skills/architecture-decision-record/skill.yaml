@@ -1,0 +1,64 @@
+id: architecture-decision-record
+name: Architecture Decision Record
+version: 1.0.0
+category: definition
+agent: engineering
+summary: 'Record one architecture decision: context, options considered, the decision and its consequences.'
+purpose: >-
+  Keep a durable, searchable trace of why the architecture is the way it is, so future changes are informed.
+triggers:
+- adr
+- architecture decision
+- decision record for architecture
+- décision d'architecture
+- choix technique
+inputs:
+- name: decision_topic
+  description: The architectural question to decide
+  required: true
+  ask: true
+  question: Which architecture question should this decision settle?
+expected_context:
+  orbit_intent: engineering
+  query_hint: architecture decisions, constraints, technical debt, incidents, technology choices
+  token_budget: 5000
+methodology:
+  name: ADR (Michael Nygard)
+  principles:
+  - One decision per record
+  - Context states the forces at play, not the solution
+  - Consequences include the negative ones
+  references:
+  - Michael Nygard — Documenting Architecture Decisions (2011)
+  - adr.github.io
+steps:
+- id: context
+  title: Describing the context
+  instruction: Describe the context and forces (constraints, requirements, risks) in 3–6 sentences citing context.
+  fills:
+  - context
+- id: options
+  title: Comparing the options
+  instruction: >-
+    List 2–4 options as decision items: status accepted for the chosen one, rejected otherwise; alternatives = pros/cons;
+    consequences.
+  fills:
+  - options
+- id: decide
+  title: Recording the decision
+  instruction: >-
+    State the decision in one paragraph, then its consequences (positive and negative), and 1–4 follow-up actions
+    with owner role.
+  fills:
+  - decision
+  - consequences
+  - follow_ups
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: adr
+  mode: create
+composes_with:
+- technical-design
+- decision-record

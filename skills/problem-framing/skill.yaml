@@ -2,6 +2,7 @@ id: problem-framing
 name: Problem Framing
 version: 1.0.0
 category: discovery
+agent: product
 summary: Frame a problem clearly — who is affected, the evidence, the impact and suspected causes — before discussing solutions.
 purpose: >
   Stop the team from jumping to solutions by first agreeing on the problem worth solving. A well-framed

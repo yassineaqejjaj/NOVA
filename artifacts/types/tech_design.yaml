@@ -1,0 +1,47 @@
+type: tech_design
+name: Technical Design
+description: 'Design doc / RFC: proposed architecture, alternatives and rollout'
+icon: cpu
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: context
+  title: Context and constraints
+  kind: rich_text
+  description: ''
+- key: goals
+  title: Goals and non-goals
+  kind: items
+  item_kind: note
+  description: 'parent_id = none; the description starts with Goal: or Non-goal:'
+- key: proposed_design
+  title: Proposed design
+  kind: rich_text
+  description: ''
+- key: alternatives
+  title: Alternatives considered
+  kind: items
+  item_kind: decision
+  description: ''
+- key: nfr
+  title: Non-functional requirements
+  kind: items
+  item_kind: requirement
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: rollout
+  title: Rollout plan
+  kind: items
+  item_kind: milestone
+  description: ''
+- key: open_questions
+  title: Open questions
+  kind: items
+  item_kind: question
+  description: ''

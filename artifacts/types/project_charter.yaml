@@ -1,0 +1,47 @@
+type: project_charter
+name: Project Charter
+description: Purpose, objectives, scope, stakeholders, milestones and governance
+icon: flag
+sections:
+- key: purpose
+  title: Purpose
+  kind: rich_text
+  description: ''
+- key: objectives
+  title: Objectives
+  kind: items
+  item_kind: objective
+  description: ''
+- key: scope
+  title: Scope
+  kind: rich_text
+  description: ''
+- key: out_of_scope
+  title: Out of scope
+  kind: items
+  item_kind: note
+  description: ''
+- key: stakeholders
+  title: Stakeholders
+  kind: items
+  item_kind: stakeholder
+  description: ''
+- key: milestones
+  title: Milestones
+  kind: items
+  item_kind: milestone
+  description: ''
+- key: risks
+  title: Key risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: success
+  title: Success criteria
+  kind: items
+  item_kind: metric
+  description: ''
+- key: governance
+  title: Governance
+  kind: rich_text
+  description: ''

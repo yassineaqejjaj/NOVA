@@ -2,6 +2,7 @@ id: release-planning
 name: Release Planning
 version: 1.0.0
 category: delivery
+agent: project
 summary: "Plan a release: goal, scope by epic, milestones, dependencies, risks, rollout and a go/no-go checklist."
 purpose: >
   Align the team and stakeholders on what ships, when and how, with the risks visible. A release plan built

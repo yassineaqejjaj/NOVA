@@ -2,6 +2,7 @@ id: rice-prioritization
 name: RICE Prioritization
 version: 1.0.0
 category: prioritization
+agent: product
 summary: "Rank initiatives, epics or features with RICE: Reach × Impact × Confidence ÷ Effort."
 purpose: >
   Compare candidate items on a common, explicit scale so prioritization debates are about estimates rather

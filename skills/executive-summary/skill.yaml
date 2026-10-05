@@ -2,6 +2,7 @@ id: executive-summary
 name: Executive Summary
 version: 1.0.0
 category: communication
+agent: product
 summary: Condense a topic, document or project into a decision-ready summary for leadership.
 purpose: >
   Give executives what they need to understand the situation and decide, on one page. The summary leads with

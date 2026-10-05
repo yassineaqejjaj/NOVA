@@ -39,8 +39,8 @@ export const COPY = {
       subtitle: "Exprimez ce que vous voulez obtenir. Nova trouve le contexte, choisit la méthode, exécute le workflow et vous rend un livrable structuré.",
       steps: ["Intention", "Contexte ORBIT", "Plan", "Skills", "Artefact", "Approbation", "Évaluation FORGE"],
       features: [
-        { title: "48 Skills versionnées", body: "Stratégie, discovery, priorisation, définition, delivery, analyse, communication — combinées automatiquement en workflows." },
-        { title: "38 types d’artefacts", body: "PRD en 23 sections, backlog, sprint plan, decision record… Versions, comparaison, commentaires et export." },
+        { title: "64 Skills versionnées", body: "Produit, projet, design et ingénierie — chaque étape confiée au sous-agent spécialiste, combinées automatiquement en workflows." },
+        { title: "54 types d’artefacts", body: "PRD, backlog, conception technique, ADR, plan de test, brief de design, charte de projet, RAID… Versions, comparaison, commentaires et export." },
         { title: "Provenance vérifiable", body: "« Pourquoi cette exigence ? » Nova cite les sources ORBIT réellement utilisées — jamais de source inventée." },
         { title: "Autonomie réglable", body: "Suggérer, assister, exécuter avec approbation ou automatiquement : vous décidez de ce que Nova peut faire seul." },
       ],
@@ -108,8 +108,8 @@ export const COPY = {
       subtitle: "Say what you want to achieve. Nova finds the context, picks the method, runs the workflow and hands you a structured deliverable.",
       steps: ["Intent", "ORBIT context", "Plan", "Skills", "Artifact", "Approval", "FORGE evaluation"],
       features: [
-        { title: "48 versioned Skills", body: "Strategy, discovery, prioritization, definition, delivery, analysis, communication — combined into workflows automatically." },
-        { title: "38 Artifact types", body: "23-section PRD, backlog, sprint plan, decision record… Versions, compare, comments and export." },
+        { title: "64 versioned Skills", body: "Product, project, design and engineering — each step handed to the specialist sub-agent, combined into workflows automatically." },
+        { title: "54 Artifact types", body: "PRD, backlog, technical design, ADR, test plan, design brief, project charter, RAID log… Versions, compare, comments and export." },
         { title: "Verifiable provenance", body: "“Why did you include this requirement?” Nova cites the ORBIT sources it actually used — never an invented one." },
         { title: "Adjustable autonomy", body: "Suggest, assist, execute with approval or automatically: you decide what Nova may do on its own." },
       ],

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Design Review — inputs",
+  "type": "object",
+  "properties": {
+    "design": {
+      "type": "string",
+      "description": "The design, screens or flow to review"
+    }
+  },
+  "required": [
+    "design"
+  ],
+  "additionalProperties": false
+}

@@ -2,6 +2,7 @@ id: prfaq
 name: PR/FAQ (Working Backwards)
 version: 1.0.0
 category: definition
+agent: product
 summary: Write an Amazon-style press release and FAQ that describes the product from the customer's point of view before building it.
 purpose: >
   Work backwards from the customer: if the launch announcement is not compelling, the product is not worth

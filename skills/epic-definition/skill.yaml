@@ -2,6 +2,7 @@ id: epic-definition
 name: Epic Definition
 version: 1.0.0
 category: definition
+agent: product
 summary: Define an epic as a shippable increment of value, with scope boundaries, candidate stories, success metrics, dependencies and risks.
 purpose: >
   Give the team a clear, bounded unit of value to plan and deliver. A well-defined epic states why it

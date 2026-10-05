@@ -25,11 +25,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { AgentAvatar, AgentStack } from "@/components/agents/sub-agents";
 import { ClassificationBadge } from "@/components/shell/page";
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
 import { api } from "@/lib/api/client";
-import { keys, useArtifactTypes, useSendIntent, useTask } from "@/lib/api/hooks";
+import { keys, useArtifactTypes, useMe, useSendIntent, useTask } from "@/lib/api/hooks";
 import type { ArtifactSummary, OrbState, Recommendation, RecommendationAction, Today, WorkItem } from "@/lib/api/types";
+import { agentOf, AGENTS } from "@/lib/agents";
 import { timeAgo } from "@/lib/format";
 import { useLang, useT } from "@/lib/i18n";
 import { typeName } from "@/lib/i18n/catalog";
@@ -145,28 +147,28 @@ export function Hero({ today, onScrollTo }: { today: Today; onScrollTo: (id: str
 
 // --- Ask NOVA suggestions ---------------------------------------------------------------------
 
-const SUGGESTIONS = [
-  { label: "sugSprint", text: "sugSprintText" },
-  { label: "sugBacklog", text: "sugBacklogText" },
-  { label: "sugPrd", text: null },
-  { label: "sugRisks", text: "sugRisksText" },
-] as const;
-
 export function Suggestions() {
   const t = useT(M);
+  const lang = useLang();
   const composer = useComposer();
+  const { data: me } = useMe();
+  const profile = agentOf(me?.preferences.profile);
+  const agent = AGENTS[profile];
   return (
-    <div className="flex flex-wrap gap-2" aria-label={t("suggested")}>
-      {SUGGESTIONS.map((s) => (
+    <div className="flex flex-wrap items-center gap-2" aria-label={t("suggested")} data-profile={profile}>
+      <span className="inline-flex items-center gap-1.5 text-[12.5px] text-subtle">
+        <AgentAvatar profile={profile} size={20} /> {agent.name[lang]}
+      </span>
+      {agent.suggestions.map((s) => (
         <button
-          key={s.label}
+          key={s.skill}
           onClick={() => {
-            composer.setDraft(s.text ? t(s.text) : "/prd ");
+            composer.setDraft(`/${s.skill} ${s[lang]}`);
             document.getElementById("nova-composer")?.focus();
           }}
           className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3.5 py-1.5 text-[13px] text-text/80 transition-colors hover:bg-accent-soft hover:text-accent"
         >
-          <Sparkles className="size-3.5 opacity-60" /> {t(s.label)}
+          <Sparkles className="size-3.5 opacity-60" /> {s[lang]}
         </button>
       ))}
     </div>
@@ -375,8 +377,10 @@ function WorkingRow({ task, now }: { task: WorkItem; now: number }) {
   const t = useT(M);
   const { data: detail } = useTask(task.id);
   const control = useTaskControl();
-  const steps = detail?.steps ?? [];
+  const lang = useLang();
+  const steps = detail?.steps ?? task.steps ?? [];
   const current = steps.find((s) => s.status === "running" || s.status === "waiting_user") ?? steps.find((s) => s.status === "pending");
+  const currentAgent = current ? AGENTS[agentOf(current.agent)] : null;
   const paused = task.status === "paused";
   const pct = task.progress_total ? Math.round((task.progress_done / task.progress_total) * 100) : 0;
   const state: OrbState = paused ? "idle" : task.status === "waiting_user" ? "waiting" : task.phase === "executing" ? "working" : "thinking";
@@ -389,10 +393,14 @@ function WorkingRow({ task, now }: { task: WorkItem; now: number }) {
             {task.objective}
           </Link>
           {paused ? <Badge tone="warning">{t("paused")}</Badge> : null}
+          <span className="ml-auto"><AgentStack steps={steps} taskStatus={task.status} /></span>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-subtle">
           {task.skills[0] ? <span className="inline-flex items-center gap-1"><Sparkles className="size-3.5" /> {task.skills.join(" → ")}</span> : null}
-          <span className="inline-flex items-center gap-1"><CircleDot className="size-3.5" /> {paused ? t("pausedBefore") : current?.title ?? task.phase_label ?? t("starting")}</span>
+          <span className="inline-flex items-center gap-1"><CircleDot className="size-3.5" />{" "}
+            {currentAgent && !paused ? <span className="font-medium" style={{ color: currentAgent.color }}>{currentAgent.name[lang]} ·</span> : null}
+            {paused ? t("pausedBefore") : current?.title ?? task.phase_label ?? t("starting")}
+          </span>
           <span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" /> {elapsed(task.created_at, now)}</span>
         </div>
         {task.progress_total ? (

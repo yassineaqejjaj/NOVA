@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project Plan — inputs",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "The project to plan"
+    }
+  },
+  "required": [
+    "project"
+  ],
+  "additionalProperties": false
+}

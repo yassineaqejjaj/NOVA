@@ -1,0 +1,54 @@
+id: raid-log
+name: RAID Log
+version: 1.0.0
+category: delivery
+agent: project
+summary: 'Build a RAID log: risks, assumptions, issues and dependencies with owners and status.'
+purpose: Keep everything that can derail the project in one place, owned and reviewed.
+triggers:
+- raid
+- raid log
+- risks assumptions issues dependencies
+- registre raid
+- suivi des risques
+inputs:
+- name: project
+  description: The project or release
+expected_context:
+  orbit_intent: analysis
+  query_hint: risks, assumptions, issues, blockers, dependencies, decisions, plans
+  token_budget: 5000
+methodology:
+  name: RAID log
+  principles:
+  - Risks may happen; issues already happen
+  - Every entry has an owner and a status
+  - Assumptions are validated or retired
+  - Dependencies have a due date when known
+  references:
+  - PMI — PMBOK Guide
+  - PRINCE2 — Risk and issue registers
+steps:
+- id: risks
+  title: Logging risks and assumptions
+  instruction: >-
+    List 4–10 risks (likelihood, impact, mitigation, owner) and the key assumptions with confidence and validation.
+  fills:
+  - risks
+  - assumptions
+- id: issues
+  title: Logging issues and dependencies
+  instruction: List current issues as actions (owner, status) and the dependencies (type, status, due when known).
+  fills:
+  - issues
+  - dependencies
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: raid_log
+  mode: create
+composes_with:
+- risk-analysis
+- dependency-analysis
+- status-report

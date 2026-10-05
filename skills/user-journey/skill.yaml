@@ -2,6 +2,7 @@ id: user-journey
 name: User Journey Map
 version: 1.0.0
 category: discovery
+agent: design
 summary: Map a user's end-to-end journey for a scenario, with actions, thoughts, emotions, pain points and opportunities.
 purpose: >
   Make the user's experience across touchpoints visible as one story so the team sees where it breaks. The

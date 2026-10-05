@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/raci_entry",
+  "title": "raci_entry",
+  "description": "Activity with Responsible, Accountable, Consulted, Informed",
+  "type": "object",
+  "properties": {
+    "responsible": {
+      "type": "string"
+    },
+    "accountable": {
+      "type": "string"
+    },
+    "consulted": {
+      "type": "string"
+    },
+    "informed": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "responsible",
+    "accountable"
+  ],
+  "additionalProperties": false
+}

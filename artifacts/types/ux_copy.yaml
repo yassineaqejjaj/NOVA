@@ -1,0 +1,23 @@
+type: ux_copy
+name: UX Copy
+description: Interface texts with locations, variants, voice and terminology
+icon: type
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: voice
+  title: Voice and tone
+  kind: rich_text
+  description: ''
+- key: strings
+  title: Interface texts
+  kind: items
+  item_kind: copy_item
+  description: ''
+- key: terminology
+  title: Terminology
+  kind: items
+  item_kind: note
+  description: title = term; description = definition and words to avoid

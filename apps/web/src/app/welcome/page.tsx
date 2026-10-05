@@ -7,11 +7,13 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { ProfilePicker } from "@/components/agents/profile-picker";
 import { OrbitLink } from "@/components/orbit-link";
 import { NovaMark } from "@/components/shell/nova-mark";
 import { api } from "@/lib/api/client";
 import { keys, useMe, useProjects } from "@/lib/api/hooks";
 import type { AutonomyMode } from "@/lib/api/types";
+import { agentOf, type AgentProfile } from "@/lib/agents";
 import { autonomyOptions } from "@/lib/autonomy";
 import { defineMessages, useLang, useT } from "@/lib/i18n";
 import { useComposer } from "@/stores/ui";
@@ -23,6 +25,8 @@ const M = defineMessages({
     roleHint: "NOVA adapts its methods and Artifacts to your work.",
     rolePlaceholder: "e.g. Head of AI, Product Manager, Product Owner",
     nameLabel: "Name your NOVA",
+    profileTitle: "Which profile fits you best?",
+    profileHint: "NOVA's specialist agent for your profile leads your work; the other agents join when a task needs them.",
     teamsTitle: "Which teams do you work with?",
     teamsHint: "Separate with commas.",
     teamsPlaceholder: "AI Platform, Design, Engineering",
@@ -48,6 +52,8 @@ const M = defineMessages({
     roleHint: "NOVA adapte ses méthodes et ses Artefacts à votre travail.",
     rolePlaceholder: "ex. Head of AI, Product Manager, Product Owner",
     nameLabel: "Nommez votre NOVA",
+    profileTitle: "Quel profil vous correspond le mieux ?",
+    profileHint: "L’agent spécialiste de votre profil pilote votre travail ; les autres agents interviennent quand une tâche le demande.",
     teamsTitle: "Avec quelles équipes travaillez-vous ?",
     teamsHint: "Séparez-les par des virgules.",
     teamsPlaceholder: "Plateforme IA, Design, Ingénierie",
@@ -70,7 +76,7 @@ const M = defineMessages({
 });
 
 const METHODS = ["RICE", "MoSCoW", "WSJF", "Jobs To Be Done", "Opportunity Solution Tree", "Story Mapping", "OKRs", "PRFAQ", "Kano"];
-const STEPS = ["role", "teams", "projects", "methods", "autonomy", "orbit", "ready"] as const;
+const STEPS = ["role", "profile", "teams", "projects", "methods", "autonomy", "orbit", "ready"] as const;
 
 function Toggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -94,14 +100,15 @@ export default function WelcomePage() {
   const [methods, setMethods] = useState<string[]>([]);
   const [autonomy, setAutonomy] = useState<AutonomyMode>("assist");
   const [novaName, setNovaName] = useState("NOVA");
+  const [profile, setProfile] = useState<AgentProfile>("product");
   const setDefaultProject = useComposer((s) => s.setProject);
-  useEffect(() => { if (me) { setRole(me.title || me.preferences.role || ""); setNovaName(me.preferences.nova_name); } }, [me]);
+  useEffect(() => { if (me) { setRole(me.title || me.preferences.role || ""); setNovaName(me.preferences.nova_name); setProfile(agentOf(me.preferences.profile)); } }, [me]);
 
   const finish = useMutation({
     mutationFn: () =>
       api.post("/me/onboarding", {
         title: role, role, nova_name: novaName, teams: teams.split(",").map((t) => t.trim()).filter(Boolean),
-        preferred_methods: methods, default_autonomy: autonomy,
+        preferred_methods: methods, default_autonomy: autonomy, profile,
       }),
     onSuccess: async () => {
       if (focus[0]) setDefaultProject(focus[0]); // the composer starts on your main project
@@ -136,6 +143,12 @@ export default function WelcomePage() {
                 <Input autoFocus className="mt-6 h-11 text-[15px]" value={role} onChange={(e) => setRole(e.target.value)} placeholder={t("rolePlaceholder")} />
                 <Label htmlFor="nova-name" className="mt-5 block">{t("nameLabel")}</Label>
                 <Input id="nova-name" className="mt-1.5" value={novaName} onChange={(e) => setNovaName(e.target.value)} />
+              </>
+            ) : current === "profile" ? (
+              <>
+                <h1 className="text-[24px] font-semibold tracking-tight">{t("profileTitle")}</h1>
+                <p className="mt-1 text-muted">{t("profileHint")}</p>
+                <div className="mt-6"><ProfilePicker value={profile} onChange={setProfile} /></div>
               </>
             ) : current === "teams" ? (
               <>

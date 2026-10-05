@@ -2,6 +2,7 @@ id: experiment-definition
 name: Experiment Definition
 version: 1.0.0
 category: discovery
+agent: product
 summary: Design an experiment that tests a hypothesis, with method, metrics, success threshold and a decision rule set in advance.
 purpose: >
   Make learning reliable and decisions honest by fixing what is tested, how, and which result changes the

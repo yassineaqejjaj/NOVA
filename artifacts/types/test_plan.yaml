@@ -1,0 +1,32 @@
+type: test_plan
+name: Test Plan
+description: Test strategy, test cases, environments and entry/exit criteria
+icon: flask-conical
+sections:
+- key: scope
+  title: Scope
+  kind: rich_text
+  description: ''
+- key: strategy
+  title: Test strategy
+  kind: rich_text
+  description: ''
+- key: test_cases
+  title: Test cases
+  kind: items
+  item_kind: test_case
+  description: ''
+- key: environments
+  title: Environments and data
+  kind: rich_text
+  description: ''
+- key: criteria
+  title: Entry and exit criteria
+  kind: items
+  item_kind: checklist_item
+  description: ''
+- key: risks
+  title: Quality risks
+  kind: items
+  item_kind: risk
+  description: ''

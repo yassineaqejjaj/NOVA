@@ -1,0 +1,33 @@
+type: status_report
+name: Status Report
+description: Project health, progress on milestones, risks, decisions needed and next steps
+icon: activity
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: health
+  title: Overall health
+  kind: rich_text
+  description: ''
+- key: progress
+  title: Milestones
+  kind: items
+  item_kind: milestone
+  description: ''
+- key: risks
+  title: Risks and issues
+  kind: items
+  item_kind: risk
+  description: ''
+- key: decisions
+  title: Decisions needed
+  kind: items
+  item_kind: decision
+  description: ''
+- key: next_steps
+  title: Next steps
+  kind: items
+  item_kind: action
+  description: ''

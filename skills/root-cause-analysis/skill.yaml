@@ -2,6 +2,7 @@ id: root-cause-analysis
 name: Root Cause Analysis
 version: 1.0.0
 category: analysis
+agent: engineering
 summary: Investigate why a problem or incident happened, find the root causes and define corrective and preventive actions.
 purpose: >
   Learn from incidents, metric drops or failed launches without blame. Going beyond the first explanation to

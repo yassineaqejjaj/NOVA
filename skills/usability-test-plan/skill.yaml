@@ -1,0 +1,66 @@
+id: usability-test-plan
+name: Usability Test Plan
+version: 1.0.0
+category: discovery
+agent: design
+summary: >-
+  Plan a usability test: research questions, participants, tasks, metrics, moderator script and logistics.
+purpose: Test designs with real users in a structured way so decisions rely on observed behaviour.
+triggers:
+- usability test
+- user test
+- test utilisateur
+- test d'utilisabilité
+- plan de test utilisateur
+inputs:
+- name: prototype
+  description: What will be tested (prototype, feature, flow)
+  required: true
+  ask: true
+  question: What should users test (prototype, flow or feature)?
+expected_context:
+  orbit_intent: research
+  query_hint: design, prototypes, personas, journeys, research questions, analytics
+  token_budget: 5000
+methodology:
+  name: Moderated task-based usability testing
+  principles:
+  - Start from research questions
+  - Realistic tasks, no leading wording
+  - Five participants per segment find most issues
+  - Measure success, time and errors
+  references:
+  - Jakob Nielsen — Why You Only Need to Test with 5 Users
+  - Steve Krug — Rocket Surgery Made Easy
+steps:
+- id: questions
+  title: Defining research questions
+  instruction: List 3–6 research questions (question items) and describe participants and recruiting criteria.
+  fills:
+  - objectives
+  - participants
+- id: tasks
+  title: Writing the tasks
+  instruction: >-
+    List 4–8 tasks as test cases of type usability: steps = the scenario in the user's words, expected = success
+    criterion; and 3–5 metrics.
+  fills:
+  - tasks
+  - metrics
+- id: script
+  title: Preparing the session
+  instruction: >-
+    Write the moderator script (intro, warm-up, tasks, debrief) and the logistics (duration, tools, consent, recording).
+  fills:
+  - script
+  - logistics
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: usability_test_plan
+  mode: create
+composes_with:
+- user-research-plan
+- persona
+- design-review

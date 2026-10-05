@@ -2,6 +2,7 @@ id: acceptance-criteria
 name: Acceptance Criteria
 version: 1.0.0
 category: definition
+agent: product
 summary: Write or strengthen Given/When/Then acceptance criteria on existing user stories, keeping their ids.
 purpose: >
   Make each story unambiguous and testable before development starts. Concrete, shared examples align

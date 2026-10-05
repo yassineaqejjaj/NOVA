@@ -1,0 +1,65 @@
+id: project-plan
+name: Project Plan
+version: 1.0.0
+category: delivery
+agent: project
+summary: 'Plan a project: workstreams, milestones, dependencies, team and resources, and risks.'
+purpose: Turn objectives into an executable plan everyone can follow and update.
+triggers:
+- project plan
+- plan the project
+- roadmap of the project
+- plan de projet
+- planning projet
+- rétroplanning
+inputs:
+- name: project
+  description: The project to plan
+  required: true
+  ask: true
+  question: Which project should be planned, and what is its target?
+expected_context:
+  orbit_intent: general
+  query_hint: objectives, scope, roadmap, milestones, team, dependencies, constraints, deadlines
+  token_budget: 5000
+methodology:
+  name: Milestone-based project plan
+  principles:
+  - Work organized in workstreams
+  - Milestones are verifiable outcomes
+  - Critical dependencies visible
+  - Buffers for known risks
+  references:
+  - PMI — PMBOK Guide (schedule management)
+steps:
+- id: streams
+  title: Structuring the work
+  instruction: Summarize the plan and list 3–6 workstreams with their goal and owner role.
+  fills:
+  - summary
+  - workstreams
+- id: milestones
+  title: Setting milestones
+  instruction: >-
+    List 5–10 milestones (deliverables, status, date only when known) and the dependencies between workstreams or
+    teams.
+  fills:
+  - milestones
+  - dependencies
+- id: resources
+  title: Planning resources and risks
+  instruction: Describe the team and resources needed and list the main delivery risks.
+  fills:
+  - resources
+  - risks
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: project_plan
+  mode: create
+composes_with:
+- project-charter
+- raci-matrix
+- effort-estimation
+- release-planning

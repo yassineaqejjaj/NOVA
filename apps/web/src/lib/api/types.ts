@@ -32,6 +32,8 @@ export interface Preferences {
   theme?: "dark" | "light" | "system";
   language?: "en" | "fr" | null;
   orb_color?: "coral" | "rose" | "violet" | "ocean" | "emerald" | "amber" | "graphite";
+  /** The user's profile: the specialist agent NOVA leads with. */
+  profile?: "product" | "project" | "design" | "engineering";
   onboarding_completed?: boolean;
 }
 
@@ -197,9 +199,13 @@ export interface TaskStep {
   skill_id: string | null;
   skill_name: string | null;
   skill_version: string | null;
+  /** The sub-agent carrying out the step (owner of its Skill). */
+  agent: "product" | "project" | "design" | "engineering";
   status: string;
   detail: string;
   artifact_id: string | null;
+  started_at: string | null;
+  finished_at: string | null;
 }
 
 export interface EvaluationRef {
@@ -242,6 +248,7 @@ export interface SkillSummary {
   name: string;
   version: string;
   category: string;
+  agent: "product" | "project" | "design" | "engineering";
   summary: string;
   artifact_type: string;
   artifact_type_name: string | null;

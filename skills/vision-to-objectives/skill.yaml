@@ -2,6 +2,7 @@ id: vision-to-objectives
 name: Vision to Objectives
 version: 1.0.0
 category: strategy
+agent: product
 summary: Translate a product vision into outcome objectives, measurable key results and the initiatives expected to move them.
 purpose: >
   Connect the long-term vision to the next planning horizon. Each objective is an outcome the vision

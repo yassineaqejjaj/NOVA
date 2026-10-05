@@ -1,0 +1,53 @@
+id: retrospective
+name: Retrospective
+version: 1.0.0
+category: analysis
+agent: project
+summary: 'Run a retrospective: what went well, what to improve, and the few actions the team commits to.'
+purpose: Improve how the team works, one concrete change at a time.
+triggers:
+- retrospective
+- retro
+- lessons learned
+- rétrospective
+- retour d'expérience
+- rex
+inputs:
+- name: period
+  description: The sprint, release or project to look back on
+expected_context:
+  orbit_intent: analysis
+  query_hint: sprint results, incidents, feedback, velocity, blockers, decisions
+  token_budget: 5000
+methodology:
+  name: Start / Stop / Continue retrospective
+  principles:
+  - Safe and blameless
+  - Facts and feelings both count
+  - Few actions, owned and followed up
+  - Look at the system, not individuals
+  references:
+  - Esther Derby & Diana Larsen — Agile Retrospectives
+steps:
+- id: look_back
+  title: Looking back
+  instruction: Summarize the period and list what went well, citing context.
+  fills:
+  - summary
+  - went_well
+- id: improve
+  title: Choosing improvements
+  instruction: >-
+    List what to improve as insights (theme, evidence, severity), then 2–5 actions (owner role, status open).
+  fills:
+  - to_improve
+  - actions
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: retrospective
+  mode: create
+composes_with:
+- status-report
+- sprint-planning

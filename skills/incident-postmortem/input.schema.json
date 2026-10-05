@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Incident Postmortem — inputs",
+  "type": "object",
+  "properties": {
+    "incident": {
+      "type": "string",
+      "description": "The incident to analyse"
+    }
+  },
+  "required": [
+    "incident"
+  ],
+  "additionalProperties": false
+}

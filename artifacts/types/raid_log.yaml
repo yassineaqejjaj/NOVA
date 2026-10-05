@@ -1,0 +1,25 @@
+type: raid_log
+name: RAID Log
+description: Risks, assumptions, issues and dependencies of a project
+icon: list-checks
+sections:
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: assumptions
+  title: Assumptions
+  kind: items
+  item_kind: assumption
+  description: ''
+- key: issues
+  title: Issues
+  kind: items
+  item_kind: action
+  description: 'an issue is a problem that already happens: title = the issue; owner; status'
+- key: dependencies
+  title: Dependencies
+  kind: items
+  item_kind: dependency
+  description: ''

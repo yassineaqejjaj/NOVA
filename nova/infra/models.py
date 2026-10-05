@@ -64,6 +64,7 @@ class UserPreferences(Base):
     theme: Mapped[str] = mapped_column(String(10), default="dark")
     language: Mapped[str | None] = mapped_column(String(5))  # "en" | "fr"; None = follow the browser
     orb_color: Mapped[str] = mapped_column(String(20), default="coral", server_default="coral")
+    profile: Mapped[str] = mapped_column(String(20), default="product", server_default="product")  # AgentProfile
     dismissed_recommendations: Mapped[list] = mapped_column(JSONType, default=list, server_default="[]")
     onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

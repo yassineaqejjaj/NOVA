@@ -2,6 +2,7 @@ id: impact-effort-prioritization
 name: Impact / Effort Prioritization
 version: 1.0.0
 category: prioritization
+agent: product
 summary: Place items on an impact/effort matrix to spot quick wins, big bets, fill-ins and money pits.
 purpose: >
   Give a fast first pass on a long list of ideas when precise estimates are not available. The matrix

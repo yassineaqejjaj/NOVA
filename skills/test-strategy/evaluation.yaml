@@ -1,0 +1,17 @@
+criteria:
+- key: quality.risk_based
+  question: Do priorities follow quality risks?
+  weight: 2
+- key: quality.coverage
+  question: Are functional and non-functional aspects covered?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Test cases
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

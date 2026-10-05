@@ -1,0 +1,19 @@
+criteria:
+- key: quality.blameless
+  question: Is the review blameless?
+  weight: 2
+- key: quality.actions
+  question: Are actions concrete and owned?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Summary
+    - Timeline
+    - Action items
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

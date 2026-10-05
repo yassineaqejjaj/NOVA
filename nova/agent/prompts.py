@@ -10,6 +10,7 @@ import json
 from typing import Any
 
 from nova.agent.ports import ArtifactOutline, ArtifactSnapshot
+from nova.domain.agents import AGENTS, AgentProfile, agent_instructions
 from nova.domain.artifacts import ArtifactType, SectionContent
 from nova.domain.context import ContextItem
 from nova.domain.llm import LLMMessage
@@ -31,12 +32,20 @@ def _identity(state: NovaState) -> str:
     prefs = state.preferences
     name = prefs.get("nova_name") or "NOVA"
     tone = prefs.get("tone") or "clear and concise"
-    role = prefs.get("role") or "product professional"
+    profile = _profile(state)
+    role = prefs.get("role") or (f"{profile.value} professional" if profile else "product professional")
     methods = ", ".join(prefs.get("preferred_methods") or []) or "no particular preference"
+    team = ", ".join(a.name for a in AGENTS.values())
     return (
         f"You are {name}, the personal AI product agent of a {role}. You help them execute product work "
-        f"across the software development lifecycle. Tone: {tone}. Preferred methods: {methods}."
+        f"across the software development lifecycle, orchestrating specialist sub-agents ({team}). "
+        f"Tone: {tone}. Preferred methods: {methods}."
     )
+
+
+def _profile(state: NovaState) -> AgentProfile | None:
+    value = state.preferences.get("profile")
+    return AgentProfile(value) if value in AgentProfile.__members__ else None
 
 
 def system_message(state: NovaState, extra: str = "") -> LLMMessage:
@@ -121,7 +130,7 @@ def plan_messages(state: NovaState, candidates: list[SkillSpec], *, can_ask: boo
     for skill in candidates:
         required = [f"{i.name} ({i.description})" for i in skill.required_inputs]
         lines.append(
-            f"- {skill.id}: {skill.name} — {skill.summary} Output: {skill.outputs.artifact_type}."
+            f"- {skill.id}: {skill.name} ({AGENTS[skill.agent].name}) — {skill.summary} Output: {skill.outputs.artifact_type}."
             + (f" Required inputs: {'; '.join(required)}." if required else "")
             + (f" Often followed by: {', '.join(skill.composes_with)}." if skill.composes_with else "")
         )
@@ -131,6 +140,13 @@ def plan_messages(state: NovaState, candidates: list[SkillSpec], *, can_ask: boo
         if can_ask
         else "- You cannot ask questions: leave missing_inputs empty and list your assumptions instead."
     )
+    profile = _profile(state)
+    profile_rule = (
+        f"\n- The user works as a {profile.value} professional: when skills of several agents fit equally, prefer the "
+        f"{AGENTS[profile].name}'s."
+        if profile
+        else ""
+    )
     instructions = f"""\
 Plan the work as a short workflow of skills (1 to {state_max_steps(state)} steps) that achieves the user's goal.
 - Use only skill ids from CANDIDATE SKILLS. One skill per step, in execution order.
@@ -138,7 +154,7 @@ Plan the work as a short workflow of skills (1 to {state_max_steps(state)} steps
 - If the user asks for a specific deliverable (a PRD, a backlog, a sprint plan…), the skill that produces it MUST be
   in the plan. Never replace it with smaller skills whose content it already covers.
 - Step titles are short, operational ("Frame the problem", "Write the PRD").
-{ask_rule}"""
+{ask_rule}{profile_rule}"""
     answers = "\n".join(f"- {k}: {v}" for k, v in state.user_inputs.items()) or "none"
     context_titles = "\n".join(f"- [{i.citation}] {i.title}" for i in state.context_items[:30]) or "none"
     goal = state.classification.goal if state.classification else state.intent
@@ -177,6 +193,7 @@ def skill_step_messages(
 ) -> list[LLMMessage]:
     principles = "\n".join(f"- {p}" for p in skill.methodology.principles)
     skill_text = (
+        f"{agent_instructions(skill.agent)}\n\n"
         f"SKILL: {skill.name} v{skill.version} — {skill.purpose}\n"
         f"METHOD: {skill.methodology.name}\n{principles}\n\nSKILL INSTRUCTIONS:\n{skill.instructions}"
     )

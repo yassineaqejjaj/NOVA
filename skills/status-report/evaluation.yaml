@@ -1,0 +1,19 @@
+criteria:
+- key: quality.factual
+  question: Is every status grounded in context?
+  weight: 2
+- key: quality.asks
+  question: Are needed decisions explicit?
+  weight: 1
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Overall health
+    - Milestones
+    - Next steps
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

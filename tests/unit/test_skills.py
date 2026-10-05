@@ -7,6 +7,7 @@ import yaml
 
 from nova.artifacts.registry import get_artifact_registry
 from nova.config import get_settings
+from nova.domain.agents import AgentProfile, agent_instructions
 from nova.domain.skills import SkillSpec
 from nova.skills import build
 from nova.skills.registry import SkillRegistry, SkillValidationError, get_skill_registry, load_skill
@@ -17,8 +18,17 @@ PARTIAL_CREATE = {"functional-requirements", "definition-of-ready"}  # documente
 
 def test_library_loads_and_schemas_are_up_to_date():
     registry = get_skill_registry()
-    assert len(registry.all()) == 48
+    assert len(registry.all()) == 64
     assert build.main(check=True) == 0
+
+
+def test_every_profile_has_its_specialist_skills():
+    by_agent: dict[AgentProfile, int] = {}
+    for skill in get_skill_registry().all(include_system=False):
+        by_agent[skill.agent] = by_agent.get(skill.agent, 0) + 1
+    assert set(by_agent) == set(AgentProfile)
+    assert min(by_agent.values()) >= 8
+    assert "SUB-AGENT: you are NOVA's Design agent" in agent_instructions(AgentProfile.design)
 
 
 def test_every_create_skill_fills_its_artifact_type():

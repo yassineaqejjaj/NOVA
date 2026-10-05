@@ -28,7 +28,7 @@ test("first run: Meet your NOVA, then a conversation with a cited answer", async
   await expect(page).toHaveURL(/\/welcome/);
   await expect(page.getByText("What is your role?")).toBeVisible();
   await page.getByPlaceholder("e.g. Head of AI").fill("Head of AI");
-  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: /Continue/ }).click(); // role → … → autonomy → ORBIT
+  for (let i = 0; i < 6; i++) await page.getByRole("button", { name: /Continue/ }).click(); // role → profile → … → autonomy → ORBIT
   await page.getByRole("button", { name: "Skip for now" }).click();
   await expect(page.getByText(/Your .* is ready\./)).toBeVisible();
   await page.getByRole("button", { name: "Start working" }).click();
@@ -223,6 +223,41 @@ test("Settings: switch the interface to French and pick an orb color (saved to t
   await page.goto("/settings");
   await page.getByRole("radio", { name: "English" }).click();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+});
+
+test("Sub-agents: NOVA delegates each step to the Design and Engineering agents, live; the profile drives Home", async ({ page }) => {
+  await signIn(page);
+  await page.request.patch("/api/v1/me/preferences", { data: { profile: "design" } });
+  await page.goto("/");
+  await expect(page.getByLabel("Suggested requests")).toContainText("Design agent");
+  await expect(page.getByRole("button", { name: "Write the design brief for onboarding" })).toBeVisible();
+
+  await ask(page, "Write the design brief and the technical design of the onboarding flow");
+  await page.getByRole("button", { name: "Run workflow" }).click();
+  const team = page.getByTestId("sub-agents");
+  await expect(team).toContainText("orchestrating the sub-agents");
+  await expect(team.locator('[data-agent="design"]')).toContainText("Design agent");
+  await expect(team.locator('[data-agent="engineering"]')).toContainText("Engineering agent");
+  await expect(team.locator('[data-agent="design"][data-status="done"]')).toBeVisible({ timeout: 45_000 });
+  await expect(team.locator('[data-agent="engineering"][data-status="done"]')).toBeVisible({ timeout: 45_000 });
+  await expect(team.getByText("2/2 steps")).toBeVisible();
+  await expect(page.getByLabel("Artifact title")).toBeVisible();
+
+  // The task keeps its team: Tasks shows who did what
+  await page.goto("/work?tab=completed");
+  await page.getByText("Write the design brief and the technical design of the onboarding flow").first().click();
+  await expect(page.getByTestId("sub-agents").locator('[data-agent="engineering"]')).toBeVisible();
+
+  // Settings: switching the profile changes the lead agent on Home; Skills can be filtered by agent
+  await page.goto("/settings");
+  await page.getByRole("radio", { name: /Engineering/ }).click();
+  await expect(page.getByText("Profile updated.")).toBeVisible();
+  await page.goto("/skills");
+  await page.getByRole("radiogroup", { name: "Filter by agent" }).getByRole("radio", { name: /Engineering/ }).click();
+  await expect(page.getByText("Technical Design", { exact: true })).toBeVisible();
+  await expect(page.getByText("Status Report", { exact: true })).toHaveCount(0);
+  await page.goto("/");
+  await expect(page.getByLabel("Suggested requests")).toContainText("Engineering agent");
 });
 
 test("Voice: talk to NOVA from the orb — transcript sent as an autonomous request, answer spoken and captioned", async ({ page }) => {

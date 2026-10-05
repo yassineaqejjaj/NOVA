@@ -64,7 +64,9 @@ async def test_home_command_center_is_computed_from_real_work(app, llm):
     assert empty["nova"]["state"] == "idle" and empty["brief"]["results_ready"] == 0 and empty["continue"] == []
     assert empty["context"]["system"] == "ORBIT" and empty["quality"]["last_evaluation"] is None
 
-    await _ask(client, "Create a PRD for scheduled CSV exports")
+    asked = await _ask(client, "Create a PRD for scheduled CSV exports")
+    task = (await client.get(f"/api/v1/tasks/{asked['task_id']}")).json()
+    assert task["agents"] == ["product"] and task["steps"][0]["agent"] == "product" and task["steps"][0]["finished_at"]
     home = (await client.get("/api/v1/today")).json()
     assert home["nova"]["state"] == "completed" and home["brief"]["results_ready"] == 1
     assert home["continue"][0]["title"]
@@ -256,6 +258,9 @@ async def test_language_and_orb_color_preferences_localize_server_text(app, llm)
     me = (await client.patch("/api/v1/me/preferences", json={"language": "fr", "orb_color": "violet"})).json()
     assert me["preferences"]["language"] == "fr" and me["preferences"]["orb_color"] == "violet"
     assert (await client.patch("/api/v1/me/preferences", json={"orb_color": "neon"})).status_code == 422
+    me = (await client.patch("/api/v1/me/preferences", json={"profile": "engineering"})).json()
+    assert me["preferences"]["profile"] == "engineering"
+    assert (await client.patch("/api/v1/me/preferences", json={"profile": "sales"})).status_code == 422
 
     await _ask(client, "Create a PRD for scheduled CSV exports")
     events = (await client.get("/api/v1/activity")).json()
@@ -263,6 +268,9 @@ async def test_language_and_orb_color_preferences_localize_server_text(app, llm)
     assert "NOVA a" in texts and "Terminé" in texts
     skills = (await client.get("/api/v1/skills")).json()
     prd = next(s for s in skills if s["id"] == "prd")
+    assert prd["agent"] == "product"
+    engineering = (await client.get("/api/v1/skills", params={"agent": "engineering"})).json()
+    assert {s["agent"] for s in engineering} == {"engineering"} and any(s["id"] == "technical-design" for s in engineering)
     assert prd["translations"]["fr"]["name"] and prd["translations"]["fr"]["artifact_type_name"]
     types = (await client.get("/api/v1/artifacts/types")).json()
     assert all(t["translations"]["fr"]["name"] for t in types)

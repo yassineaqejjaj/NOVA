@@ -2,6 +2,7 @@ id: jobs-to-be-done
 name: Jobs to Be Done
 version: 1.0.0
 category: discovery
+agent: product
 summary: Identify the jobs customers hire the product for, their desired outcomes, struggling moments and current alternatives.
 purpose: >
   Understand why customers adopt or abandon a solution by focusing on the progress they try to make in a

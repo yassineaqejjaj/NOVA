@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nova.domain.agents import AgentProfile
 from nova.domain.context import ContextError
 from nova.domain.enums import AutonomyMode
 from nova.infra.db import get_session, utcnow
@@ -39,6 +40,7 @@ class PreferencesIn(BaseModel):
     theme: Literal["dark", "light", "system"] | None = None
     language: Literal["en", "fr"] | None = None
     orb_color: OrbColor | None = None
+    profile: AgentProfile | None = None
 
 
 class OnboardingIn(PreferencesIn):

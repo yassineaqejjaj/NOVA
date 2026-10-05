@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/endpoint",
+  "title": "endpoint",
+  "description": "API endpoint",
+  "type": "object",
+  "properties": {
+    "method": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    "path": {
+      "type": "string"
+    },
+    "auth": {
+      "type": "string"
+    },
+    "request": {
+      "type": "string"
+    },
+    "response": {
+      "type": "string"
+    },
+    "errors": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "method",
+    "path"
+  ],
+  "additionalProperties": false
+}

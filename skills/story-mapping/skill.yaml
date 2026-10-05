@@ -2,6 +2,7 @@ id: story-mapping
 name: Story Mapping
 version: 1.0.0
 category: definition
+agent: product
 summary: "Build a user story map: a backbone of user activities, the stories beneath them and release slices."
 purpose: >
   See the whole product experience as a narrative before slicing it into releases. The map helps the team

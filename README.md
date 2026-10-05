@@ -25,9 +25,12 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Artifact
   Artifact references, ORBIT context pinning.
 * **LangGraph runtime** — typed `NovaState`, branching, retries, Postgres checkpoints, human-in-the-loop
   (questions, workflow confirmation, approvals), resumable background execution (Celery + Valkey), live SSE.
-* **48 Skills** — versioned product workflows (strategy, discovery, prioritization, definition, delivery,
-  analysis, communication), composed into editable workflows.
-* **Artifacts** — 38 structured types (PRD with 23 sections, backlog, sprint plan…), Lexical editing, autosave,
+* **Sub-agents** — NOVA orchestrates four specialist agents (Product, Project, Design, Engineering); every step of a
+  workflow runs under the persona and quality bar of the agent owning its Skill, shown live with its activity and timing.
+  The user's profile (onboarding, Settings) chooses the lead agent.
+* **64 Skills** — versioned workflows for Product, Project, Design and Engineering work (strategy, discovery,
+  prioritization, definition, delivery, analysis, communication), composed into editable workflows.
+* **Artifacts** — 54 structured types (PRD with 23 sections, backlog, sprint plan…), Lexical editing, autosave,
   version history and compare, section-level AI regeneration, comments, citations, export.
 * **Transparency** — which ORBIT context was used (classification, freshness, relevance), recorded provenance
   ("why did you include this?"), never raw model reasoning.
@@ -115,7 +118,7 @@ apps/web            Next.js 15 · React 19 · Tailwind v4 · shadcn/ui (packages
 apps/api            FastAPI app (nova_api): auth (OIDC BFF), routers, SSE, NOVA Agent Protocol
 services/worker     Celery (nova_worker): executions, schedules, FORGE refresh, retention
 nova/               core: domain · agent (graph, nodes, tools, providers) · skills · artifacts · integrations/{orbit,forge} · infra · services
-skills/             48 Skills (skill.yaml, instructions.md, input/output JSON Schemas, evaluation.yaml)
+skills/             64 Skills (skill.yaml, instructions.md, input/output JSON Schemas, evaluation.yaml)
 artifacts/types/    38 Artifact types
 packages/schemas    item-kind JSON Schemas shared by API and editor
 infrastructure/     docker, keycloak realm, kubernetes manifests

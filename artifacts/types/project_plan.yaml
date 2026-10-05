@@ -1,0 +1,33 @@
+type: project_plan
+name: Project Plan
+description: Workstreams, milestones, dependencies, resources and risks
+icon: calendar-range
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: workstreams
+  title: Workstreams
+  kind: items
+  item_kind: note
+  description: ''
+- key: milestones
+  title: Milestones
+  kind: items
+  item_kind: milestone
+  description: ''
+- key: dependencies
+  title: Dependencies
+  kind: items
+  item_kind: dependency
+  description: ''
+- key: resources
+  title: Team and resources
+  kind: rich_text
+  description: ''
+- key: risks
+  title: Risks
+  kind: items
+  item_kind: risk
+  description: ''

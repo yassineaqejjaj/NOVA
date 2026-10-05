@@ -55,10 +55,14 @@ def intent(user: str) -> dict[str, Any]:
 
 def plan(user: str) -> dict[str, Any]:
     candidates = re.findall(r"^- ([a-z0-9-]+): ", _between(user, "CANDIDATE SKILLS:\n"), re.MULTILINE)
-    first = candidates[0] if candidates else "prd"
+    request = _between(user, "USER REQUEST:\n", "\n\n").lower()
+    # Every candidate named in full in the request ("the design brief and the technical design") becomes a step,
+    # in the order of the request; otherwise the best candidate.
+    named = sorted((request.find(c.replace("-", " ")), c) for c in candidates if c.replace("-", " ") in request)
+    chosen = [c for _, c in named][:3] or [candidates[0] if candidates else "prd"]
     return {
         "objective": _between(user, "GOAL: ", "\n").strip() or "Work",
-        "steps": [{"id": "step-1", "title": first.replace("-", " ").title(), "skill_id": first}],
+        "steps": [{"id": f"step-{i + 1}", "title": c.replace("-", " ").title(), "skill_id": c} for i, c in enumerate(chosen)],
     }
 
 

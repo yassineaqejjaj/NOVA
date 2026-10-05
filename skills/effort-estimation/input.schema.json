@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Effort Estimation — inputs",
+  "type": "object",
+  "properties": {
+    "work": {
+      "type": "string",
+      "description": "The work to estimate"
+    }
+  },
+  "required": [
+    "work"
+  ],
+  "additionalProperties": false
+}

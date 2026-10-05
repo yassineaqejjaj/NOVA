@@ -1,0 +1,19 @@
+criteria:
+- key: quality.scope
+  question: Are scope and out-of-scope explicit?
+  weight: 2
+- key: quality.success
+  question: Are success criteria measurable?
+  weight: 1
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Purpose
+    - Scope
+    - Milestones
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

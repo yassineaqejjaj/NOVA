@@ -2,6 +2,7 @@ id: decision-record
 name: Decision Record
 version: 1.0.0
 category: communication
+agent: product
 summary: "Document a product or technical decision: the context, the options considered, the decision and its consequences."
 purpose: >
   Keep a durable trace of why a decision was made, so the team does not relitigate it and newcomers

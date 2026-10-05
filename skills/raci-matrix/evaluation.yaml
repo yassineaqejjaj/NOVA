@@ -1,0 +1,14 @@
+criteria:
+- key: quality.single_accountable
+  question: Is there exactly one Accountable per activity?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - RACI matrix
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

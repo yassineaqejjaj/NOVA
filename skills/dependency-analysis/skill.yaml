@@ -2,6 +2,7 @@ id: dependency-analysis
 name: Dependency Analysis
 version: 1.0.0
 category: delivery
+agent: project
 summary: Map the dependencies of a plan, identify the critical path and define actions to unblock them.
 purpose: >
   Expose what the team depends on — other teams, systems, vendors, decisions or data — before it blocks

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/estimate",
+  "title": "estimate",
+  "description": "Work item estimate (three-point)",
+  "type": "object",
+  "properties": {
+    "optimistic": {
+      "type": "number"
+    },
+    "likely": {
+      "type": "number"
+    },
+    "pessimistic": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "hours",
+        "days",
+        "points"
+      ]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    }
+  },
+  "required": [
+    "likely",
+    "unit"
+  ],
+  "additionalProperties": false
+}

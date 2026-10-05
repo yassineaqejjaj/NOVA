@@ -2,6 +2,7 @@ id: kano-analysis
 name: Kano Analysis
 version: 1.0.0
 category: prioritization
+agent: product
 summary: "Classify features by their effect on customer satisfaction: must-be, performance, attractive, indifferent or reverse."
 purpose: >
   Understand which features customers take for granted, which raise satisfaction proportionally and which

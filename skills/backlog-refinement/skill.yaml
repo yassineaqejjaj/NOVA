@@ -2,6 +2,7 @@ id: backlog-refinement
 name: Backlog Refinement
 version: 1.0.0
 category: delivery
+agent: project
 summary: "Refine backlog items: clarify stories, sharpen acceptance criteria, propose splits and surface questions for the team."
 purpose: >
   Keep the top of the backlog understood, small enough and estimable, so planning is fast and delivery

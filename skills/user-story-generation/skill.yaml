@@ -2,6 +2,7 @@ id: user-story-generation
 name: User Story Generation
 version: 1.0.0
 category: definition
+agent: product
 summary: Write INVEST user stories with Given/When/Then acceptance criteria, grouped under epics.
 purpose: >
   Turn a feature, epic or requirement into small, valuable, testable stories the team can estimate and

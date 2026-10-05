@@ -25,6 +25,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
+import { type ActivityLine, type AgentStep, SubAgents } from "@/components/agents/sub-agents";
 import { type ApprovalData, ApprovalDialog } from "@/components/conversation/approval-dialog";
 import { ClassificationBadge, ErrorNotice } from "@/components/shell/page";
 import { api } from "@/lib/api/client";
@@ -47,6 +48,12 @@ export interface BlockContext {
   /** Text of the user request this reply answers (used to re-ask after a non-fatal warning). */
   requestText?: string;
   resend?: (text: string) => Promise<void>;
+  /** Progress lines of the message: the plan shows each sub-agent's activity from them. */
+  activity?: ActivityLine[];
+  /** The message has a plan: step activity is shown under the sub-agents, not in the progress summary. */
+  hasPlan?: boolean;
+  live?: boolean;
+  novaName?: string;
 }
 
 const fade = { initial: { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.2 } };
@@ -95,11 +102,12 @@ function TextBlockView({ block }: { block: Block<{ markdown: string; suggestions
 
 // --- progress (operational summary, never raw reasoning) ------------------------------------------
 
-function ProgressBlock({ block, live }: { block: Block<{ lines: { key: string; label: string; status: string; detail: string }[] }>; live: boolean }) {
+function ProgressBlock({ block, live, ctx }: { block: Block<{ lines: ActivityLine[] }>; live: boolean; ctx: BlockContext }) {
   const [open, setOpen] = useState(live);
   const t = useT(M);
   const lang = useLang();
-  const lines = block.data.lines ?? [];
+  // With a plan, the lines of each step ("<step>:<sub-step>") belong to its sub-agent; NOVA's own work stays here.
+  const lines = (block.data.lines ?? []).filter((l) => !ctx.hasPlan || !l.key.includes(":"));
   const done = lines.every((l) => l.status === "completed" || l.status === "failed");
   const expanded = open || live;
   return (
@@ -130,40 +138,19 @@ function ProgressBlock({ block, live }: { block: Block<{ lines: { key: string; l
 
 // --- plan -----------------------------------------------------------------------------------------
 
-interface PlanStep { id: string; title: string; skill_id: string | null; skill_name: string | null; status: string; detail?: string; artifact_id?: string | null }
-
-function PlanBlock({ block, ctx }: { block: Block<{ objective: string; steps: PlanStep[]; done: number; total: number; assumptions?: string[] }>; ctx: BlockContext }) {
-  const { steps, done, total, assumptions } = block.data;
-  const t = useT(M);
-  const lang = useLang();
-  const { data: skills } = useSkills();
-  const skillLabel = (s: PlanStep) => (s.skill_id && skills?.find((k) => k.id === s.skill_id)?.translations?.[lang]?.name) || s.skill_name;
+function PlanBlock({ block, ctx }: { block: Block<{ objective: string; steps: AgentStep[]; done: number; total: number; assumptions?: string[] }>; ctx: BlockContext }) {
+  const { objective, steps, assumptions } = block.data;
   return (
-    <motion.div {...fade} className="rounded-[12px] border border-border bg-surface px-4 py-3">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-[12px] font-medium uppercase tracking-wider text-subtle">{t("plan")}</span>
-        <span className="text-[12px] text-subtle">
-          {t("stepsComplete", { done, total })}
-        </span>
-      </div>
-      <ol className="space-y-1">
-        {steps.map((s) => (
-          <li key={s.id} className="flex items-center gap-2.5 text-[13.5px]">
-            <StepIcon status={s.status} />
-            <span className={s.status === "pending" ? "text-muted" : "text-text"}>{s.title}</span>
-            {s.skill_name && s.skill_name !== s.title ? <Badge>{skillLabel(s)}</Badge> : null}
-            {s.artifact_id ? (
-              <button onClick={() => ctx.onOpenArtifact(s.artifact_id!)} className="ml-auto text-[12px] text-accent hover:underline">
-                {t("open")}
-              </button>
-            ) : null}
-          </li>
-        ))}
-      </ol>
-      {assumptions?.length ? (
-        <div className="mt-2.5 border-t border-border pt-2 text-[12px] text-subtle">{t("assumptions", { list: assumptions.join(" · ") })}</div>
-      ) : null}
-    </motion.div>
+    <SubAgents
+      objective={objective}
+      steps={steps}
+      activity={ctx.activity}
+      taskStatus={ctx.taskStatus}
+      live={!!ctx.live}
+      novaName={ctx.novaName}
+      onOpenArtifact={ctx.onOpenArtifact}
+      assumptions={assumptions}
+    />
   );
 }
 
@@ -565,7 +552,7 @@ export function BlockView({ block, ctx, live }: { block: Block; ctx: BlockContex
     case "text":
       return <TextBlockView block={block as never} />;
     case "progress":
-      return <ProgressBlock block={block as never} live={live} />;
+      return <ProgressBlock block={block as never} live={live} ctx={ctx} />;
     case "plan":
       return <PlanBlock block={block as never} ctx={ctx} />;
     case "workflow":

@@ -2,6 +2,7 @@ id: artifact-edit
 name: Artifact Editing
 version: 1.0.0
 category: artifact
+agent: product
 summary: Update selected sections of an existing Artifact according to the user's request.
 purpose: >
   Let the user change part of an Artifact conversationally ("rewrite the success metrics") without

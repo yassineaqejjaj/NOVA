@@ -8,7 +8,7 @@ from langgraph.runtime import Runtime
 
 from nova.agent import prompts
 from nova.agent.deps import AgentDeps
-from nova.agent.nodes.common import NodeFailure, deps, node, plan_block, progress, set_phase, upsert
+from nova.agent.nodes.common import NodeFailure, deps, node, now_iso, plan_block, progress, set_phase, upsert
 from nova.domain.enums import ExecutionOrigin, NovaPhase, StepStatus
 from nova.domain.outputs import ExecutionPlan, ExecutionStep, MissingInput, PlanOutput
 from nova.domain.permissions import AutonomyPolicy
@@ -233,6 +233,7 @@ async def select_skills(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
     for s in plan.steps:
         if s.id == step.id:
             s.status = StepStatus.running
+            s.started_at = s.started_at or now_iso()
     await d.store.update_step(state.task_id, step.id, StepStatus.running)
     new_state = state.model_copy(update={"plan": plan})
     await upsert(d, new_state, plan_block(new_state, d))

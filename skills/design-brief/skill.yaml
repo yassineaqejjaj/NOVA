@@ -1,0 +1,66 @@
+id: design-brief
+name: Design Brief
+version: 1.0.0
+category: definition
+agent: design
+summary: >-
+  Frame a design effort: problem, users, goals, constraints, principles, deliverables and success measures.
+purpose: Give designers and stakeholders a shared starting point so design work solves the right problem.
+triggers:
+- design brief
+- brief design
+- ux brief
+- brief de design
+- cadrage design
+inputs:
+- name: subject
+  description: What needs to be designed
+  required: true
+  ask: true
+  question: What should be designed, and for whom?
+expected_context:
+  orbit_intent: design
+  query_hint: user research, personas, journeys, PRD, brand guidelines, accessibility requirements
+  token_budget: 5000
+methodology:
+  name: Design brief
+  principles:
+  - Problem before solution
+  - Name the users and their context of use
+  - Constraints include accessibility and brand
+  - Success is measurable
+  references:
+  - Nielsen Norman Group — UX design briefs
+  - IDEO — Human-Centered Design Toolkit
+steps:
+- id: problem
+  title: Framing the problem
+  instruction: Describe the problem and the users with their context of use, citing research when available.
+  fills:
+  - problem
+  - users
+- id: goals
+  title: Setting goals and constraints
+  instruction: >-
+    List 3–5 design goals (objectives) and the constraints (requirements: accessibility, platform, brand, technical).
+  fills:
+  - goals
+  - constraints
+- id: plan
+  title: Defining the deliverables
+  instruction: List 3–6 design principles, the deliverables as checklist items, and 2–4 success measures (metrics).
+  fills:
+  - principles
+  - deliverables
+  - success
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: design_brief
+  mode: create
+composes_with:
+- persona
+- user-journey
+- usability-test-plan
+- ux-writing

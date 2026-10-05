@@ -1,0 +1,66 @@
+id: effort-estimation
+name: Effort Estimation
+version: 1.0.0
+category: delivery
+agent: engineering
+summary: >-
+  Break work down and estimate it with three-point estimates, assumptions, risks and a confidence level.
+purpose: Give stakeholders an honest range rather than a single number, with the assumptions behind it.
+triggers:
+- estimate
+- estimation
+- effort
+- sizing
+- how long will it take
+- chiffrage
+- estimation de charge
+inputs:
+- name: work
+  description: The work to estimate
+  required: true
+  ask: true
+  question: What work should be estimated (feature, epic, project)?
+expected_context:
+  orbit_intent: engineering
+  query_hint: scope, PRD, backlog, architecture, team capacity, past velocity, dependencies
+  token_budget: 5000
+methodology:
+  name: Three-point estimation (PERT)
+  principles:
+  - Estimate ranges (optimistic, likely, pessimistic)
+  - Break work down until items are estimable
+  - Make assumptions explicit
+  - State confidence honestly
+  references:
+  - Steve McConnell — Software Estimation
+  - PMI — PERT
+steps:
+- id: summary
+  title: Scoping the estimate
+  instruction: Summarize what is estimated, in which unit and for which team, citing context.
+  fills:
+  - summary
+- id: breakdown
+  title: Breaking the work down
+  instruction: List 5–15 work items with optimistic, likely and pessimistic estimates, unit and confidence.
+  fills:
+  - breakdown
+- id: total
+  title: Totalling with confidence
+  instruction: >-
+    List assumptions and estimation risks, then give the total as a range (PERT mean = (O + 4L + P) / 6) and the
+    overall confidence.
+  fills:
+  - assumptions
+  - risks
+  - total
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: estimation
+  mode: create
+composes_with:
+- technical-design
+- release-planning
+- sprint-planning

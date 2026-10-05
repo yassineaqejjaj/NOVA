@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UX Writing — inputs",
+  "type": "object",
+  "properties": {
+    "screens": {
+      "type": "string",
+      "description": "The screens or flow to write for"
+    }
+  },
+  "required": [
+    "screens"
+  ],
+  "additionalProperties": false
+}

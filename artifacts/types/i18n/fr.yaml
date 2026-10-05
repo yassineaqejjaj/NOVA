@@ -421,3 +421,176 @@ user_stories:
     epics: {title: "Epics"}
     stories: {title: "User stories", description: "parent_id = identifiant de l’epic"}
     questions: {title: "Questions ouvertes"}
+
+# --- Project, Design and Engineering agents ---
+
+tech_design:
+  name: "Conception technique"
+  description: "Document de conception / RFC : architecture proposée, alternatives et déploiement"
+  sections:
+    summary: {title: "Synthèse"}
+    context: {title: "Contexte et contraintes"}
+    goals: {title: "Objectifs et non-objectifs"}
+    proposed_design: {title: "Conception proposée"}
+    alternatives: {title: "Alternatives envisagées"}
+    nfr: {title: "Exigences non fonctionnelles"}
+    risks: {title: "Risques"}
+    rollout: {title: "Plan de déploiement"}
+    open_questions: {title: "Questions ouvertes"}
+
+adr:
+  name: "Décision d’architecture (ADR)"
+  description: "Une décision d’architecture avec son contexte, ses options et ses conséquences"
+  sections:
+    context: {title: "Contexte"}
+    options: {title: "Options envisagées"}
+    decision: {title: "Décision"}
+    consequences: {title: "Conséquences"}
+    follow_ups: {title: "Actions de suivi"}
+
+api_spec:
+  name: "Spécification d’API"
+  description: "Endpoints, authentification, erreurs et versionnement d’une API"
+  sections:
+    summary: {title: "Synthèse"}
+    endpoints: {title: "Endpoints"}
+    auth: {title: "Authentification et autorisations"}
+    errors: {title: "Erreurs et codes de statut"}
+    versioning: {title: "Versionnement et compatibilité"}
+    open_questions: {title: "Questions ouvertes"}
+
+test_plan:
+  name: "Plan de test"
+  description: "Stratégie de test, cas de test, environnements et critères d’entrée/sortie"
+  sections:
+    scope: {title: "Périmètre"}
+    strategy: {title: "Stratégie de test"}
+    test_cases: {title: "Cas de test"}
+    environments: {title: "Environnements et données"}
+    criteria: {title: "Critères d’entrée et de sortie"}
+    risks: {title: "Risques qualité"}
+
+postmortem:
+  name: "Post-mortem d’incident"
+  description: "Revue d’incident sans recherche de coupable : impact, chronologie, causes et actions"
+  sections:
+    summary: {title: "Synthèse"}
+    impact: {title: "Impact"}
+    timeline: {title: "Chronologie"}
+    root_causes: {title: "Causes racines"}
+    went_well: {title: "Ce qui a bien fonctionné"}
+    actions: {title: "Actions"}
+
+estimation:
+  name: "Estimation de charge"
+  description: "Découpage du travail avec estimations à trois points, hypothèses et risques"
+  sections:
+    summary: {title: "Synthèse"}
+    breakdown: {title: "Découpage du travail"}
+    assumptions: {title: "Hypothèses"}
+    risks: {title: "Risques d’estimation"}
+    total: {title: "Total et niveau de confiance"}
+
+design_brief:
+  name: "Brief de design"
+  description: "Problème, utilisateurs, objectifs, contraintes et livrables d’un travail de design"
+  sections:
+    problem: {title: "Problème"}
+    users: {title: "Utilisateurs et contexte d’usage"}
+    goals: {title: "Objectifs de design"}
+    constraints: {title: "Contraintes"}
+    principles: {title: "Principes de design"}
+    deliverables: {title: "Livrables"}
+    success: {title: "Mesures de succès"}
+
+usability_test_plan:
+  name: "Plan de test utilisateur"
+  description: "Questions de recherche, participants, tâches, indicateurs et script"
+  sections:
+    objectives: {title: "Questions de recherche"}
+    participants: {title: "Participants et recrutement"}
+    tasks: {title: "Tâches"}
+    metrics: {title: "Indicateurs"}
+    script: {title: "Script de l’animateur"}
+    logistics: {title: "Logistique"}
+
+ux_copy:
+  name: "Textes d’interface (UX writing)"
+  description: "Textes de l’interface avec emplacements, variantes, voix et terminologie"
+  sections:
+    summary: {title: "Synthèse"}
+    voice: {title: "Voix et ton"}
+    strings: {title: "Textes d’interface"}
+    terminology: {title: "Terminologie"}
+
+design_review:
+  name: "Revue de design"
+  description: "Revue heuristique et d’accessibilité avec recommandations priorisées"
+  sections:
+    summary: {title: "Synthèse"}
+    strengths: {title: "Points forts"}
+    issues: {title: "Problèmes"}
+    accessibility: {title: "Contrôles d’accessibilité"}
+    recommendations: {title: "Recommandations"}
+
+project_charter:
+  name: "Charte de projet"
+  description: "Raison d’être, objectifs, périmètre, parties prenantes, jalons et gouvernance"
+  sections:
+    purpose: {title: "Raison d’être"}
+    objectives: {title: "Objectifs"}
+    scope: {title: "Périmètre"}
+    out_of_scope: {title: "Hors périmètre"}
+    stakeholders: {title: "Parties prenantes"}
+    milestones: {title: "Jalons"}
+    risks: {title: "Risques clés"}
+    success: {title: "Critères de succès"}
+    governance: {title: "Gouvernance"}
+
+status_report:
+  name: "Rapport d’avancement"
+  description: "Santé du projet, avancement des jalons, risques, décisions attendues et prochaines étapes"
+  sections:
+    summary: {title: "Synthèse"}
+    health: {title: "Santé globale"}
+    progress: {title: "Jalons"}
+    risks: {title: "Risques et problèmes"}
+    decisions: {title: "Décisions attendues"}
+    next_steps: {title: "Prochaines étapes"}
+
+raid_log:
+  name: "Registre RAID"
+  description: "Risques, hypothèses, problèmes et dépendances d’un projet"
+  sections:
+    risks: {title: "Risques"}
+    assumptions: {title: "Hypothèses"}
+    issues: {title: "Problèmes"}
+    dependencies: {title: "Dépendances"}
+
+project_plan:
+  name: "Plan de projet"
+  description: "Chantiers, jalons, dépendances, ressources et risques"
+  sections:
+    summary: {title: "Synthèse"}
+    workstreams: {title: "Chantiers"}
+    milestones: {title: "Jalons"}
+    dependencies: {title: "Dépendances"}
+    resources: {title: "Équipe et ressources"}
+    risks: {title: "Risques"}
+
+raci:
+  name: "Matrice RACI"
+  description: "Qui est Responsable, Approbateur, Consulté et Informé pour chaque activité"
+  sections:
+    summary: {title: "Synthèse"}
+    matrix: {title: "Matrice RACI"}
+    notes: {title: "Notes"}
+
+retrospective:
+  name: "Rétrospective"
+  description: "Ce qui a bien fonctionné, ce qui est à améliorer et les actions retenues par l’équipe"
+  sections:
+    summary: {title: "Synthèse"}
+    went_well: {title: "Ce qui a bien fonctionné"}
+    to_improve: {title: "À améliorer"}
+    actions: {title: "Actions"}

@@ -1,0 +1,73 @@
+id: project-charter
+name: Project Charter
+version: 1.0.0
+category: strategy
+agent: project
+summary: >-
+  Launch a project: purpose, objectives, scope, stakeholders, milestones, risks, success criteria and governance.
+purpose: Give a project a clear mandate and shared boundaries before it starts.
+triggers:
+- project charter
+- kick-off
+- project kickoff
+- charte de projet
+- lancement de projet
+- cadrage projet
+inputs:
+- name: project
+  description: The project to launch
+  required: true
+  ask: true
+  question: Which project should the charter cover, and what is its goal?
+expected_context:
+  orbit_intent: general
+  query_hint: business case, objectives, roadmap, stakeholders, constraints, budget, timeline, decisions
+  token_budget: 5000
+methodology:
+  name: Project charter (PMBOK)
+  principles:
+  - One clear purpose
+  - Explicit scope and out-of-scope
+  - Named roles and decision rights
+  - Measurable success criteria
+  references:
+  - PMI — PMBOK Guide
+  - PRINCE2 — Project Initiation Documentation
+steps:
+- id: purpose
+  title: Defining the purpose
+  instruction: Describe the purpose and list 3–5 objectives (timeframe and owner role when known), citing context.
+  fills:
+  - purpose
+  - objectives
+- id: scope
+  title: Setting the boundaries
+  instruction: Describe the scope and list what is out of scope.
+  fills:
+  - scope
+  - out_of_scope
+- id: people
+  title: Mapping stakeholders and milestones
+  instruction: List stakeholders (role, interest, influence) and 4–8 milestones (dates only when known).
+  fills:
+  - stakeholders
+  - milestones
+- id: govern
+  title: Securing the project
+  instruction: >-
+    List the key risks, 3–5 success criteria (metrics) and describe governance (steering, cadence, decision rights).
+  fills:
+  - risks
+  - success
+  - governance
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: project_charter
+  mode: create
+composes_with:
+- project-plan
+- raci-matrix
+- raid-log
+- stakeholder-brief

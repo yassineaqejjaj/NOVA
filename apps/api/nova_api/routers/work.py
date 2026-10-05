@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.artifacts.registry import get_artifact_registry
 from nova.config import get_settings
+from nova.domain.agents import AgentProfile
 from nova.domain.enums import AutonomyMode, SkillCategory
 from nova.infra.db import get_session
 from nova.infra.models import Artifact, IntegrationReference, Task, Workflow
@@ -44,9 +45,13 @@ async def _task_view(session: AsyncSession, task: Task, *, detail: bool = False)
             "skill_id": s.skill_id,
             "skill_name": skills.get(s.skill_id).name if s.skill_id and skills.has(s.skill_id) else None,
             "skill_version": s.skill_version,
+            # the sub-agent carrying out the step (the owner of its Skill)
+            "agent": skills.get(s.skill_id).agent.value if s.skill_id and skills.has(s.skill_id) else "product",
             "status": s.status,
             "detail": s.detail,
             "artifact_id": str(s.artifact_id) if s.artifact_id else None,
+            "started_at": s.started_at.isoformat() if s.started_at else None,
+            "finished_at": s.finished_at.isoformat() if s.finished_at else None,
         }
         for s in task.steps
     ]
@@ -69,6 +74,7 @@ async def _task_view(session: AsyncSession, task: Task, *, detail: bool = False)
         "project_id": str(task.project_id) if task.project_id else None,
         "conversation_id": str(task.conversation_id) if task.conversation_id else None,
         "skills": [s["skill_name"] for s in steps if s["skill_name"]],
+        "agents": list(dict.fromkeys(s["agent"] for s in steps)),
         "progress_done": task.progress_done,
         "progress_total": task.progress_total,
         "created_at": task.created_at.isoformat(),
@@ -78,11 +84,11 @@ async def _task_view(session: AsyncSession, task: Task, *, detail: bool = False)
         "evaluation": evaluation,
         "error": task.error,
         "artifact_ids": [s["artifact_id"] for s in steps if s["artifact_id"]],
+        "steps": steps,
     }
     if detail:
         artifacts = (await session.scalars(select(Artifact).where(Artifact.task_id == task.id))).all()
         view.update(
-            steps=steps,
             waiting_for=task.waiting_for,
             usage=task.usage,
             model=task.model,
@@ -156,6 +162,7 @@ def _skill_view(spec: Any, *, detail: bool = False) -> dict[str, Any]:
         "name": spec.name,
         "version": spec.version,
         "category": spec.category.value,
+        "agent": spec.agent.value,
         "summary": spec.summary,
         "artifact_type": spec.outputs.artifact_type,
         "artifact_type_name": artifact_type.name if artifact_type else None,
@@ -184,8 +191,14 @@ def _skill_view(spec: Any, *, detail: bool = False) -> dict[str, Any]:
 
 
 @router.get("/skills")
-async def list_skills(principal: CurrentPrincipal, category: SkillCategory | None = None) -> list[dict[str, Any]]:
-    return [_skill_view(s) for s in get_skill_registry().all(include_system=False) if category is None or s.category == category]
+async def list_skills(
+    principal: CurrentPrincipal, category: SkillCategory | None = None, agent: AgentProfile | None = None
+) -> list[dict[str, Any]]:
+    return [
+        _skill_view(s)
+        for s in get_skill_registry().all(include_system=False)
+        if (category is None or s.category == category) and (agent is None or s.agent == agent)
+    ]
 
 
 @router.get("/skills/{skill_id}")

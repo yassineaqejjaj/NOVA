@@ -2,6 +2,7 @@ id: wsjf-prioritization
 name: WSJF Prioritization
 version: 1.0.0
 category: prioritization
+agent: product
 summary: "Sequence features or epics by Weighted Shortest Job First: Cost of Delay divided by job size."
 purpose: >
   Sequence work to maximize the economic value delivered over time. WSJF favours items whose delay is costly

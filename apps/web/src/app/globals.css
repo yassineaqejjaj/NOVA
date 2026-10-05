@@ -168,3 +168,20 @@ body {
   --brand-soft: rgb(248 72 94 / 0.1);
   --brand-glow: rgb(248 72 94 / 0.2);
 }
+
+/* Live activity of a sub-agent: a soft light sweeping the text. */
+.shimmer-text {
+  background: linear-gradient(90deg, var(--text-muted) 0%, var(--text-muted) 40%, var(--text) 50%, var(--text-muted) 60%, var(--text-muted) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-text 2.4s linear infinite;
+}
+@keyframes shimmer-text {
+  from { background-position: 100% 0; }
+  to { background-position: -150% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text { animation: none; color: var(--text-muted); background: none; }
+}

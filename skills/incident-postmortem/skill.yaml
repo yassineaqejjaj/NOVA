@@ -1,0 +1,70 @@
+id: incident-postmortem
+name: Incident Postmortem
+version: 1.0.0
+category: analysis
+agent: engineering
+summary: 'Write a blameless postmortem: impact, timeline, root causes, what went well and corrective actions.'
+purpose: Learn from incidents without blame and prevent recurrence with owned, concrete actions.
+triggers:
+- postmortem
+- post-mortem
+- incident review
+- outage analysis
+- retour sur incident
+- analyse d'incident
+inputs:
+- name: incident
+  description: The incident to analyse
+  required: true
+  ask: true
+  question: Which incident should be analysed (what happened, when)?
+expected_context:
+  orbit_intent: analysis
+  query_hint: incident reports, monitoring, timeline, alerts, changes, decisions, customer impact
+  token_budget: 5000
+methodology:
+  name: Blameless postmortem (SRE)
+  principles:
+  - 'Blameless: focus on systems and processes, not people'
+  - Separate detection, mitigation and resolution
+  - Every action is concrete, owned and tracked
+  references:
+  - Google SRE Book — Postmortem Culture
+  - John Allspaw — Blameless PostMortems
+steps:
+- id: impact
+  title: Assessing the impact
+  instruction: >-
+    Summarize the incident and describe its impact (users, duration, data, business) citing context; unknown figures
+    are stated as unknown.
+  fills:
+  - summary
+  - impact
+- id: timeline
+  title: Reconstructing the timeline
+  instruction: >-
+    List the timeline events as note items (title starts with the time if known): detection, escalation, mitigation,
+    resolution.
+  fills:
+  - timeline
+- id: causes
+  title: Finding root causes
+  instruction: List contributing and root causes (level root/contributing, evidence, category) and what went well.
+  fills:
+  - root_causes
+  - went_well
+- id: actions
+  title: Planning corrective actions
+  instruction: >-
+    List 3–8 actions (owner role, due only if known, status open) that prevent recurrence or improve detection.
+  fills:
+  - actions
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: postmortem
+  mode: create
+composes_with:
+- root-cause-analysis
+- risk-analysis

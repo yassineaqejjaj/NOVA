@@ -2,6 +2,7 @@ id: interview-guide
 name: Interview Guide
 version: 1.0.0
 category: discovery
+agent: design
 summary: Write a discovery interview script with warm-up, open story-based questions, follow-up probes and a wrap-up.
 purpose: >
   Help interviewers collect real stories about past behaviour instead of opinions and hypothetical answers.

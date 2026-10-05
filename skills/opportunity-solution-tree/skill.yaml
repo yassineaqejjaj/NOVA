@@ -2,6 +2,7 @@ id: opportunity-solution-tree
 name: Opportunity Solution Tree
 version: 1.0.0
 category: discovery
+agent: product
 summary: Map a desired outcome to customer opportunities, candidate solutions and the experiments that test them.
 purpose: >
   Structure discovery around one outcome so the team compares options instead of committing to the first

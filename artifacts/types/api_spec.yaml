@@ -1,0 +1,31 @@
+type: api_spec
+name: API Specification
+description: Endpoints, authentication, errors and versioning of an API
+icon: plug
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: endpoints
+  title: Endpoints
+  kind: items
+  item_kind: endpoint
+  description: ''
+- key: auth
+  title: Authentication and authorization
+  kind: rich_text
+  description: ''
+- key: errors
+  title: Errors and status codes
+  kind: rich_text
+  description: ''
+- key: versioning
+  title: Versioning and compatibility
+  kind: rich_text
+  description: ''
+- key: open_questions
+  title: Open questions
+  kind: items
+  item_kind: question
+  description: ''

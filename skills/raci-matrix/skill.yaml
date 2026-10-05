@@ -1,0 +1,53 @@
+id: raci-matrix
+name: RACI Matrix
+version: 1.0.0
+category: delivery
+agent: project
+summary: 'Clarify roles: who is Responsible, Accountable, Consulted and Informed for each key activity.'
+purpose: Remove ambiguity about ownership and decision rights across teams.
+triggers:
+- raci
+- roles and responsibilities
+- who does what
+- matrice raci
+- rôles et responsabilités
+inputs:
+- name: scope
+  description: The project or process
+expected_context:
+  orbit_intent: general
+  query_hint: teams, roles, stakeholders, governance, processes, decisions
+  token_budget: 5000
+methodology:
+  name: RACI
+  principles:
+  - Exactly one Accountable per activity
+  - At least one Responsible
+  - Consult few, inform many
+  - Roles, not names, unless named in context
+  references:
+  - PMI — Responsibility assignment matrix
+steps:
+- id: matrix
+  title: Assigning responsibilities
+  instruction: >-
+    Summarize the scope, then list 8–15 key activities as RACI entries (responsible, accountable, consulted, informed
+    as roles).
+  fills:
+  - summary
+  - matrix
+- id: notes
+  title: Highlighting gaps
+  instruction: Note overloaded roles, missing owners and decision-right conflicts.
+  fills:
+  - notes
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: raci
+  mode: create
+composes_with:
+- project-charter
+- project-plan
+- stakeholder-brief

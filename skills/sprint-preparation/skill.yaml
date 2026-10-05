@@ -2,6 +2,7 @@ id: sprint-preparation
 name: Sprint Preparation
 version: 1.0.0
 category: delivery
+agent: project
 summary: "Check that the top backlog items are ready before sprint planning: refine them, propose splits, raise questions and run a readiness check."
 purpose: >
   Avoid discovering unclear or oversized stories during the planning meeting. Preparing a few days ahead

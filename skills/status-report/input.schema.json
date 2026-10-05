@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Status Report — inputs",
+  "type": "object",
+  "properties": {
+    "period": {
+      "type": "string",
+      "description": "The reporting period"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

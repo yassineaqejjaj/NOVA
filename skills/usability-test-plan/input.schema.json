@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Usability Test Plan — inputs",
+  "type": "object",
+  "properties": {
+    "prototype": {
+      "type": "string",
+      "description": "What will be tested (prototype, feature, flow)"
+    }
+  },
+  "required": [
+    "prototype"
+  ],
+  "additionalProperties": false
+}

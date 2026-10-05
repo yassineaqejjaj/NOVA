@@ -1,0 +1,69 @@
+id: test-strategy
+name: Test Strategy
+version: 1.0.0
+category: delivery
+agent: engineering
+summary: 'Plan how a feature will be tested: strategy, prioritized test cases, environments and exit criteria.'
+purpose: >-
+  Make quality risks visible and testing proportional to them, so the team knows when a release is ready.
+triggers:
+- test plan
+- test strategy
+- test cases
+- qa plan
+- plan de test
+- stratégie de test
+- recette
+inputs:
+- name: feature
+  description: The feature or release to test
+  required: true
+  ask: true
+  question: Which feature or release should the test plan cover?
+expected_context:
+  orbit_intent: validation
+  query_hint: PRD, user stories, acceptance criteria, architecture, incidents, quality risks
+  token_budget: 5000
+methodology:
+  name: Risk-based testing (test pyramid)
+  principles:
+  - Test effort follows risk
+  - Automate at the lowest effective level (test pyramid)
+  - Cover accessibility, security and performance where relevant
+  - Clear entry and exit criteria
+  references:
+  - Mike Cohn — Succeeding with Agile (test pyramid)
+  - ISTQB Foundation Syllabus
+  - WCAG 2.2
+steps:
+- id: scope
+  title: Scoping the tests
+  instruction: Describe the scope (in and out) and the test strategy (levels, automation, tools) citing context.
+  fills:
+  - scope
+  - strategy
+- id: cases
+  title: Writing test cases
+  instruction: >-
+    List 8–15 test cases ordered by priority: type, priority, steps, expected result; link to stories when possible
+    via parent_id of none.
+  fills:
+  - test_cases
+- id: readiness
+  title: Defining readiness
+  instruction: >-
+    Describe environments and test data, list entry and exit criteria as checklist items, and the main quality risks.
+  fills:
+  - environments
+  - criteria
+  - risks
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: test_plan
+  mode: create
+composes_with:
+- acceptance-criteria
+- definition-of-done
+- api-design

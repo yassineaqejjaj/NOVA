@@ -2,6 +2,7 @@ id: functional-requirements
 name: Functional Requirements
 version: 1.0.0
 category: definition
+agent: product
 summary: Specify what the system must do as prioritized, testable functional requirements, with constraints, assumptions and open questions.
 purpose: >
   Give engineering and QA an unambiguous list of required behaviours, traceable to user needs and decisions.

@@ -1,0 +1,38 @@
+type: design_brief
+name: Design Brief
+description: Problem, users, goals, constraints and deliverables of a design effort
+icon: palette
+sections:
+- key: problem
+  title: Problem
+  kind: rich_text
+  description: ''
+- key: users
+  title: Users and context of use
+  kind: rich_text
+  description: ''
+- key: goals
+  title: Design goals
+  kind: items
+  item_kind: objective
+  description: ''
+- key: constraints
+  title: Constraints
+  kind: items
+  item_kind: requirement
+  description: ''
+- key: principles
+  title: Design principles
+  kind: items
+  item_kind: note
+  description: ''
+- key: deliverables
+  title: Deliverables
+  kind: items
+  item_kind: checklist_item
+  description: ''
+- key: success
+  title: Success measures
+  kind: items
+  item_kind: metric
+  description: ''

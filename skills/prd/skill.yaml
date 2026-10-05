@@ -2,6 +2,7 @@ id: prd
 name: Product Requirements Document
 version: 1.0.0
 category: definition
+agent: product
 summary: Turn an idea or initiative into a complete, structured PRD that engineering can build from.
 purpose: >
   Make the problem, the users, the expected outcomes and the scope explicit before building, so that

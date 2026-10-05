@@ -84,6 +84,27 @@ START → understand_intent ─┬─► retrieve_orbit_context ─► plan_exec
   Valkey `nova:exec:{id}`); the SSE endpoint replays from the DB then follows pub/sub. Progress is
   only what actually happened (no timers, no simulated steps).
 
+## 5b. Sub-agents and profiles
+
+NOVA is the **orchestrator**: it understands the request, retrieves context and plans the workflow. Each step is then
+carried out by the **specialist sub-agent** that owns the step's Skill (`agent:` in `skill.yaml`;
+`nova/domain/agents.py`): **Product** (value, outcomes, requirements), **Project** (delivery, plans, risks, roles,
+status), **Design** (research, journeys, content, usability) and **Engineering** (architecture, interfaces, quality,
+estimates). The agent is not a label: its mission and professional standards open the system prompt of every model
+call of the step. Plan blocks and `/tasks` expose `agent`, `started_at` and `finished_at` per step; the UI shows the
+orchestrator and its sub-agents live (`components/agents/sub-agents.tsx`), with each agent's current activity taken
+from the progress lines of its step (`<step>:<sub-step>`).
+
+The user's **profile** (`user_preferences.profile`, chosen in onboarding and Settings) selects the lead agent: the
+planner prefers its Skills when several fit, and Home suggests its requests. Every profile can still use every Skill.
+
+| Agent | Skills (examples) |
+|---|---|
+| Product | PRD, vision → backlog, OKRs, prioritization (RICE, WSJF, Kano…), metrics, release notes |
+| Project | project charter, project plan, status report, RAID log, RACI, retrospective, sprint planning, risks, dependencies |
+| Design | design brief, usability test plan, UX writing, design review, personas, journeys, research plans |
+| Engineering | technical design, ADR, API design, test strategy, incident postmortem, effort estimation, NFRs |
+
 ## 6. Skill specification
 
 A Skill is a **versioned product workflow**, stored as a directory under `/skills/<id>/`:

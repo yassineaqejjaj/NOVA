@@ -1,0 +1,19 @@
+criteria:
+- key: quality.ownership
+  question: Does every entry have an owner and a status?
+  weight: 2
+- key: quality.distinction
+  question: Are risks and issues correctly distinguished?
+  weight: 1
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Risks
+    - Issues
+    - Dependencies
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

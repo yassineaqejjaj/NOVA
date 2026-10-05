@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project Charter — inputs",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "The project to launch"
+    }
+  },
+  "required": [
+    "project"
+  ],
+  "additionalProperties": false
+}

@@ -64,7 +64,9 @@ async def test_prd_single_skill_creates_structured_artifact_with_validated_citat
 
     blocks = await _blocks(message_id)
     assert blocks["context"]["type"] == "context_sources" and len(blocks["context"]["items"]) == 2
-    assert blocks["plan"]["steps"][0]["status"] == "completed"
+    step = blocks["plan"]["steps"][0]
+    assert step["status"] == "completed" and step["agent"] == "product"  # carried out by the PRD's sub-agent
+    assert step["started_at"] <= step["finished_at"]
     assert any(k.startswith("artifact-") for k in blocks)
     assert blocks["text"]["markdown"].startswith("Created")
     progress = {line["key"]: line["status"] for line in blocks["progress"]["lines"]}

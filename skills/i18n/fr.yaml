@@ -192,3 +192,69 @@ vision-to-objectives:
 wsjf-prioritization:
   name: "Priorisation WSJF"
   summary: "Séquencer fonctionnalités ou epics selon le Weighted Shortest Job First : coût du retard divisé par la taille du travail."
+
+# --- Project, Design and Engineering agents ---
+
+technical-design:
+  name: "Conception technique"
+  summary: "Rédiger un document de conception / RFC : architecture proposée, alternatives, exigences non fonctionnelles et déploiement."
+
+architecture-decision-record:
+  name: "Décision d’architecture (ADR)"
+  summary: "Consigner une décision d’architecture : contexte, options envisagées, décision et conséquences."
+
+api-design:
+  name: "Conception d’API"
+  summary: "Spécifier une API : endpoints avec requêtes et réponses, authentification, erreurs et versionnement."
+
+test-strategy:
+  name: "Stratégie de test"
+  summary: "Planifier les tests d’une fonctionnalité : stratégie, cas de test priorisés, environnements et critères de sortie."
+
+incident-postmortem:
+  name: "Post-mortem d’incident"
+  summary: "Rédiger un post-mortem sans recherche de coupable : impact, chronologie, causes racines et actions correctives."
+
+effort-estimation:
+  name: "Estimation de charge"
+  summary: "Découper et estimer le travail avec des estimations à trois points, hypothèses, risques et niveau de confiance."
+
+design-brief:
+  name: "Brief de design"
+  summary: "Cadrer un travail de design : problème, utilisateurs, objectifs, contraintes, principes, livrables et mesures de succès."
+
+usability-test-plan:
+  name: "Plan de test utilisateur"
+  summary: "Planifier un test d’utilisabilité : questions de recherche, participants, tâches, indicateurs, script et logistique."
+
+ux-writing:
+  name: "UX writing"
+  summary: "Rédiger les textes d’interface : libellés, messages, états vides et d’erreur, avec voix, ton et terminologie."
+
+design-review:
+  name: "Revue de design"
+  summary: "Revoir un design avec les heuristiques d’utilisabilité et des contrôles d’accessibilité, et recommander des changements priorisés."
+
+project-charter:
+  name: "Charte de projet"
+  summary: "Lancer un projet : raison d’être, objectifs, périmètre, parties prenantes, jalons, risques, critères de succès et gouvernance."
+
+status-report:
+  name: "Rapport d’avancement"
+  summary: "Rendre compte de l’avancement : santé globale, jalons, risques et problèmes, décisions attendues et prochaines étapes."
+
+raid-log:
+  name: "Registre RAID"
+  summary: "Construire un registre RAID : risques, hypothèses, problèmes et dépendances, avec responsables et statut."
+
+project-plan:
+  name: "Plan de projet"
+  summary: "Planifier un projet : chantiers, jalons, dépendances, équipe et ressources, risques."
+
+raci-matrix:
+  name: "Matrice RACI"
+  summary: "Clarifier les rôles : qui est Responsable, Approbateur, Consulté et Informé pour chaque activité clé."
+
+retrospective:
+  name: "Rétrospective"
+  summary: "Animer une rétrospective : ce qui a bien fonctionné, ce qui est à améliorer et les quelques actions retenues."

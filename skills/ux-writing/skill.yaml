@@ -1,0 +1,63 @@
+id: ux-writing
+name: UX Writing
+version: 1.0.0
+category: definition
+agent: design
+summary: 'Write interface texts: labels, messages, empty and error states, with voice, tone and terminology.'
+purpose: Make the interface clear and consistent so users understand what to do and what happened.
+triggers:
+- ux writing
+- microcopy
+- interface text
+- wording
+- textes d'interface
+- libellés
+- messages d'erreur
+inputs:
+- name: screens
+  description: The screens or flow to write for
+  required: true
+  ask: true
+  question: Which screens or flow need texts?
+expected_context:
+  orbit_intent: design
+  query_hint: design, screens, brand voice, terminology, user research, support tickets
+  token_budget: 5000
+methodology:
+  name: Content design
+  principles:
+  - Clear, concise, useful
+  - Say what happened and what to do next
+  - Consistent terminology
+  - 'Accessible: plain language, meaningful labels'
+  references:
+  - 'Kinneret Yifrah — Microcopy: The Complete Guide'
+  - GOV.UK — Content design guidance
+steps:
+- id: voice
+  title: Setting voice and tone
+  instruction: Summarize the scope and describe voice and tone (with examples of do/don't).
+  fills:
+  - summary
+  - voice
+- id: strings
+  title: Writing the texts
+  instruction: >-
+    List 10–25 interface texts: location (screen › element), text, variant (state: default, empty, error, success,
+    loading) and notes.
+  fills:
+  - strings
+- id: terms
+  title: Fixing the terminology
+  instruction: List 4–10 terms with definition and words to avoid.
+  fills:
+  - terminology
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: ux_copy
+  mode: create
+composes_with:
+- design-brief
+- design-review

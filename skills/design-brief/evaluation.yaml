@@ -1,0 +1,19 @@
+criteria:
+- key: quality.problem
+  question: Is the problem framed from the user's perspective?
+  weight: 2
+- key: quality.measurable
+  question: Are success measures measurable?
+  weight: 1
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Problem
+    - Design goals
+    - Deliverables
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

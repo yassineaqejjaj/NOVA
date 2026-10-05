@@ -3,12 +3,13 @@
 import { Badge, Button, cn, Skeleton, Tabs, TabsList, TabsTrigger } from "@nova/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, CircleDashed, FileText, FlaskConical, ListTodo, Loader2, X, XCircle } from "lucide-react";
+import { FileText, FlaskConical, ListTodo, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
+import { AgentStack, SubAgents } from "@/components/agents/sub-agents";
 import { EmptyState, Page, PageHeader } from "@/components/shell/page";
 import { api } from "@/lib/api/client";
 import { useProjects, useTask, useTasks } from "@/lib/api/hooks";
@@ -131,14 +132,6 @@ function useStatus() {
 
 const locale = (lang: string) => (lang === "fr" ? "fr-FR" : undefined);
 
-function StepStatus({ status }: { status: string }) {
-  if (status === "completed") return <Check className="size-3.5 text-success" />;
-  if (status === "running") return <Loader2 className="size-3.5 animate-spin text-accent" />;
-  if (status === "failed") return <XCircle className="size-3.5 text-danger" />;
-  if (status === "waiting_user") return <CircleDashed className="size-3.5 text-warning" />;
-  return <span className="mx-[3px] block size-2 rounded-full border border-subtle" />;
-}
-
 function WorkRow({ item, projectName, selected, onSelect }: { item: WorkItem; projectName?: string; selected: boolean; onSelect: () => void }) {
   const t = useT(M);
   const lang = useLang();
@@ -159,6 +152,7 @@ function WorkRow({ item, projectName, selected, onSelect }: { item: WorkItem; pr
           <div className="mt-1 text-right text-[11px] text-subtle">{t("steps", { done: item.progress_done, total: item.progress_total })}</div>
         </div>
       ) : null}
+      {item.steps?.length ? <span className="hidden md:inline-flex"><AgentStack steps={item.steps} taskStatus={item.status} size={18} /></span> : null}
       <Badge tone={s.tone}>{s.label}</Badge>
     </button>
   );
@@ -166,6 +160,7 @@ function WorkRow({ item, projectName, selected, onSelect }: { item: WorkItem; pr
 
 function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const { data: task } = useTask(id);
+  const router = useRouter();
   const client = useQueryClient();
   const t = useT(M);
   const lang = useLang();
@@ -193,17 +188,7 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
         <section>
           <h3 className="mb-2 text-[11.5px] font-medium uppercase tracking-wider text-subtle">{t("plan")}</h3>
           {task.steps?.length ? (
-            <ol className="space-y-1.5">
-              {task.steps.map((step) => (
-                <li key={step.id} className="flex items-start gap-2.5">
-                  <span className="mt-0.5"><StepStatus status={step.status} /></span>
-                  <div className="min-w-0">
-                    <div className="text-text">{step.title}</div>
-                    <div className="text-[11.5px] text-subtle">{[step.skill_name && `${step.skill_name} v${step.skill_version}`, step.detail].filter(Boolean).join(" · ")}</div>
-                  </div>
-                </li>
-              ))}
-            </ol>
+            <SubAgents steps={task.steps} taskStatus={task.status} live={["queued", "running"].includes(task.status)} onOpenArtifact={(artifactId) => router.push(`/artifacts/${artifactId}`)} />
           ) : <p className="text-subtle">{task.status === "scheduled" ? t("planLater") : t("noPlan")}</p>}
         </section>
         {task.artifacts?.length ? (

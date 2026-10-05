@@ -1,0 +1,28 @@
+type: estimation
+name: Effort Estimate
+description: Work breakdown with three-point estimates, assumptions and risks
+icon: calculator
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: breakdown
+  title: Work breakdown
+  kind: items
+  item_kind: estimate
+  description: ''
+- key: assumptions
+  title: Assumptions
+  kind: items
+  item_kind: assumption
+  description: ''
+- key: risks
+  title: Estimation risks
+  kind: items
+  item_kind: risk
+  description: ''
+- key: total
+  title: Total and confidence
+  kind: rich_text
+  description: ''

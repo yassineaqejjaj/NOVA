@@ -1,0 +1,33 @@
+type: postmortem
+name: Incident Postmortem
+description: 'Blameless incident review: impact, timeline, causes and actions'
+icon: siren
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: impact
+  title: Impact
+  kind: rich_text
+  description: ''
+- key: timeline
+  title: Timeline
+  kind: items
+  item_kind: note
+  description: the title starts with the time when known
+- key: root_causes
+  title: Root causes
+  kind: items
+  item_kind: cause
+  description: ''
+- key: went_well
+  title: What went well
+  kind: items
+  item_kind: note
+  description: ''
+- key: actions
+  title: Action items
+  kind: items
+  item_kind: action
+  description: ''

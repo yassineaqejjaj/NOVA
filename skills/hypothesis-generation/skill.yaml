@@ -2,6 +2,7 @@ id: hypothesis-generation
 name: Hypothesis Generation
 version: 1.0.0
 category: discovery
+agent: product
 summary: Turn ideas and assumptions into falsifiable hypotheses with a clear, measurable signal of success.
 purpose: >
   Make the beliefs behind a product idea explicit and testable, so the team learns before it builds. Each

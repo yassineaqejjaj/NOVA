@@ -2,6 +2,7 @@ id: product-update
 name: Product Update
 version: 1.0.0
 category: communication
+agent: product
 summary: "Write a concise progress update: headline status, highlights, key metrics, risks and blockers, asks and what comes next."
 purpose: >
   Keep stakeholders informed with a predictable, honest update that takes two minutes to read. Leading with

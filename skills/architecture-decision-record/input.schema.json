@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Architecture Decision Record — inputs",
+  "type": "object",
+  "properties": {
+    "decision_topic": {
+      "type": "string",
+      "description": "The architectural question to decide"
+    }
+  },
+  "required": [
+    "decision_topic"
+  ],
+  "additionalProperties": false
+}

@@ -2,6 +2,7 @@ id: user-research-plan
 name: User Research Plan
 version: 1.0.0
 category: discovery
+agent: design
 summary: "Plan a research study: what to learn, the right method, who to recruit, the timeline and the deliverables."
 purpose: >
   Make sure research answers the questions that matter for an upcoming decision, with a method fit for those

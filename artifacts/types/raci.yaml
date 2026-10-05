@@ -1,0 +1,18 @@
+type: raci
+name: RACI Matrix
+description: Who is Responsible, Accountable, Consulted and Informed for each activity
+icon: users
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: matrix
+  title: RACI matrix
+  kind: items
+  item_kind: raci_entry
+  description: ''
+- key: notes
+  title: Notes
+  kind: rich_text
+  description: ''

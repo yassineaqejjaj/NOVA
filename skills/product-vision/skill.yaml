@@ -2,6 +2,7 @@ id: product-vision
 name: Product Vision
 version: 1.0.0
 category: strategy
+agent: product
 summary: Articulate where the product is going, for whom and why it matters, in a vision the team can rally around.
 purpose: >
   Give the team and stakeholders a shared, durable picture of the future the product creates. A clear vision

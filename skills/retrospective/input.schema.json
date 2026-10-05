@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Retrospective — inputs",
+  "type": "object",
+  "properties": {
+    "period": {
+      "type": "string",
+      "description": "The sprint, release or project to look back on"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

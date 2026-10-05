@@ -2,6 +2,7 @@ id: definition-of-ready
 name: Definition of Ready
 version: 1.0.0
 category: delivery
+agent: project
 summary: "Write the team's Definition of Ready: the conditions a backlog item must meet before it enters a sprint."
 purpose: >
   Give the team a shared, lightweight gate that keeps unclear or blocked work out of the sprint. A good

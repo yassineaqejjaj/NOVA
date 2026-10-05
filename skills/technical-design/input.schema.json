@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Technical Design — inputs",
+  "type": "object",
+  "properties": {
+    "problem": {
+      "type": "string",
+      "description": "The feature or problem to design a solution for"
+    }
+  },
+  "required": [
+    "problem"
+  ],
+  "additionalProperties": false
+}

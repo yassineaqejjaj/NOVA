@@ -2,6 +2,7 @@ id: vision-to-backlog
 name: Vision to Backlog
 version: 1.0.0
 category: definition
+agent: product
 summary: Turn a product vision into objectives, initiatives, epics and user stories with acceptance criteria.
 purpose: >
   Bridge strategy and delivery: every story in the backlog traces back to an initiative and an

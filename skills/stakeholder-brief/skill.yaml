@@ -2,6 +2,7 @@ id: stakeholder-brief
 name: Stakeholder Brief
 version: 1.0.0
 category: communication
+agent: project
 summary: Tailor what each stakeholder needs to know about a project or change, with key messages, asks and a communication timeline.
 purpose: >
   Bring the right people along before a launch, change or decision. Mapping stakeholders by interest and

@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from typing import Any
 
 from langgraph.runtime import Runtime
 from opentelemetry import trace
 
 from nova.agent.deps import AgentDeps
+from nova.domain.agents import AgentProfile
 from nova.domain.blocks import Block, ProgressLine
 from nova.domain.enums import BlockType, NovaPhase
 from nova.domain.llm import LLMError
@@ -95,13 +97,24 @@ async def upsert(d: AgentDeps, state: NovaState, block: Block) -> None:
     await d.store.upsert_block(state.task_id, state.message_id, block)
 
 
+def now_iso() -> str:
+    return datetime.now(UTC).isoformat()
+
+
 def plan_block(state: NovaState, d: AgentDeps) -> Block:
+    """The workflow as NOVA (orchestrator) delegates it: each step is carried out by the sub-agent owning its Skill."""
     plan = state.plan
     assert plan is not None
     steps = []
     for s in plan.steps:
-        skill_name = d.skills.get(s.skill_id).name if s.skill_id and d.skills.has(s.skill_id) else None
-        steps.append({**s.model_dump(mode="json"), "skill_name": skill_name})
+        skill = d.skills.get(s.skill_id) if s.skill_id and d.skills.has(s.skill_id) else None
+        steps.append(
+            {
+                **s.model_dump(mode="json"),
+                "skill_name": skill.name if skill else None,
+                "agent": skill.agent.value if skill else AgentProfile.product.value,
+            }
+        )
     return Block(
         key="plan",
         type=BlockType.plan,

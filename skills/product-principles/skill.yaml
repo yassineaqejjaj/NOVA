@@ -2,6 +2,7 @@ id: product-principles
 name: Product Principles
 version: 1.0.0
 category: strategy
+agent: product
 summary: Write a small set of opinionated product principles that guide decisions when the team faces trade-offs.
 purpose: >
   Encode what the team believes makes the product good, so that decisions stay consistent without

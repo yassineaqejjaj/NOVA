@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from nova.agent import prompts
 from nova.agent.deps import AgentDeps
-from nova.agent.nodes.common import NodeFailure, deps, node, plan_block, progress, set_phase, upsert
+from nova.agent.nodes.common import NodeFailure, deps, node, now_iso, plan_block, progress, set_phase, upsert
 from nova.agent.nodes.context import relabel, scan
 from nova.agent.nodes.interaction import new_approval
 from nova.agent.nodes.planning import EDIT_SKILL
@@ -364,7 +364,7 @@ async def generate_artifact(state: NovaState, runtime: Runtime[AgentDeps]) -> di
     if plan:
         for s in plan.steps:
             if s.id == step_id:
-                s.status, s.artifact_id, s.detail = StepStatus.completed, artifact_id, detail
+                s.status, s.artifact_id, s.detail, s.finished_at = StepStatus.completed, artifact_id, detail, now_iso()
     await d.store.update_step(state.task_id, step_id, StepStatus.completed, detail=detail, artifact_id=artifact_id)
 
     reference = ArtifactReference(

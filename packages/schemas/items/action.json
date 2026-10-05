@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/action",
+  "title": "action",
+  "description": "Action with owner, due date and status",
+  "type": "object",
+  "properties": {
+    "owner": {
+      "type": "string"
+    },
+    "due": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "in_progress",
+        "done",
+        "blocked"
+      ]
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -1,0 +1,17 @@
+criteria:
+- key: quality.consistency
+  question: Are naming and conventions consistent across endpoints?
+  weight: 2
+- key: quality.security
+  question: Is authorization specified per endpoint?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Endpoints
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

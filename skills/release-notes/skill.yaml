@@ -2,6 +2,7 @@ id: release-notes
 name: Release Notes
 version: 1.0.0
 category: communication
+agent: product
 summary: Write user-facing release notes that explain what changed and why it matters to users.
 purpose: >
   Help users discover and adopt what changed, and reduce support load. Good release notes speak in benefits

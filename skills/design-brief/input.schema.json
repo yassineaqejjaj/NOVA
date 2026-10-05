@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Design Brief — inputs",
+  "type": "object",
+  "properties": {
+    "subject": {
+      "type": "string",
+      "description": "What needs to be designed"
+    }
+  },
+  "required": [
+    "subject"
+  ],
+  "additionalProperties": false
+}

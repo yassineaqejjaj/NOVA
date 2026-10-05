@@ -11,7 +11,7 @@ from langgraph.runtime import Runtime
 from opentelemetry import trace
 
 from nova.agent.deps import AgentDeps
-from nova.agent.nodes.common import deps, node, set_phase, upsert
+from nova.agent.nodes.common import deps, node, now_iso, plan_block, set_phase, upsert
 from nova.artifacts.render import render_markdown
 from nova.domain.blocks import error_block, text_block
 from nova.domain.enums import ExecutionOrigin, IntentKind, NovaPhase, StepStatus
@@ -40,6 +40,10 @@ async def finalize(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[str, A
         )
         if state.plan and state.current_step:
             await d.store.update_step(state.task_id, state.current_step, StepStatus.failed, detail=message[:200])
+            for s in state.plan.steps:
+                if s.id == state.current_step:
+                    s.status, s.finished_at = StepStatus.failed, now_iso()
+            await upsert(d, state, plan_block(state, d))
         await set_phase(d, state, NovaPhase.failed, "Failed")
         return {"phase": NovaPhase.failed}
     if state.status == "cancelled":

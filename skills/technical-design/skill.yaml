@@ -1,0 +1,79 @@
+id: technical-design
+name: Technical Design
+version: 1.0.0
+category: definition
+agent: engineering
+summary: >-
+  Write a design doc / RFC: proposed architecture, alternatives, non-functional requirements and rollout.
+purpose: >-
+  Align engineers and stakeholders on how a solution will be built before building it, with trade-offs made explicit.
+triggers:
+- technical design
+- design doc
+- rfc
+- architecture proposal
+- conception technique
+- dossier d'architecture
+inputs:
+- name: problem
+  description: The feature or problem to design a solution for
+  required: true
+  ask: true
+  question: What should the solution do, and what are the main constraints?
+expected_context:
+  orbit_intent: engineering
+  query_hint: architecture, existing systems, PRD, constraints, decisions, non-functional requirements, incidents
+  token_budget: 5000
+methodology:
+  name: Design doc (RFC) with alternatives and rollout
+  principles:
+  - State goals and explicit non-goals
+  - Compare at least two alternatives with trade-offs
+  - Cover security, performance, observability and operability
+  - Plan an incremental, reversible rollout
+  references:
+  - Google — Design Docs at Google
+  - Michael Nygard — Release It!
+  - ISO/IEC 25010 quality model
+steps:
+- id: frame
+  title: Framing the problem
+  instruction: >-
+    Summarize what is designed and why in 3–5 sentences, then describe the context and constraints, citing context.
+  fills:
+  - summary
+  - context
+- id: goals
+  title: Setting goals and non-goals
+  instruction: 'List 3–6 goals and 2–4 non-goals as note items (description starts with Goal: or Non-goal:).'
+  fills:
+  - goals
+- id: design
+  title: Designing the solution
+  instruction: >-
+    Describe the proposed design (components, data flow, interfaces, data model) and 2–3 alternatives considered
+    as decision items with status rejected or accepted, alternatives and consequences.
+  fills:
+  - proposed_design
+  - alternatives
+- id: quality
+  title: Securing quality and rollout
+  instruction: >-
+    List the non-functional requirements (type non_functional, priority, acceptance), the main technical risks,
+    the rollout milestones and the open questions.
+  fills:
+  - nfr
+  - risks
+  - rollout
+  - open_questions
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: tech_design
+  mode: create
+composes_with:
+- architecture-decision-record
+- api-design
+- test-strategy
+- effort-estimation

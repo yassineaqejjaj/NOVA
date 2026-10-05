@@ -1,0 +1,29 @@
+type: design_review
+name: Design Review
+description: Heuristic and accessibility review with prioritized recommendations
+icon: eye
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: strengths
+  title: Strengths
+  kind: items
+  item_kind: note
+  description: ''
+- key: issues
+  title: Issues
+  kind: items
+  item_kind: insight
+  description: ''
+- key: accessibility
+  title: Accessibility checks
+  kind: items
+  item_kind: checklist_item
+  description: ''
+- key: recommendations
+  title: Recommendations
+  kind: items
+  item_kind: action
+  description: ''

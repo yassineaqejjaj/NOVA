@@ -1,0 +1,67 @@
+id: api-design
+name: API Design
+version: 1.0.0
+category: definition
+agent: engineering
+summary: 'Specify an API: endpoints with requests and responses, authentication, errors and versioning.'
+purpose: >-
+  Agree on a clear, consistent contract between teams before implementation, reducing integration rework.
+triggers:
+- api design
+- api spec
+- endpoints
+- rest api
+- contrat d'api
+- spécification d'api
+inputs:
+- name: capability
+  description: What the API must let clients do
+  required: true
+  ask: true
+  question: What should clients be able to do with this API?
+expected_context:
+  orbit_intent: engineering
+  query_hint: existing APIs, data model, integrations, security requirements, clients
+  token_budget: 5000
+methodology:
+  name: Resource-oriented API design
+  principles:
+  - Resource-oriented, consistent naming
+  - Explicit errors and status codes
+  - Least-privilege authorization
+  - Backward-compatible evolution
+  references:
+  - Google — API Design Guide
+  - Zalando — RESTful API Guidelines
+  - OWASP API Security Top 10
+steps:
+- id: summary
+  title: Defining the contract
+  instruction: Summarize the API purpose, clients and main resources in 3–5 sentences.
+  fills:
+  - summary
+- id: endpoints
+  title: Specifying endpoints
+  instruction: >-
+    List 4–12 endpoints: method, path, auth (scope/role), request and response shape (concise JSON), errors.
+  fills:
+  - endpoints
+- id: policies
+  title: Securing and versioning
+  instruction: >-
+    Describe authentication and authorization, the error model and status codes, versioning and compatibility rules,
+    and list open questions.
+  fills:
+  - auth
+  - errors
+  - versioning
+  - open_questions
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: api_spec
+  mode: create
+composes_with:
+- technical-design
+- test-strategy

@@ -65,6 +65,8 @@ class ExecutionStep(BaseModel):
     rationale: str = ""
     detail: str = ""
     artifact_id: str | None = None
+    started_at: str | None = None  # ISO timestamps: the sub-agent's working time shown live
+    finished_at: str | None = None
 
 
 class ExecutionPlan(BaseModel):

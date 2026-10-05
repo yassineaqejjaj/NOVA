@@ -1,0 +1,65 @@
+id: design-review
+name: Design Review
+version: 1.0.0
+category: analysis
+agent: design
+summary: >-
+  Review a design with usability heuristics and accessibility checks, and recommend prioritized changes.
+purpose: Catch usability and accessibility issues early, when they are cheap to fix.
+triggers:
+- design review
+- design critique
+- ux review
+- heuristic evaluation
+- revue de design
+- audit ux
+- audit d'accessibilité
+inputs:
+- name: design
+  description: The design, screens or flow to review
+  required: true
+  ask: true
+  question: Which design or flow should be reviewed?
+expected_context:
+  orbit_intent: design
+  query_hint: designs, prototypes, research findings, accessibility requirements, analytics, support feedback
+  token_budget: 5000
+methodology:
+  name: Heuristic evaluation + WCAG 2.2 AA
+  principles:
+  - Use Nielsen's 10 heuristics
+  - Check WCAG 2.2 AA (contrast, focus, labels, keyboard)
+  - Rate severity
+  - Recommend, don't just criticize
+  references:
+  - Jakob Nielsen — 10 Usability Heuristics
+  - W3C — WCAG 2.2
+steps:
+- id: summary
+  title: Assessing the design
+  instruction: Summarize the reviewed design and the overall assessment, and list strengths.
+  fills:
+  - summary
+  - strengths
+- id: issues
+  title: Finding issues
+  instruction: >-
+    List 5–12 issues as insights: theme = heuristic, evidence = where/what, severity; and accessibility checks as
+    checklist items (checked = passes).
+  fills:
+  - issues
+  - accessibility
+- id: recs
+  title: Recommending changes
+  instruction: List prioritized recommendations as actions (owner role, status open).
+  fills:
+  - recommendations
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: design_review
+  mode: create
+composes_with:
+- ux-writing
+- usability-test-plan

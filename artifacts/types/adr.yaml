@@ -1,0 +1,27 @@
+type: adr
+name: Architecture Decision Record
+description: One architecture decision with its context, options and consequences
+icon: git-branch
+sections:
+- key: context
+  title: Context
+  kind: rich_text
+  description: ''
+- key: options
+  title: Options considered
+  kind: items
+  item_kind: decision
+  description: ''
+- key: decision
+  title: Decision
+  kind: rich_text
+  description: ''
+- key: consequences
+  title: Consequences
+  kind: rich_text
+  description: ''
+- key: follow_ups
+  title: Follow-up actions
+  kind: items
+  item_kind: action
+  description: ''

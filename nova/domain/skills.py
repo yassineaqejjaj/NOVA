@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from nova.domain.agents import AgentProfile
 from nova.domain.enums import SkillCategory
 
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
@@ -75,6 +76,7 @@ class SkillSpec(BaseModel):
     outputs: SkillOutputs
     composes_with: list[str] = Field(default_factory=list)
     system: bool = False  # internal Skill (not proposed by routing, e.g. artifact-edit)
+    agent: AgentProfile = AgentProfile.product  # the specialist agent that carries out this Skill
     # Display translations from skills/i18n/<lang>.yaml: {"fr": {"name": …, "summary": …}}
     translations: dict[str, dict[str, str]] = Field(default_factory=dict)
 

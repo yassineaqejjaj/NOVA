@@ -6,12 +6,14 @@ import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { ProfilePicker } from "@/components/agents/profile-picker";
 import { OrbitLink } from "@/components/orbit-link";
 import { ORB_PALETTES, type OrbPalette, NovaOrb } from "@/components/shell/nova-orb";
 import { Page, PageHeader } from "@/components/shell/page";
 import { api } from "@/lib/api/client";
 import { keys, useMe } from "@/lib/api/hooks";
 import type { AutonomyMode, OrbState, Preferences } from "@/lib/api/types";
+import { agentOf, type AgentProfile } from "@/lib/agents";
 import { autonomyOptions } from "@/lib/autonomy";
 import { defineMessages, type Lang, LANGS, translate, useLang, useT } from "@/lib/i18n";
 import { useUi } from "@/stores/ui";
@@ -34,6 +36,9 @@ const M = defineMessages({
     save: "Save",
     saved: "Saved.",
     orbitHint: "NOVA retrieves context from ORBIT as you, so it only sees what you can see.",
+    profile: "Your profile",
+    profileHint: "The specialist agent of your profile leads your work; NOVA brings in the others when a task needs them.",
+    profileSaved: "Profile updated.",
     language: "Language",
     languageHint: "Interface language. NOVA answers in the language you write in.",
     languageSaved: "Language updated.",
@@ -77,6 +82,9 @@ const M = defineMessages({
     save: "Enregistrer",
     saved: "Enregistré.",
     orbitHint: "NOVA récupère le contexte d’ORBIT en votre nom : il ne voit que ce que vous pouvez voir.",
+    profile: "Votre profil",
+    profileHint: "L’agent spécialiste de votre profil pilote votre travail ; NOVA fait intervenir les autres quand une tâche le demande.",
+    profileSaved: "Profil mis à jour.",
     language: "Langue",
     languageHint: "Langue de l’interface. NOVA répond dans la langue dans laquelle vous écrivez.",
     languageSaved: "Langue mise à jour.",
@@ -143,6 +151,10 @@ export default function SettingsPage() {
     setOrbColor(value);
     savePreference.mutate({ orb_color: value }, { onSuccess: () => toast(t("orbSaved")) });
   };
+  const chooseProfile = (value: AgentProfile) => {
+    setPrefs((current) => (current ? { ...current, profile: value } : current));
+    savePreference.mutate({ profile: value }, { onSuccess: () => toast(t("profileSaved")) });
+  };
   const logout = async () => {
     const r = await api.post<{ redirect: string | null }>("/auth/logout");
     window.location.href = r.redirect ?? "/login";
@@ -154,7 +166,13 @@ export default function SettingsPage() {
     <Page>
       <PageHeader title={t("title")} />
 
-      <Card className="p-5">
+      <Card className="p-5" id="profile">
+        <h2 className="text-[15px] font-semibold">{t("profile")}</h2>
+        <p className="mt-0.5 text-[13px] text-muted">{t("profileHint")}</p>
+        <div className="mt-4"><ProfilePicker value={agentOf(prefs.profile)} onChange={chooseProfile} /></div>
+      </Card>
+
+      <Card className="mt-6 p-5">
         <h2 className="text-[15px] font-semibold">{t("orb")}</h2>
         <p className="mt-0.5 text-[13px] text-muted">{t("orbHint")}</p>
         <div className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-center">

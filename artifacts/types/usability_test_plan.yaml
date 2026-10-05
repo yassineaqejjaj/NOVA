@@ -1,0 +1,32 @@
+type: usability_test_plan
+name: Usability Test Plan
+description: Research questions, participants, tasks, metrics and script
+icon: mouse-pointer-click
+sections:
+- key: objectives
+  title: Research questions
+  kind: items
+  item_kind: question
+  description: ''
+- key: participants
+  title: Participants and recruiting
+  kind: rich_text
+  description: ''
+- key: tasks
+  title: Tasks
+  kind: items
+  item_kind: test_case
+  description: 'test cases of type usability: steps = scenario, expected = success criterion'
+- key: metrics
+  title: Metrics
+  kind: items
+  item_kind: metric
+  description: ''
+- key: script
+  title: Moderator script
+  kind: rich_text
+  description: ''
+- key: logistics
+  title: Logistics
+  kind: rich_text
+  description: ''

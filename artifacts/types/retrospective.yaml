@@ -1,0 +1,24 @@
+type: retrospective
+name: Retrospective
+description: What went well, what to improve and the actions the team commits to
+icon: rotate-ccw
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: went_well
+  title: What went well
+  kind: items
+  item_kind: note
+  description: ''
+- key: to_improve
+  title: What to improve
+  kind: items
+  item_kind: insight
+  description: ''
+- key: actions
+  title: Actions
+  kind: items
+  item_kind: action
+  description: ''

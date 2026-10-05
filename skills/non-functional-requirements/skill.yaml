@@ -2,6 +2,7 @@ id: non-functional-requirements
 name: Non-Functional Requirements
 version: 1.0.0
 category: definition
+agent: engineering
 summary: Define measurable quality requirements — performance, security, privacy, accessibility, reliability — for a feature or system.
 purpose: >
   Make quality attributes explicit and measurable before design and delivery choices lock them in. Vague

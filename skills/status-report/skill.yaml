@@ -1,0 +1,63 @@
+id: status-report
+name: Status Report
+version: 1.0.0
+category: communication
+agent: project
+summary: >-
+  Report project status: overall health, milestone progress, risks and issues, decisions needed and next steps.
+purpose: Keep stakeholders informed with facts, and get the decisions the project needs on time.
+triggers:
+- status report
+- weekly status
+- project status
+- rapport d'avancement
+- point d'avancement
+- météo projet
+- copil
+inputs:
+- name: period
+  description: The reporting period
+expected_context:
+  orbit_intent: general
+  query_hint: recent changes, decisions, milestones, risks, issues, sprint results, blockers
+  token_budget: 5000
+methodology:
+  name: RAG status report
+  principles:
+  - Lead with health (green, amber, red) and why
+  - Facts from context only
+  - Ask for decisions explicitly
+  - Next steps have owners
+  references:
+  - PMI — Project communications management
+steps:
+- id: health
+  title: Assessing health
+  instruction: >-
+    Summarize the period and give the overall health (green, amber or red) with the reasons, citing context.
+  fills:
+  - summary
+  - health
+- id: progress
+  title: Reporting progress
+  instruction: List milestones with status planned, at_risk or done, and the current risks and issues.
+  fills:
+  - progress
+  - risks
+- id: asks
+  title: Asking for decisions
+  instruction: >-
+    List decisions needed (status proposed, alternatives, decided_by role) and next steps (owner role, due if known).
+  fills:
+  - decisions
+  - next_steps
+tools:
+- search_orbit
+- retrieve_orbit_context
+outputs:
+  artifact_type: status_report
+  mode: create
+composes_with:
+- raid-log
+- stakeholder-brief
+- executive-summary

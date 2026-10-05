@@ -1,0 +1,18 @@
+criteria:
+- key: quality.tasks
+  question: Are tasks realistic and non-leading?
+  weight: 2
+- key: quality.metrics
+  question: Are success metrics defined?
+  weight: 1
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Research questions
+    - Tasks
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

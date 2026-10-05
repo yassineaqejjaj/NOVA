@@ -1,0 +1,18 @@
+criteria:
+- key: quality.actionable
+  question: Are there few, concrete, owned actions?
+  weight: 2
+- key: quality.blameless
+  question: Is it blameless?
+  weight: 1
+checks:
+- type: sections_present
+  params:
+    sections:
+    - What went well
+    - Actions
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

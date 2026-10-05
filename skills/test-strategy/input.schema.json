@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Test Strategy — inputs",
+  "type": "object",
+  "properties": {
+    "feature": {
+      "type": "string",
+      "description": "The feature or release to test"
+    }
+  },
+  "required": [
+    "feature"
+  ],
+  "additionalProperties": false
+}

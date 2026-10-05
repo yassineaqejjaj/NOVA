@@ -1,0 +1,22 @@
+criteria:
+- key: quality.tradeoffs
+  question: Are alternatives compared with explicit trade-offs?
+  weight: 2
+- key: quality.nfr
+  question: Are security, performance and operability covered?
+  weight: 2
+- key: quality.rollout
+  question: Is the rollout incremental and reversible?
+  weight: 1
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Summary
+    - Proposed design
+    - Alternatives considered
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

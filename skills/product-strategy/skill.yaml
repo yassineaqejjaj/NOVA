@@ -2,6 +2,7 @@ id: product-strategy
 name: Product Strategy
 version: 1.0.0
 category: strategy
+agent: product
 summary: "Define how the product will reach its vision: the diagnosis, the strategic bets, the trade-offs and how progress is measured."
 purpose: >
   Turn the vision into a small set of focused choices the team can execute and revisit. A good strategy says

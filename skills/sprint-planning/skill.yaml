@@ -2,6 +2,7 @@ id: sprint-planning
 name: Sprint Planning
 version: 1.0.0
 category: delivery
+agent: project
 summary: Prepare a sprint proposal from the sprint objective, the backlog, unfinished work and capacity.
 purpose: >
   Walk into sprint planning with a realistic proposal: a clear goal, carried-over work made explicit,

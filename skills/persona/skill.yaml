@@ -2,6 +2,7 @@ id: persona
 name: Persona
 version: 1.0.0
 category: discovery
+agent: design
 summary: Build an evidence-based persona describing a user segment's goals, frustrations, behaviours and needs.
 purpose: >
   Give the team a shared, research-grounded picture of who they design for. Personas based on evidence help

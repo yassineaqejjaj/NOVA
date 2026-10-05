@@ -2,6 +2,7 @@ id: risk-analysis
 name: Risk Analysis
 version: 1.0.0
 category: delivery
+agent: project
 summary: Identify product and delivery risks, rate likelihood and impact, and plan mitigations with owners.
 purpose: >
   Make uncertainty visible and manageable instead of discovering it late. A risk register focuses attention

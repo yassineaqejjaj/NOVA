@@ -1,0 +1,17 @@
+criteria:
+- key: quality.clarity
+  question: Are texts clear, concise and actionable?
+  weight: 2
+- key: quality.states
+  question: Are empty, error and success states covered?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Interface texts
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

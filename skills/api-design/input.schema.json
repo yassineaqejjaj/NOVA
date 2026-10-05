@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "API Design — inputs",
+  "type": "object",
+  "properties": {
+    "capability": {
+      "type": "string",
+      "description": "What the API must let clients do"
+    }
+  },
+  "required": [
+    "capability"
+  ],
+  "additionalProperties": false
+}

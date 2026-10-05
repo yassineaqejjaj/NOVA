@@ -1,0 +1,19 @@
+criteria:
+- key: quality.context
+  question: Does the context explain the forces without presupposing the answer?
+  weight: 2
+- key: quality.consequences
+  question: Are negative consequences acknowledged?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Context
+    - Decision
+    - Consequences
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided
