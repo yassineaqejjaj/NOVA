@@ -8,7 +8,7 @@ import { Providers } from "@/components/shell/providers";
 
 export const metadata: Metadata = {
   title: { default: "NOVA", template: "%s · NOVA" },
-  description: "Your personal AI product agent — ORION",
+  description: "NOVA — votre agent produit IA personnel · your personal AI product agent (Devoteam)",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

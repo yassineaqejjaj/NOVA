@@ -58,6 +58,21 @@ const CODE_FR: Record<string, string> = {
   orbit_not_found: "Introuvable dans ORBIT.",
   orbit_unavailable: "ORBIT est indisponible pour le moment. Réessayez.",
   orbit_invalid: "ORBIT a refusé la demande.",
+  // accounts (sign-in, sign-up, password reset)
+  invalid_credentials: "E-mail ou mot de passe incorrect.",
+  email_not_verified: "Confirmez d’abord votre adresse e-mail : nous vous avons envoyé un code.",
+  account_disabled: "Ce compte est désactivé. Contactez votre administrateur.",
+  account_exists: "Un compte existe déjà pour cette adresse. Connectez-vous.",
+  domain_not_allowed: "Utilisez votre adresse professionnelle.",
+  weak_password: "Utilisez au moins 12 caractères, avec des lettres et des chiffres.",
+  name_required: "Saisissez votre nom complet.",
+  terms_required: "Acceptez les conditions d’utilisation et la politique de confidentialité.",
+  invalid_code: "Ce code n’est pas valide.",
+  code_expired: "Ce code a expiré. Demandez-en un nouveau.",
+  too_many_requests: "Un code vient d’être envoyé. Patientez une minute avant d’en demander un autre.",
+  signup_disabled: "La création de compte n’est pas encore disponible.",
+  email_unavailable: "L’e-mail n’a pas pu être envoyé. Réessayez plus tard.",
+  identity_unavailable: "Le service de connexion est indisponible. Réessayez dans un instant.",
 };
 
 /** The error message in the interface language: known detail, else the code's message, else the English detail. */

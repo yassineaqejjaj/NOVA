@@ -273,6 +273,11 @@ const PATTERNS_FR: Pattern[] = [
   [/^Tool '(.+)' is not declared by this Skill$/, (m) => `L’outil « ${m[1]!} » n’est pas déclaré par cette Skill`],
   [/^Missing permission '(.+)' for tool '(.+)'$/, (m) => `Permission « ${m[1]!} » manquante pour l’outil « ${m[2]!} »`],
   [/^Inference server unreachable(.*)$/, (m) => `Serveur d’inférence injoignable${m[1]!}`],
+  [/^Anthropic API unreachable(.*)$/, (m) => `API Anthropic injoignable${m[1]!}`],
+  [/^Anthropic API error (.*)$/, (m) => `Erreur de l’API Anthropic ${m[1]!}`],
+  [/^Malformed response from the Anthropic API$/, () => "Réponse mal formée de l’API Anthropic"],
+  [/^No Anthropic API key configured \((.+)\)$/, (m) => `Aucune clé API Anthropic configurée (${m[1]!})`],
+  [/^No model configured \((.+)\)$/, (m) => `Aucun modèle configuré (${m[1]!})`],
   [/^Inference server error (.*)$/, (m) => `Erreur du serveur d’inférence ${m[1]!}`],
   [/^The model did not return valid structured output: ([\s\S]*)$/, (m) => `Le modèle n’a pas renvoyé de sortie structurée valide : ${m[1]!}`],
 ];
