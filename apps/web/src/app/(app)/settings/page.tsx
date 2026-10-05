@@ -192,7 +192,7 @@ export default function SettingsPage() {
                   className={cn("group flex flex-col items-center gap-1.5 rounded-[14px] p-2 transition-colors", active ? "bg-surface-2" : "hover:bg-surface-2/60")}
                 >
                   <span className={cn("relative rounded-full p-0.5 ring-2 transition-[box-shadow]", active ? "ring-text/70" : "ring-transparent")}>
-                    <NovaOrb color={key} size={36} />
+                    <NovaOrb color={key} size={36} state="completed" />
                     {active ? (
                       <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-text text-background">
                         <Check className="size-2.5" />

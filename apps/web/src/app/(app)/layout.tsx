@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import { CommandPalette } from "@/components/shell/command-palette";
 import { NovaMark } from "@/components/shell/nova-mark";
+import { OrbPreload } from "@/components/shell/nova-orb";
 import { MobileTabBar, Sidebar } from "@/components/shell/sidebar";
 import { usePreferenceSync } from "@/hooks/use-preference-sync";
 import { useMe } from "@/lib/api/hooks";
@@ -31,6 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
       <MobileTabBar />
       <CommandPalette />
+      <OrbPreload />
     </div>
   );
 }
