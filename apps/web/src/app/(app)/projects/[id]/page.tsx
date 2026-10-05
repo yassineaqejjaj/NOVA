@@ -174,7 +174,7 @@ function CurrentWorkflow({ task }: { task: WorkItem }) {
                 {t("steps", { done: task.progress_done, total: task.progress_total })}
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
-                <motion.div className="h-full rounded-full bg-gradient-to-r from-[#f9a8bf] to-accent" initial={false} animate={{ width: `${Math.max(pct, 4)}%` }} />
+                <motion.div className="h-full rounded-full bg-gradient-to-r from-[#fca5b1] to-accent" initial={false} animate={{ width: `${Math.max(pct, 4)}%` }} />
               </div>
             </div> : null}
           </div>

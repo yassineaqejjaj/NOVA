@@ -41,7 +41,7 @@ export function orbStateFromPhase(phase: NovaPhase | undefined): OrbState {
  * footage so every look and motion is preserved. `glow` colors the halo.
  */
 export const ORB_PALETTES = {
-  coral: { label: "Coral", filter: "none", glow: "246 71 95" },
+  coral: { label: "Coral", filter: "none", glow: "248 72 94" },
   rose: { label: "Rose", filter: "hue-rotate(-22deg) saturate(1.05)", glow: "236 72 153" },
   violet: { label: "Violet", filter: "hue-rotate(-82deg) saturate(0.95)", glow: "139 92 246" },
   ocean: { label: "Ocean", filter: "hue-rotate(-140deg) saturate(0.95)", glow: "59 130 246" },

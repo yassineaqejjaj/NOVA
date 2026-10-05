@@ -15,11 +15,11 @@
   --text: #191716;
   --text-muted: #5f5856;
   --text-subtle: #9a918e;
-  --accent: #f0463c;
-  --accent-strong: #dc3328;
-  --accent-soft: #fdeceb;
+  --accent: #f8485e; /* Red Poppy */
+  --accent-strong: #e8344b;
+  --accent-soft: #feedef;
   --accent-fg: #ffffff;
-  --glow: rgb(244 114 140 / 0.35);
+  --glow: rgb(248 72 94 / 0.3);
   --success: #16a34a;
   --warning: #d97706;
   --danger: #dc2626;
@@ -37,11 +37,11 @@
   --text: #f1eeed;
   --text-muted: #aaa3a1;
   --text-subtle: #736c6a;
-  --accent: #ff5a4f;
-  --accent-strong: #ff7369;
-  --accent-soft: rgb(255 90 79 / 0.14);
+  --accent: #f8485e; /* Red Poppy */
+  --accent-strong: #ff6276;
+  --accent-soft: rgb(248 72 94 / 0.14);
   --accent-fg: #ffffff;
-  --glow: rgb(244 114 140 / 0.25);
+  --glow: rgb(248 72 94 / 0.22);
   --success: oklch(0.76 0.13 155);
   --warning: oklch(0.8 0.13 75);
   --danger: oklch(0.68 0.17 25);
@@ -159,12 +159,12 @@ body {
 
 /* Landing page brand tokens (devoteam coral). */
 .landing {
-  --brand: #f6475f;
-  --brand-soft: rgb(246 71 95 / 0.07);
-  --brand-glow: rgb(246 71 95 / 0.22);
+  --brand: #f8485e; /* Red Poppy */
+  --brand-soft: rgb(248 72 94 / 0.07);
+  --brand-glow: rgb(248 72 94 / 0.22);
 }
 :root.dark .landing {
-  --brand: #ff5c72;
-  --brand-soft: rgb(255 92 114 / 0.1);
-  --brand-glow: rgb(255 92 114 / 0.2);
+  --brand: #f8485e;
+  --brand-soft: rgb(248 72 94 / 0.1);
+  --brand-glow: rgb(248 72 94 / 0.2);
 }

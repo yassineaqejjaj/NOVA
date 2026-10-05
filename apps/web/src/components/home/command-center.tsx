@@ -87,7 +87,7 @@ export function Hero({ today, onScrollTo }: { today: Today; onScrollTo: (id: str
     setHello(t(h >= 5 && h < 12 ? "morning" : h >= 12 && h < 18 ? "afternoon" : "evening"));
   }, [t]);
   return (
-    <section className="relative overflow-hidden rounded-[28px] bg-[radial-gradient(120%_140%_at_85%_10%,rgb(246_71_95/0.16),transparent_55%),linear-gradient(180deg,var(--surface),var(--surface-2))] px-6 py-7 md:px-9 md:py-8">
+    <section className="relative overflow-hidden rounded-[28px] bg-[radial-gradient(120%_140%_at_85%_10%,rgb(248_72_94/0.16),transparent_55%),linear-gradient(180deg,var(--surface),var(--surface-2))] px-6 py-7 md:px-9 md:py-8">
       <div className="flex flex-col-reverse gap-6 md:flex-row md:items-center">
         <div className="min-w-0 flex-1">
           <p className="text-[14px] text-muted">
@@ -398,7 +398,7 @@ function WorkingRow({ task, now }: { task: WorkItem; now: number }) {
         {task.progress_total ? (
           <div className="mt-2 flex items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3">
-              <motion.div className="h-full rounded-full bg-gradient-to-r from-[#f9a8bf] to-accent" initial={false} animate={{ width: `${Math.max(pct, 3)}%` }} />
+              <motion.div className="h-full rounded-full bg-gradient-to-r from-[#fca5b1] to-accent" initial={false} animate={{ width: `${Math.max(pct, 3)}%` }} />
             </div>
             <span className="text-[11.5px] tabular-nums text-subtle">{task.progress_done}/{task.progress_total}</span>
           </div>
