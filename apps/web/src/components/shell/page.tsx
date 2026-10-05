@@ -1,5 +1,8 @@
 import { cn } from "@nova/ui";
 
+import { getLang } from "@/lib/i18n";
+import { classificationLabel } from "@/lib/format";
+
 export function PageHeader({ title, description, actions, className }: { title: string; description?: string; actions?: React.ReactNode; className?: string }) {
   return (
     <header className={cn("mb-6 flex flex-wrap items-end justify-between gap-4", className)}>
@@ -39,10 +42,14 @@ export function ErrorNotice({ title, message, actions }: { title: string; messag
 
 export function ClassificationBadge({ level }: { level: number }) {
   if (level < 2) return null;
-  const label = level >= 3 ? "C3 · Secret" : "C2 · Confidential";
+  const label = classificationLabel(level >= 3 ? 3 : 2);
   return (
     <span
-      title="Contains classified context from ORBIT. Outputs inherit this classification."
+      title={
+        getLang() === "fr"
+          ? "Contient du contexte classifié issu d’ORBIT. Les résultats héritent de cette classification."
+          : "Contains classified context from ORBIT. Outputs inherit this classification."
+      }
       className={cn(
         "inline-flex shrink-0 items-center whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide",
         level >= 3 ? "bg-danger/12 text-danger" : "bg-warning/12 text-warning",

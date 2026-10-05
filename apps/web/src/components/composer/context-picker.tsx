@@ -8,7 +8,31 @@ import { useState } from "react";
 import { ClassificationBadge, ErrorNotice } from "@/components/shell/page";
 import { api, ApiError } from "@/lib/api/client";
 import type { ContextSource } from "@/lib/api/types";
+import { defineMessages, useT } from "@/lib/i18n";
 import type { ComposerContextRef } from "@/stores/ui";
+
+const M = defineMessages({
+  en: {
+    title: "Add context from ORBIT",
+    description: "ORBIT returns only what you are allowed to see, with sources.",
+    placeholder: "e.g. Sprint 19 objective and unfinished stories",
+    find: "Find",
+    error: "ORBIT could not provide context",
+    retrieving: "Retrieving context…",
+    found: "{n} sources found",
+    use: "Use this context",
+  },
+  fr: {
+    title: "Ajouter du contexte depuis ORBIT",
+    description: "ORBIT ne renvoie que ce que vous êtes autorisé à consulter, avec les sources.",
+    placeholder: "ex. Objectif du sprint 19 et stories non terminées",
+    find: "Rechercher",
+    error: "ORBIT n’a pas pu fournir de contexte",
+    retrieving: "Récupération du contexte…",
+    found: (v: { n: number }) => `${v.n} source${v.n > 1 ? "s" : ""} trouvée${v.n > 1 ? "s" : ""}`,
+    use: "Utiliser ce contexte",
+  },
+});
 
 interface RetrieveResult {
   reference_id: string;
@@ -29,6 +53,7 @@ export function ContextPicker({
   projectId: string | null;
   onPin: (ref: ComposerContextRef) => void;
 }) {
+  const t = useT(M);
   const [query, setQuery] = useState("");
   const retrieve = useMutation({
     mutationFn: () => api.post<RetrieveResult>("/context/retrieve", { project_id: projectId, query }),
@@ -37,7 +62,7 @@ export function ContextPicker({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Add context from ORBIT" description="ORBIT returns only what you are allowed to see, with sources." className="w-[min(92vw,640px)]">
+      <DialogContent title={t("title")} description={t("description")} className="w-[min(92vw,640px)]">
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -45,17 +70,17 @@ export function ContextPicker({
             if (query.trim().length >= 2) retrieve.mutate();
           }}
         >
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. Sprint 19 objective and unfinished stories" autoFocus />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("placeholder")} autoFocus />
           <Button type="submit" disabled={retrieve.isPending || query.trim().length < 2}>
-            <Search /> Find
+            <Search /> {t("find")}
           </Button>
         </form>
-        {error ? <ErrorNotice title="ORBIT could not provide context" message={error.message} /> : null}
-        {retrieve.isPending ? <p className="mt-4 text-sm text-subtle">Retrieving context…</p> : null}
+        {error ? <ErrorNotice title={t("error")} message={error.message} /> : null}
+        {retrieve.isPending ? <p className="mt-4 text-sm text-subtle">{t("retrieving")}</p> : null}
         {retrieve.data ? (
           <div className="mt-4">
             <div className="mb-2 text-[12px] text-subtle">
-              {retrieve.data.items.length} sources found{retrieve.data.warnings.length ? ` · ${retrieve.data.warnings.join(" ")}` : ""}
+              {t("found", { n: retrieve.data.items.length })}{retrieve.data.warnings.length ? ` · ${retrieve.data.warnings.join(" ")}` : ""}
             </div>
             <ul className="max-h-[42vh] space-y-1.5 overflow-y-auto">
               {retrieve.data.items.map((item) => (
@@ -81,7 +106,7 @@ export function ContextPicker({
                   retrieve.reset();
                 }}
               >
-                Use this context
+                {t("use")}
               </Button>
             </div>
           </div>

@@ -7,9 +7,15 @@ import { Composer } from "@/components/composer/composer";
 import { useExecutionStream } from "@/hooks/use-execution-stream";
 import { useConversation, useMe, useProjects, useSendIntent } from "@/lib/api/hooks";
 import type { Message } from "@/lib/api/types";
+import { defineMessages, useT } from "@/lib/i18n";
 import { useComposer } from "@/stores/ui";
 
 import { NovaMessage, UserMessage } from "./message";
+
+const M = defineMessages({
+  en: { busy: "NOVA is working — you can keep writing…" },
+  fr: { busy: "NOVA travaille — vous pouvez continuer à écrire…" },
+});
 
 function LiveStream({ conversationId, message }: { conversationId: string; message: Message }) {
   useExecutionStream(conversationId, message.task?.id, message.task?.status);
@@ -17,6 +23,7 @@ function LiveStream({ conversationId, message }: { conversationId: string; messa
 }
 
 export function ConversationView({ conversationId, activeArtifactId, onOpenArtifact }: { conversationId: string; activeArtifactId?: string | null; onOpenArtifact: (id: string) => void }) {
+  const t = useT(M);
   const { data: conversation, isLoading } = useConversation(conversationId);
   const { data: me } = useMe();
   const send = useSendIntent();
@@ -71,7 +78,7 @@ export function ConversationView({ conversationId, activeArtifactId, onOpenArtif
       </div>
       <div className="border-t border-border bg-background/80 px-6 py-4 backdrop-blur">
         <div className="mx-auto max-w-[760px]">
-          <Composer conversationId={conversationId} activeArtifactId={activeArtifactId} compact placeholder={busy ? "NOVA is working — you can keep writing…" : undefined} />
+          <Composer conversationId={conversationId} activeArtifactId={activeArtifactId} compact placeholder={busy ? t("busy") : undefined} />
         </div>
       </div>
     </div>

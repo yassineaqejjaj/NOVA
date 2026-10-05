@@ -6,11 +6,13 @@ import { useEffect } from "react";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { NovaMark } from "@/components/shell/nova-mark";
 import { MobileTabBar, Sidebar } from "@/components/shell/sidebar";
+import { usePreferenceSync } from "@/hooks/use-preference-sync";
 import { useMe } from "@/lib/api/hooks";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: me, isLoading } = useMe();
   const router = useRouter();
+  usePreferenceSync(me);
 
   useEffect(() => {
     if (me && !me.preferences.onboarding_completed) router.replace("/welcome");

@@ -257,3 +257,19 @@ FORGE → product polish → hardening.
 ## 14. Integration gaps
 
 See `integration-analysis.md` §3 (G-O1…G-O6, G-F1…G-F5).
+
+
+## Languages (EN / FR)
+
+* **Interface** — `apps/web/src/lib/i18n`: each feature declares `defineMessages({ en, fr })` next to its code
+  (TypeScript forces the French table to cover every English key) and reads it with `useT()`. Dates and relative
+  times (`lib/format.ts`) follow the language. The language is a user preference (`user_preferences.language`,
+  Settings → Language) applied on every device; without one, the browser language is used. The landing page shares
+  the same preference.
+* **Server text** — Home recommendations and Timeline events are produced in the user's language (`nova/i18n.py`,
+  preference first, then `Accept-Language`).
+* **Catalog** — display translations live in `artifacts/types/i18n/fr.yaml` (types, sections) and
+  `skills/i18n/fr.yaml` (Skill names, summaries); the API returns them as `translations`. Prompts, schemas and
+  Skill content hashes always use the canonical English definitions.
+* **Content** — what users, ORBIT or the model write is never translated; NOVA answers in the language of the request.
+* **Orb color** — `user_preferences.orb_color` (coral, rose, violet, ocean, emerald, amber, graphite), Settings → NOVA’s orb.

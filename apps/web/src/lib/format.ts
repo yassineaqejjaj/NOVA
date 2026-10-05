@@ -1,36 +1,43 @@
+import { getLang } from "@/lib/i18n";
+
+const locale = () => (getLang() === "fr" ? "fr-FR" : "en-GB");
+
 export function timeAgo(iso: string): string {
+  const fr = getLang() === "fr";
   const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 45) return "just now";
+  if (seconds < 45) return fr ? "à l’instant" : "just now";
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 60) return fr ? `il y a ${minutes} min` : `${minutes} min ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
+  if (hours < 24) return fr ? `il y a ${hours} h` : `${hours} h ago`;
   const days = Math.round(hours / 24);
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days} days ago`;
-  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  if (days === 1) return fr ? "hier" : "yesterday";
+  if (days < 7) return fr ? `il y a ${days} jours` : `${days} days ago`;
+  return new Date(iso).toLocaleDateString(locale(), { day: "numeric", month: "short" });
 }
 
 export function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 }
 
 export function dayLabel(iso: string): string {
+  const fr = getLang() === "fr";
   const date = new Date(iso);
   const today = new Date();
   const yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);
-  if (date.toDateString() === today.toDateString()) return "Today";
-  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  if (date.toDateString() === today.toDateString()) return fr ? "Aujourd’hui" : "Today";
+  if (date.toDateString() === yesterday.toDateString()) return fr ? "Hier" : "Yesterday";
+  const label = date.toLocaleDateString(locale(), { weekday: "long", day: "numeric", month: "long" });
+  return fr ? label.charAt(0).toUpperCase() + label.slice(1) : label;
 }
 
 export function greeting(date = new Date()): string {
+  const fr = getLang() === "fr";
   const hour = date.getHours();
-  if (hour < 5) return "Good evening";
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+  if (hour < 5 || hour >= 18) return fr ? "Bonsoir" : "Good evening";
+  if (hour < 12) return fr ? "Bonjour" : "Good morning";
+  return fr ? "Bon après-midi" : "Good afternoon";
 }
 
 export function duration(seconds: number | null | undefined): string {
@@ -40,4 +47,14 @@ export function duration(seconds: number | null | undefined): string {
   return `${minutes} min ${Math.round(seconds % 60)} s`;
 }
 
-export const CLASSIFICATION = ["C0 · Public", "C1 · Internal", "C2 · Confidential", "C3 · Secret"] as const;
+const CLASSIFICATION_LABELS = {
+  en: ["C0 · Public", "C1 · Internal", "C2 · Confidential", "C3 · Secret"],
+  fr: ["C0 · Public", "C1 · Interne", "C2 · Confidentiel", "C3 · Secret"],
+} as const;
+
+export function classificationLabel(level: number): string {
+  return CLASSIFICATION_LABELS[getLang()][level] ?? `C${level}`;
+}
+
+/** @deprecated use classificationLabel (localized) */
+export const CLASSIFICATION = CLASSIFICATION_LABELS.en;

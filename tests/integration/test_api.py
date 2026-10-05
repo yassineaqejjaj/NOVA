@@ -249,3 +249,24 @@ async def test_suggest_mode_always_confirms(app, llm, autonomy):
     assert resume.status_code == 202
     task = (await client.get(f"/api/v1/tasks/{result['task_id']}")).json()
     assert task["status"] == "cancelled"
+
+
+async def test_language_and_orb_color_preferences_localize_server_text(app, llm):
+    client = await _client(app)
+    me = (await client.patch("/api/v1/me/preferences", json={"language": "fr", "orb_color": "violet"})).json()
+    assert me["preferences"]["language"] == "fr" and me["preferences"]["orb_color"] == "violet"
+    assert (await client.patch("/api/v1/me/preferences", json={"orb_color": "neon"})).status_code == 422
+
+    await _ask(client, "Create a PRD for scheduled CSV exports")
+    events = (await client.get("/api/v1/activity")).json()
+    texts = " ".join(e["text"] for e in events)
+    assert "NOVA a" in texts and "Terminé" in texts
+    skills = (await client.get("/api/v1/skills")).json()
+    prd = next(s for s in skills if s["id"] == "prd")
+    assert prd["translations"]["fr"]["name"] and prd["translations"]["fr"]["artifact_type_name"]
+    types = (await client.get("/api/v1/artifacts/types")).json()
+    assert all(t["translations"]["fr"]["name"] for t in types)
+
+    english = await _client(app)  # no preference: follows Accept-Language
+    events_fr = (await english.get("/api/v1/activity", headers={"Accept-Language": "fr-FR,fr;q=0.9"})).json()
+    assert isinstance(events_fr, list)

@@ -30,6 +30,8 @@ export interface Preferences {
   artifact_format?: string;
   default_autonomy?: AutonomyMode;
   theme?: "dark" | "light" | "system";
+  language?: "en" | "fr" | null;
+  orb_color?: "coral" | "rose" | "violet" | "ocean" | "emerald" | "amber" | "graphite";
   onboarding_completed?: boolean;
 }
 
@@ -245,6 +247,8 @@ export interface SkillSummary {
   artifact_type_name: string | null;
   steps: { id: string; title: string }[];
   triggers: string[];
+  /** Display translations: { fr: { name, summary, artifact_type_name } } */
+  translations?: Record<string, { name?: string; summary?: string; artifact_type_name?: string | null }>;
 }
 
 export interface SkillDetail extends SkillSummary {
@@ -277,7 +281,16 @@ export interface ArtifactItem {
 export interface SectionContent { kind: "rich_text" | "items"; blocks: TextBlock[]; items: ArtifactItem[] }
 export interface ArtifactContent { type: string; title: string; sections: Record<string, SectionContent>; metadata: Record<string, unknown> }
 export interface SectionDefinition { key: string; title: string; kind: "rich_text" | "items"; item_kind: string | null; description: string }
-export interface ArtifactTypeDef { type: string; name: string; description: string; icon: string; sections: SectionDefinition[] }
+export interface ArtifactTypeTranslation { name?: string; description?: string; sections?: Record<string, { title?: string; description?: string }> }
+export interface ArtifactTypeDef {
+  type: string;
+  name: string;
+  description: string;
+  icon: string;
+  sections: SectionDefinition[];
+  /** Display translations (prompts always use the canonical definition). */
+  translations?: Record<string, ArtifactTypeTranslation>;
+}
 
 export interface ArtifactSummary {
   id: string;
@@ -384,7 +397,7 @@ export interface SearchResults {
   projects: { id: string; name: string; description: string }[];
   artifacts: { id: string; title: string; type: string }[];
   conversations: { id: string; title: string }[];
-  skills: { id: string; name: string; summary: string }[];
+  skills: { id: string; name: string; summary: string; translations?: SkillSummary["translations"] }[];
   context: { ref_id: string; title: string; snippet: string; project_id: string; source_kind?: string | null }[];
   context_error: { message: string }[];
 }

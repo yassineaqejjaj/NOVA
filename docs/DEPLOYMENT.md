@@ -91,10 +91,24 @@ so ORBIT's permissions and C0–C3 classification apply unchanged. No CORS or OR
 
 ## LLM
 
-Railway has no GPU. NOVA needs an OpenAI-compatible server reachable over HTTPS with an API key, for example
-vLLM on a GPU host (`--api-key`). For demos, `docs/OPERATIONS.md` (“Demo LLM from a laptop”) describes exposing a laptop's Ollama
-through an authenticated tunnel; its URL changes when the tunnel restarts, so update `NOVA_LLM_BASE_URL`
-on `api`, `worker` and `beat` accordingly.
+NOVA supports three providers behind one interface (`NOVA_LLM_PROVIDER`):
+
+| Provider | Variables |
+|---|---|
+| `anthropic` (Claude API) | `NOVA_LLM_API_KEY` (required), `NOVA_LLM_MODEL` (default `claude-sonnet-5-5`) |
+| `vllm` / `openai_compatible` (self-hosted) | `NOVA_LLM_BASE_URL`, `NOVA_LLM_MODEL`, optional `NOVA_LLM_API_KEY` |
+
+With the Claude API, the ORBIT context of each request is sent to Anthropic. `NOVA_POLICY_MAX_CLASSIFICATION`
+(0–3) caps what ORBIT returns to NOVA: set it to `1` to keep Confidential (C2) and Secret (C3) context out of
+external model calls. For demos without either, `docs/OPERATIONS.md` (“Demo LLM from a laptop”) describes exposing a
+laptop's Ollama through an authenticated tunnel.
+
+Set the key without echoing it (on `api`, `worker` and `beat`):
+
+```bash
+railway variable set NOVA_LLM_API_KEY --stdin -s api      # then worker, beat
+railway variable set NOVA_LLM_PROVIDER=anthropic NOVA_LLM_MODEL=claude-sonnet-5-5 -s api
+```
 
 ## Operations
 

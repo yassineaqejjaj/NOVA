@@ -88,13 +88,23 @@ class SkillRegistry:
         self.artifacts = artifacts
         self._skills: dict[str, SkillSpec] = {}
         errors: list[str] = []
-        for directory in sorted(p for p in skills_dir.iterdir() if p.is_dir() and not p.name.startswith(("_", "."))):
+        for directory in sorted(
+            p for p in skills_dir.iterdir() if p.is_dir() and p.name != "i18n" and not p.name.startswith(("_", "."))
+        ):
             try:
                 spec = load_skill(directory, artifacts, known_tools)
             except SkillValidationError as exc:
                 errors.append(str(exc))
                 continue
             self._skills[spec.id] = spec
+        for path in sorted((skills_dir / "i18n").glob("*.yaml")) if (skills_dir / "i18n").is_dir() else []:
+            lang = path.stem
+            for skill_id, translation in (yaml.safe_load(path.read_text()) or {}).items():
+                if skill_id not in self._skills:
+                    errors.append(f"i18n/{path.name}: unknown skill '{skill_id}'")
+                    continue
+                spec = self._skills[skill_id]
+                self._skills[skill_id] = spec.model_copy(update={"translations": {**spec.translations, lang: translation}})
         for spec in self._skills.values():
             unknown = [s for s in spec.composes_with if s not in self._skills]
             if unknown:

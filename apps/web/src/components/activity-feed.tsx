@@ -8,6 +8,33 @@ import { EmptyState } from "@/components/shell/page";
 import { useActivity } from "@/lib/api/hooks";
 import type { ActivityEvent } from "@/lib/api/types";
 import { clock, dayLabel } from "@/lib/format";
+import { defineMessages, useT } from "@/lib/i18n";
+
+const M = defineMessages({
+  en: {
+    you: "You",
+    openInForge: "Open in FORGE",
+    viewArtifact: "View artifact",
+    viewDecision: "View decision",
+    viewWork: "View work",
+    view: "View",
+    noMatch: "Nothing matches these filters.",
+    noActivity: "No activity yet.",
+    emptyDescription: "What NOVA does for you will be listed here.",
+  },
+  fr: {
+    you: "Vous",
+    openInForge: "Ouvrir dans FORGE",
+    viewArtifact: "Voir l’artefact",
+    viewDecision: "Voir la décision",
+    viewWork: "Voir le travail",
+    view: "Voir",
+    noMatch: "Aucun résultat pour ces filtres.",
+    noActivity: "Aucune activité pour l’instant.",
+    emptyDescription: "Ce que NOVA fait pour vous sera listé ici.",
+  },
+});
+type Key = keyof typeof M.en;
 
 const TONES = {
   accent: "bg-accent-soft text-accent",
@@ -35,15 +62,18 @@ const SYSTEM_TONE: Record<string, string> = {
 };
 
 function SystemTag({ system }: { system?: string }) {
+  const t = useT(M);
   if (!system) return null;
-  return <span className={cn("rounded-full px-2 py-px text-[10.5px] font-semibold uppercase tracking-wide", SYSTEM_TONE[system] ?? SYSTEM_TONE.You)}>{system}</span>;
+  // System names (ORBIT, NOVA, FORGE) are product names; only the user's own tag is translated.
+  const label = system === "You" ? t("you") : system;
+  return <span className={cn("rounded-full px-2 py-px text-[10.5px] font-semibold uppercase tracking-wide", SYSTEM_TONE[system] ?? SYSTEM_TONE.You)}>{label}</span>;
 }
 
-function target(e: ActivityEvent): { href: string; label: string } | null {
-  if (e.category === "quality" && e.href) return { href: e.href, label: "Open in FORGE" };
-  if (e.artifact_id) return { href: `/artifacts/${e.artifact_id}`, label: "View artifact" };
-  if (e.conversation_id) return { href: `/c/${e.conversation_id}`, label: e.category === "decision" ? "View decision" : "View work" };
-  if (e.task_id) return { href: `/work?task=${e.task_id}`, label: "View work" };
+function target(e: ActivityEvent): { href: string; label: Key } | null {
+  if (e.category === "quality" && e.href) return { href: e.href, label: "openInForge" };
+  if (e.artifact_id) return { href: `/artifacts/${e.artifact_id}`, label: "viewArtifact" };
+  if (e.conversation_id) return { href: `/c/${e.conversation_id}`, label: e.category === "decision" ? "viewDecision" : "viewWork" };
+  if (e.task_id) return { href: `/work?task=${e.task_id}`, label: "viewWork" };
   return null;
 }
 
@@ -69,10 +99,11 @@ export function ActivityFeed({
   compact?: boolean;
 }) {
   const { data, isLoading } = useActivity(filters);
+  const t = useT(M);
   if (isLoading) return <div className="space-y-2"><Skeleton className="h-12" /><Skeleton className="h-12" /></div>;
   const events = filterEvents(data ?? [], { category, query });
   if (!events.length) {
-    return <EmptyState icon={<Play />} title={data?.length ? "Nothing matches these filters." : "No activity yet."} description="What NOVA does for you will be listed here." />;
+    return <EmptyState icon={<Play />} title={data?.length ? t("noMatch") : t("noActivity")} description={t("emptyDescription")} />;
   }
   const groups = new Map<string, ActivityEvent[]>();
   for (const e of events) groups.set(dayLabel(e.at), [...(groups.get(dayLabel(e.at)) ?? []), e]);
@@ -108,13 +139,13 @@ export function ActivityFeed({
                     {link && !compact ? (
                       <Button variant="secondary" size="sm" className="shrink-0 rounded-full max-sm:hidden" asChild>
                         {link.href.startsWith("http") ? (
-                          <a href={link.href} target="_blank" rel="noreferrer">{link.label}</a>
+                          <a href={link.href} target="_blank" rel="noreferrer">{t(link.label)}</a>
                         ) : (
-                          <Link href={link.href}>{link.label}</Link>
+                          <Link href={link.href}>{t(link.label)}</Link>
                         )}
                       </Button>
                     ) : null}
-                    {link && compact ? <Link href={link.href} className="shrink-0 text-[12px] text-accent hover:underline">View</Link> : null}
+                    {link && compact ? <Link href={link.href} className="shrink-0 text-[12px] text-accent hover:underline">{t("view")}</Link> : null}
                   </div>
                 </li>
               );

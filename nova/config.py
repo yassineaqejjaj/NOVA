@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     secrets_key: str = DEV_SECRETS_KEY  # Fernet key material for ORBIT session tokens
 
     # --- LLM (open-weight, self-hosted) -----------------------------------------------------------
-    llm_provider: Literal["vllm", "openai_compatible"] = "vllm"
+    llm_provider: Literal["vllm", "openai_compatible", "anthropic"] = "vllm"
     llm_base_url: str = "http://localhost:8000/v1"
     llm_model: str = ""
     llm_api_key: str = ""  # optional (vLLM --api-key)
@@ -144,6 +144,8 @@ class Settings(BaseSettings):
                 problems.append("NOVA_PUBLIC_URL must be https")
             if self.auth_mode == "oidc" and len(self.oidc_client_secret) < 16:
                 problems.append("NOVA_OIDC_CLIENT_SECRET")
+            if self.llm_provider == "anthropic" and not self.llm_api_key:
+                problems.append("NOVA_LLM_API_KEY (required by NOVA_LLM_PROVIDER=anthropic)")
             if problems:
                 raise ValueError("Development values are not allowed in production: " + ", ".join(problems))
         return self

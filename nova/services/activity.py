@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nova.artifacts.registry import get_artifact_registry
 from nova.domain.context import ContextError
 from nova.domain.permissions import Principal
+from nova.i18n import MESSAGES, Lang, resolve_lang, tr
 from nova.infra.models import (
     Artifact,
     ArtifactVersion,
@@ -24,6 +25,7 @@ from nova.infra.models import (
     ProjectReference,
     Task,
     TaskStep,
+    UserPreferences,
 )
 from nova.services import providers
 from nova.skills.registry import get_skill_registry
@@ -40,8 +42,11 @@ async def activity(
     since: datetime | None = None,
     until: datetime | None = None,
     limit: int = 80,
+    accept_language: str | None = None,
 ) -> list[dict[str, Any]]:
     uid = uuid.UUID(principal.user_id)
+    prefs = await session.get(UserPreferences, uid)
+    lang = resolve_lang(prefs.language if prefs else None, accept_language)
     events: list[dict[str, Any]] = []
     types = get_artifact_registry().types
 
@@ -59,7 +64,7 @@ async def activity(
     tasks = (await session.scalars(tasks_q.order_by(Task.created_at.desc()).limit(limit))).all() if not artifact_id else []
     skills = get_skill_registry()
     for task in tasks:
-        names = [skills.get(s.skill_id).name for s in task.steps if s.skill_id and skills.has(s.skill_id)]
+        names = [_skill_name(skills.get(s.skill_id), lang) for s in task.steps if s.skill_id and skills.has(s.skill_id)]
         base = {
             "category": "work",
             "system": "NOVA",
@@ -73,7 +78,7 @@ async def activity(
                 **base,
                 "kind": "task_started",
                 "at": task.created_at.isoformat(),
-                "text": f"NOVA started {' → '.join(names)}" if names else "NOVA started working on your request",
+                "text": tr(lang, "started_with", skills=" → ".join(names)) if names else tr(lang, "started"),
                 "detail": task.objective[:160],
                 "status": "running",
             }
@@ -85,7 +90,9 @@ async def activity(
                     "kind": f"task_{task.status}",
                     "at": task.finished_at.isoformat(),
                     "status": task.status,
-                    "text": {"completed": "Completed", "failed": "Failed", "cancelled": "Cancelled"}.get(task.status, task.status)
+                    "text": (
+                        tr(lang, task.status) if task.status in ("completed", "failed", "cancelled", "paused") else task.status
+                    )
                     + (f" · {' → '.join(names)}" if names else ""),
                     "detail": task.objective[:160],
                 }
@@ -109,8 +116,8 @@ async def activity(
         for version, artifact in (
             await session.execute(versions_q.order_by(ArtifactVersion.created_at.desc()).limit(limit))
         ).all():
-            name = types[artifact.type].name if artifact.type in types else artifact.type
-            who = "NOVA" if version.author_type == "nova" else "You"
+            name = types[artifact.type].localized_name(lang) if artifact.type in types else artifact.type
+            who = "NOVA" if version.author_type == "nova" else tr(lang, "you")
             verb = "created" if version.version == 1 else ("proposed" if version.state == "proposed" else "updated")
             events.append(
                 {
@@ -121,7 +128,7 @@ async def activity(
                     "at": version.created_at.isoformat(),
                     "artifact_id": str(artifact.id),
                     "project_id": str(artifact.project_id) if artifact.project_id else None,
-                    "text": f"{who} {verb} {artifact.title} (v{version.version})",
+                    "text": tr(lang, f"artifact_{verb}", who=who, title=artifact.title, version=version.version),
                     "detail": name,
                 }
             )
@@ -135,7 +142,7 @@ async def activity(
                 continue
             titles = [str(i.get("title")) for i in (ref.items or []) if isinstance(i, dict) and i.get("title")]
             count = len(ref.items)
-            shown = ", ".join(titles[:2]) + (f" and {count - 2} more" if count > 2 else "")
+            shown = tr(lang, "and_more", shown=", ".join(titles[:2]), n=count - 2) if count > 2 else ", ".join(titles[:2])
             events.append(
                 {
                     "kind": "context",
@@ -143,9 +150,9 @@ async def activity(
                     "system": "ORBIT" if ref.system == "orbit" else ref.system.upper(),
                     "at": ref.created_at.isoformat(),
                     "task_id": str(ref.task_id) if ref.task_id else None,
-                    "text": f"Retrieved {titles[0]}"
+                    "text": tr(lang, "retrieved_one", title=titles[0])
                     if count == 1 and titles
-                    else f"Retrieved {count} context item{'s' if count != 1 else ''}",
+                    else tr(lang, "retrieved_other", n=count),
                     "detail": shown if count > 1 else (ref.project_slug or ""),
                     "classification": ref.max_classification,
                 }
@@ -177,8 +184,9 @@ async def activity(
                     "system": "FORGE",
                     "at": ref.updated_at.isoformat(),
                     "task_id": ref.nova_id,
-                    "text": "FORGE evaluated the output" if score is not None else "FORGE evaluation queued",
-                    "detail": f"Score {round(float(score))}" + (" · passed" if data.get("passed") else "")
+                    "text": tr(lang, "forge_evaluated") if score is not None else tr(lang, "forge_queued"),
+                    "detail": tr(lang, "score", score=round(float(score)))
+                    + (f" · {tr(lang, 'passed')}" if data.get("passed") else "")
                     if score is not None
                     else (data.get("status") or ""),
                     "href": data.get("url"),
@@ -200,7 +208,7 @@ async def activity(
         if until:
             decisions_q = decisions_q.where(AuditEvent.created_at <= until)
         decisions = [
-            _decision(row)
+            _decision(row, lang)
             for row in (await session.scalars(decisions_q.order_by(AuditEvent.created_at.desc()).limit(limit))).all()
         ]
         task_ids = {uuid.UUID(d["task_id"]) for d in decisions if d["task_id"]}
@@ -224,15 +232,20 @@ async def activity(
     return events[:limit]
 
 
-def _decision(row: AuditEvent) -> dict[str, Any]:
+def _skill_name(spec: Any, lang: Lang) -> str:
+    return str(spec.translations.get(lang, {}).get("name") or spec.name)
+
+
+def _decision(row: AuditEvent, lang: Lang = "en") -> dict[str, Any]:
     value = (row.details or {}).get("value") or {}
     action = str(value.get("action") or (row.details or {}).get("to") or "")
     if row.action == "artifact.status":
-        text = f"Marked {row.summary.split(':', 1)[0]} as {action.replace('_', ' ')}"
+        status = tr(lang, f"status_{action}") if f"status_{action}" in MESSAGES else action.replace("_", " ")
+        text = tr(lang, "decision_status", title=row.summary.split(":", 1)[0], status=status)
     elif row.action == "execution.confirm_workflow":
-        text = {"cancel": "Cancelled a proposed workflow"}.get(action, "Confirmed a workflow")
+        text = tr(lang, "decision_cancel_workflow" if action == "cancel" else "decision_confirm_workflow")
     else:
-        text = {"approve": "Approved changes", "reject": "Rejected changes"}.get(action, "Answered an approval")
+        text = tr(lang, {"approve": "decision_approve", "reject": "decision_reject"}.get(action, "decision_other"))
     return {
         "kind": "decision",
         "category": "decision",
@@ -297,7 +310,7 @@ async def search(
         "projects": [{"id": str(p.id), "name": p.name, "description": p.description[:120]} for p in projects],
         "artifacts": [{"id": str(a.id), "title": a.title, "type": a.type} for a in artifacts],
         "conversations": [{"id": str(c.id), "title": c.title} for c in conversations],
-        "skills": [{"id": s.id, "name": s.name, "summary": s.summary} for s in skills],
+        "skills": [{"id": s.id, "name": s.name, "summary": s.summary, "translations": s.translations} for s in skills],
         "context": context,
         "context_error": [{"message": context_error}] if context_error else [],
     }

@@ -24,6 +24,9 @@ router = APIRouter(tags=["me"])
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
+OrbColor = Literal["coral", "rose", "violet", "ocean", "emerald", "amber", "graphite"]
+
+
 class PreferencesIn(BaseModel):
     nova_name: str | None = Field(default=None, min_length=1, max_length=60)
     avatar: str | None = Field(default=None, max_length=40)
@@ -34,6 +37,8 @@ class PreferencesIn(BaseModel):
     artifact_format: Literal["structured", "concise", "detailed"] | None = None
     default_autonomy: AutonomyMode | None = None
     theme: Literal["dark", "light", "system"] | None = None
+    language: Literal["en", "fr"] | None = None
+    orb_color: OrbColor | None = None
 
 
 class OnboardingIn(PreferencesIn):

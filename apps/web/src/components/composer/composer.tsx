@@ -17,6 +17,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useArtifacts, useProjects, useSendIntent, useSkills } from "@/lib/api/hooks";
+import { defineMessages, useLang, useT } from "@/lib/i18n";
+import { skillName, skillSummary } from "@/lib/i18n/catalog";
 import { useComposer } from "@/stores/ui";
 
 import { NovaMark } from "@/components/shell/nova-mark";
@@ -25,6 +27,77 @@ import { ContextPicker } from "./context-picker";
 
 const TEXT_TYPES = [".txt", ".md", ".csv", ".json", ".yaml", ".yml"];
 const MAX_ATTACHMENT_CHARS = 20_000;
+
+const M = defineMessages({
+  en: {
+    onlyText: "{name}: only text files ({types}) can be attached. Add documents to ORBIT to use them as context.",
+    noProject: "No project",
+    skills: "Skills",
+    excluding: "Excluding {label}",
+    askNova: "Ask NOVA",
+    placeholder: "Ask NOVA anything about your product work…",
+    send: "Send",
+    file: "File",
+    pinOrbit: "Pin ORBIT sources for this request",
+    chooseProjectForOrbit: "Choose a project to add ORBIT sources",
+    orbitSource: "ORBIT source",
+    artifact: "Artifact",
+    skill: "Skill",
+    add: "Add",
+    attachFile: "Attach a text file",
+    addOrbitContext: "Add ORBIT context",
+    chooseProjectHint: " (choose a project)",
+    referenceArtifact: "Reference an Artifact",
+    project: "Project",
+    contextHint: "Auto: NOVA decides what to request from ORBIT. Explicit: only the context you add. None: no project context.",
+    context: "Context",
+    contextAuto: "Context: Auto",
+    contextExplicit: "Context: Explicit",
+    contextNone: "Context: None",
+    kbdSend: "send",
+    kbdNewLine: "new line",
+    kbdSkills: "skills",
+    kbdSearch: "search",
+    hint: "/ for Skills · ⇧↵ new line",
+    close: "Close",
+    noArtifacts: "No Artifacts yet.",
+    remove: "Remove {label}",
+  },
+  fr: {
+    onlyText: "{name} : seuls les fichiers texte ({types}) peuvent être joints. Ajoutez vos documents à ORBIT pour les utiliser comme contexte.",
+    noProject: "Aucun projet",
+    skills: "Skills",
+    excluding: "Exclu : {label}",
+    askNova: "Demander à NOVA",
+    placeholder: "Demandez à NOVA tout ce qui concerne votre travail produit…",
+    send: "Envoyer",
+    file: "Fichier",
+    pinOrbit: "Épingler des sources ORBIT pour cette demande",
+    chooseProjectForOrbit: "Choisissez un projet pour ajouter des sources ORBIT",
+    orbitSource: "Source ORBIT",
+    artifact: "Artefact",
+    skill: "Skill",
+    add: "Ajouter",
+    attachFile: "Joindre un fichier texte",
+    addOrbitContext: "Ajouter du contexte ORBIT",
+    chooseProjectHint: " (choisissez un projet)",
+    referenceArtifact: "Référencer un Artefact",
+    project: "Projet",
+    contextHint: "Auto : NOVA décide quoi demander à ORBIT. Explicite : uniquement le contexte que vous ajoutez. Aucun : pas de contexte projet.",
+    context: "Contexte",
+    contextAuto: "Contexte : Auto",
+    contextExplicit: "Contexte : Explicite",
+    contextNone: "Contexte : Aucun",
+    kbdSend: "envoyer",
+    kbdNewLine: "nouvelle ligne",
+    kbdSkills: "Skills",
+    kbdSearch: "rechercher",
+    hint: "/ pour les Skills · ⇧↵ nouvelle ligne",
+    close: "Fermer",
+    noArtifacts: "Aucun Artefact pour le moment.",
+    remove: "Retirer {label}",
+  },
+});
 
 export interface ComposerProps {
   conversationId?: string | null;
@@ -40,6 +113,8 @@ export interface ComposerProps {
 
 export function Composer({ conversationId, activeArtifactId, placeholder, autoFocus, compact, disabled, variant = "default" }: ComposerProps) {
   const [focused, setFocused] = useState(false);
+  const t = useT(M);
+  const lang = useLang();
   const router = useRouter();
   const send = useSendIntent();
   const { data: projects } = useProjects();
@@ -72,8 +147,8 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
     const match = /(?:^|\s)\/([a-z0-9-]*)$/.exec(state.draft);
     if (!match || !skills) return [];
     const q = match[1] ?? "";
-    return skills.filter((s) => s.id.includes(q) || s.name.toLowerCase().includes(q)).slice(0, 6);
-  }, [state.draft, skills]);
+    return skills.filter((s) => s.id.includes(q) || s.name.toLowerCase().includes(q) || skillName(s, lang).toLowerCase().includes(q)).slice(0, 6);
+  }, [state.draft, skills, lang]);
   const [slashIndex, setSlashIndex] = useState(0);
   useEffect(() => setSlashIndex(0), [slash.length]);
   useEffect(() => {
@@ -128,7 +203,7 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
   const onFiles = async (files: FileList | null) => {
     for (const file of Array.from(files ?? [])) {
       if (!TEXT_TYPES.some((ext) => file.name.toLowerCase().endsWith(ext))) {
-        toast.error(`${file.name}: only text files (${TEXT_TYPES.join(", ")}) can be attached. Add documents to ORBIT to use them as context.`);
+        toast.error(t("onlyText", { name: file.name, types: TEXT_TYPES.join(", ") }));
         continue;
       }
       const text = (await file.text()).slice(0, MAX_ATTACHMENT_CHARS);
@@ -136,7 +211,7 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
     }
   };
 
-  const projectOptions = [{ value: "none", label: "No project" }, ...(projects ?? []).map((p) => ({ value: p.id, label: p.name }))];
+  const projectOptions = [{ value: "none", label: t("noProject") }, ...(projects ?? []).map((p) => ({ value: p.id, label: p.name }))];
   const command = variant === "command";
   const startSkill = () => {
     state.setDraft(`${state.draft.replace(/\s*$/, state.draft.trim() ? " " : "")}/`);
@@ -162,7 +237,7 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
       )}
     >
       {slash.length ? (
-        <div role="listbox" aria-label="Skills" className={cn("absolute left-3 z-30 w-[min(100%,420px)] overflow-hidden rounded-[12px] border border-border-strong bg-surface p-1 shadow-panel", menuAbove ? "bottom-full mb-2" : "top-full mt-2")}>
+        <div role="listbox" aria-label={t("skills")} className={cn("absolute left-3 z-30 w-[min(100%,420px)] overflow-hidden rounded-[12px] border border-border-strong bg-surface p-1 shadow-panel", menuAbove ? "bottom-full mb-2" : "top-full mt-2")}>
           {slash.map((s, i) => (
             <button
               key={s.id}
@@ -175,9 +250,9 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
               className={cn("flex w-full flex-col rounded-[8px] px-2.5 py-1.5 text-left", i === slashIndex ? "bg-surface-2" : "")}
             >
               <span className="text-[13px] text-text">
-                /{s.id} <span className="text-subtle">· {s.name}</span>
+                /{s.id} <span className="text-subtle">· {skillName(s, lang)}</span>
               </span>
-              <span className="truncate text-[11.5px] text-subtle">{s.summary}</span>
+              <span className="truncate text-[11.5px] text-subtle">{skillSummary(s, lang)}</span>
             </button>
           ))}
         </div>
@@ -192,7 +267,7 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
             <Chip key={a.id} icon={<FileText className="size-3" />} label={a.title} onRemove={() => state.removeArtifactRef(a.id)} />
           ))}
           {state.excluded.map((label) => (
-            <Chip key={label} icon={<X className="size-3" />} label={`Excluding ${label}`} onRemove={() => state.include(label)} />
+            <Chip key={label} icon={<X className="size-3" />} label={t("excluding", { label })} onRemove={() => state.include(label)} />
           ))}
           {attachments.map((a) => (
             <Chip key={a.name} icon={<Paperclip className="size-3" />} label={a.name} onRemove={() => setAttachments((prev) => prev.filter((x) => x.name !== a.name))} />
@@ -212,15 +287,15 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
             autoFocus={autoFocus}
             disabled={disabled}
             rows={1}
-            aria-label="Ask NOVA"
-            placeholder={placeholder ?? "Ask NOVA anything about your product work…"}
+            aria-label={t("askNova")}
+            placeholder={placeholder ?? t("placeholder")}
             className={cn(
               "block w-full resize-none bg-transparent px-4 text-[15px] leading-relaxed text-text outline-none placeholder:text-subtle",
               "min-h-[52px] flex-1 px-0 py-[14px]",
               command && "min-h-[64px] py-[18px] text-[17px]",
             )}
           />
-          <Button variant="primary" size="icon" className={cn("shrink-0 rounded-full", command ? "size-11" : "size-9")} onClick={() => void submit()} disabled={!state.draft.trim() || send.isPending || disabled} aria-label="Send">
+          <Button variant="primary" size="icon" className={cn("shrink-0 rounded-full", command ? "size-11" : "size-9")} onClick={() => void submit()} disabled={!state.draft.trim() || send.isPending || disabled} aria-label={t("send")}>
             <ArrowUp />
           </Button>
         </div>
@@ -234,8 +309,8 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
           autoFocus={autoFocus}
           disabled={disabled}
           rows={1}
-          aria-label="Ask NOVA"
-          placeholder={placeholder ?? "Ask NOVA anything about your product work…"}
+          aria-label={t("askNova")}
+          placeholder={placeholder ?? t("placeholder")}
           className={cn(
             "block w-full resize-none bg-transparent px-4 text-[15px] leading-relaxed text-text outline-none placeholder:text-subtle",
             compact ? "min-h-[48px] py-3" : "min-h-[64px] py-4",
@@ -247,61 +322,61 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
         {command ? (
           <>
             <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[12.5px] text-muted" onClick={() => fileInput.current?.click()}>
-              <Paperclip /> File
+              <Paperclip /> {t("file")}
             </Button>
-            <Tooltip content={state.projectId ? "Pin ORBIT sources for this request" : "Choose a project to add ORBIT sources"}>
+            <Tooltip content={state.projectId ? t("pinOrbit") : t("chooseProjectForOrbit")}>
               <span>
                 <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[12.5px] text-muted" onClick={() => setPickerOpen(true)} disabled={!state.projectId}>
-                  <Orbit /> ORBIT source
+                  <Orbit /> {t("orbitSource")}
                 </Button>
               </span>
             </Tooltip>
             <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[12.5px] text-muted" onClick={() => setArtifactMenu(true)}>
-              <FileText /> Artifact
+              <FileText /> {t("artifact")}
             </Button>
             <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-[12.5px] text-muted" onClick={startSkill}>
-              <Sparkles /> Skill
+              <Sparkles /> {t("skill")}
             </Button>
             <span className="mx-1 h-4 w-px bg-border" aria-hidden />
           </>
         ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Add" className={cn(command && "hidden")}>
+            <Button variant="ghost" size="icon" aria-label={t("add")} className={cn(command && "hidden")}>
               <Plus />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <DropdownMenuItem onSelect={() => fileInput.current?.click()}>
-              <Paperclip /> Attach a text file
+              <Paperclip /> {t("attachFile")}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setPickerOpen(true)} disabled={!state.projectId}>
-              <Orbit /> Add ORBIT context{state.projectId ? "" : " (choose a project)"}
+              <Orbit /> {t("addOrbitContext")}{state.projectId ? "" : t("chooseProjectHint")}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setArtifactMenu(true)}>
-              <FileText /> Reference an Artifact
+              <FileText /> {t("referenceArtifact")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <input ref={fileInput} type="file" multiple hidden accept={TEXT_TYPES.join(",")} onChange={(e) => void onFiles(e.target.files)} />
 
         <Select
-          ariaLabel="Project"
+          ariaLabel={t("project")}
           value={state.projectId ?? "none"}
           onValueChange={(v) => state.setProject(v === "none" ? null : v)}
           options={projectOptions}
           className="h-8 max-w-[200px] border-transparent bg-transparent px-2 text-[12.5px] text-muted hover:bg-surface-2 [&>span]:truncate"
         />
-        <Tooltip content="Auto: NOVA decides what to request from ORBIT. Explicit: only the context you add. None: no project context.">
+        <Tooltip content={t("contextHint")}>
           <span>
             <Select
-              ariaLabel="Context"
+              ariaLabel={t("context")}
               value={state.contextMode}
               onValueChange={(v) => state.setContextMode(v as "auto" | "explicit" | "none")}
               options={[
-                { value: "auto", label: "Context: Auto" },
-                { value: "explicit", label: "Context: Explicit" },
-                { value: "none", label: "Context: None" },
+                { value: "auto", label: t("contextAuto") },
+                { value: "explicit", label: t("contextExplicit") },
+                { value: "none", label: t("contextNone") },
               ]}
               className="h-8 border-transparent bg-transparent px-2 text-[12.5px] text-muted hover:bg-surface-2 [&>span]:whitespace-nowrap"
             />
@@ -311,13 +386,13 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
         <div className="ml-auto flex items-center gap-2">
           {command ? (
             <span className="hidden items-center gap-2 whitespace-nowrap text-[11px] text-subtle lg:flex">
-              <Kbd>↵</Kbd> send <Kbd>⇧↵</Kbd> new line <Kbd>/</Kbd> skills <Kbd>⌘K</Kbd> search
+              <Kbd>↵</Kbd> {t("kbdSend")} <Kbd>⇧↵</Kbd> {t("kbdNewLine")} <Kbd>/</Kbd> {t("kbdSkills")} <Kbd>⌘K</Kbd> {t("kbdSearch")}
             </span>
           ) : (
-            <span className="hidden whitespace-nowrap text-[11px] text-subtle xl:inline">/ for Skills · ⇧↵ new line</span>
+            <span className="hidden whitespace-nowrap text-[11px] text-subtle xl:inline">{t("hint")}</span>
           )}
           {variant !== "default" ? null : (
-            <Button variant="primary" size="icon" onClick={() => void submit()} disabled={!state.draft.trim() || send.isPending || disabled} aria-label="Send">
+            <Button variant="primary" size="icon" onClick={() => void submit()} disabled={!state.draft.trim() || send.isPending || disabled} aria-label={t("send")}>
               <ArrowUp />
             </Button>
           )}
@@ -328,8 +403,8 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
       {artifactMenu ? (
         <div className={cn("absolute left-3 z-30 w-[min(100%,420px)] rounded-[12px] border border-border-strong bg-surface p-1 shadow-panel", menuAbove ? "bottom-full mb-2" : "top-full mt-2")}>
           <div className="flex items-center justify-between px-2.5 py-1.5 text-[11px] uppercase tracking-wider text-subtle">
-            Reference an Artifact
-            <button onClick={() => setArtifactMenu(false)} aria-label="Close">
+            {t("referenceArtifact")}
+            <button onClick={() => setArtifactMenu(false)} aria-label={t("close")}>
               <X className="size-3.5" />
             </button>
           </div>
@@ -345,7 +420,7 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
               <FileText className="size-3.5" /> <span className="truncate">{a.title}</span>
             </button>
           ))}
-          {recentArtifacts && recentArtifacts.length === 0 ? <div className="px-2.5 py-2 text-[13px] text-subtle">No Artifacts yet.</div> : null}
+          {recentArtifacts && recentArtifacts.length === 0 ? <div className="px-2.5 py-2 text-[13px] text-subtle">{t("noArtifacts")}</div> : null}
         </div>
       ) : null}
     </div>
@@ -353,11 +428,12 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
 }
 
 function Chip({ icon, label, onRemove }: { icon: React.ReactNode; label: string; onRemove: () => void }) {
+  const t = useT(M);
   return (
     <span className="inline-flex max-w-[260px] items-center gap-1.5 rounded-lg border border-border bg-surface-2 px-2 py-1 text-[12px] text-muted">
       {icon}
       <span className="truncate">{label}</span>
-      <button onClick={onRemove} className="text-subtle hover:text-text" aria-label={`Remove ${label}`}>
+      <button onClick={onRemove} className="text-subtle hover:text-text" aria-label={t("remove", { label })}>
         <X className="size-3" />
       </button>
     </span>

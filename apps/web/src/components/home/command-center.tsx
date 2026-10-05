@@ -28,20 +28,26 @@ import { toast } from "sonner";
 import { ClassificationBadge } from "@/components/shell/page";
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
 import { api } from "@/lib/api/client";
-import { keys, useSendIntent, useTask } from "@/lib/api/hooks";
+import { keys, useArtifactTypes, useSendIntent, useTask } from "@/lib/api/hooks";
 import type { ArtifactSummary, OrbState, Recommendation, RecommendationAction, Today, WorkItem } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
+import { useLang, useT } from "@/lib/i18n";
+import { typeName } from "@/lib/i18n/catalog";
 import { useComposer } from "@/stores/ui";
+
+import { M } from "./command-center.messages";
+
+type T = ReturnType<typeof useT<(typeof M)["en"]>>;
 
 // --- NOVA presence + daily brief ----------------------------------------------------------------
 
-function stateSentence(state: OrbState, today: Today): string {
+function stateSentence(state: OrbState, today: Today, t: T): string {
   const { running, waiting, results_ready } = today.brief;
-  if (state === "working" || state === "thinking") return `NOVA is working on ${running} task${running > 1 ? "s" : ""}`;
-  if (state === "clarification") return "NOVA needs a clarification from you";
-  if (state === "waiting") return `NOVA is waiting for you on ${waiting} task${waiting > 1 ? "s" : ""}`;
-  if (state === "completed") return `NOVA finished ${results_ready} task${results_ready > 1 ? "s" : ""} today`;
-  return "NOVA is ready";
+  if (state === "working" || state === "thinking") return t("stateWorking", { n: running });
+  if (state === "clarification") return t("stateClarification");
+  if (state === "waiting") return t("stateWaiting", { n: waiting });
+  if (state === "completed") return t("stateCompleted", { n: results_ready });
+  return t("stateIdle");
 }
 
 function BriefTile({ value, label, tone, hint, onClick }: { value: number; label: string; tone: "accent" | "neutral" | "success" | "warning"; hint?: string; onClick?: () => void }) {
@@ -68,14 +74,15 @@ function BriefTile({ value, label, tone, hint, onClick }: { value: number; label
 }
 
 export function Hero({ today, onScrollTo }: { today: Today; onScrollTo: (id: string) => void }) {
+  const t = useT(M);
   const state = today.nova.state;
   const last = today.continue[0];
   const brief = today.brief;
-  const [hello, setHello] = useState("Hello");
+  const [hello, setHello] = useState("");
   useEffect(() => {
     const h = new Date().getHours();
-    setHello(h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening");
-  }, []);
+    setHello(t(h >= 5 && h < 12 ? "morning" : h >= 12 && h < 18 ? "afternoon" : "evening"));
+  }, [t]);
   return (
     <section className="relative overflow-hidden rounded-[28px] bg-[radial-gradient(120%_140%_at_85%_10%,rgb(246_71_95/0.16),transparent_55%),linear-gradient(180deg,var(--surface),var(--surface-2))] px-6 py-7 md:px-9 md:py-8">
       <div className="flex flex-col-reverse gap-6 md:flex-row md:items-center">
@@ -84,31 +91,31 @@ export function Hero({ today, onScrollTo }: { today: Today; onScrollTo: (id: str
             {hello}, {today.user.first_name}.
           </p>
           <h1 className="mt-1 text-[32px] font-semibold leading-[1.1] tracking-tight md:text-[40px]">
-            Here&apos;s what matters <span className="text-accent">today.</span>
+            {t("whatMatters")} <span className="text-accent">{t("today")}</span>
           </h1>
           <p className="mt-2 flex items-center gap-2 text-[14px] text-text/80" aria-live="polite">
             <span className={cn("size-2 rounded-full", state === "idle" ? "bg-success" : state === "waiting" || state === "clarification" ? "bg-warning" : "bg-accent")} />
-            {stateSentence(state, today)}
+            {stateSentence(state, today, t)}
           </p>
-          <div className="mt-5 grid grid-cols-2 gap-2 xl:flex xl:flex-wrap" aria-label="Your day">
-            <BriefTile value={brief.actions_required} label={brief.actions_required === 1 ? "action required" : "actions required"} tone="accent" onClick={() => onScrollTo("attention")} />
-            <BriefTile value={brief.running + brief.paused} label="running" tone="neutral" onClick={() => onScrollTo("working")} />
-            <BriefTile value={brief.results_ready} label={brief.results_ready === 1 ? "result ready" : "results ready"} tone="success" hint="Tasks completed in the last 24 hours" onClick={() => onScrollTo("results")} />
+          <div className="mt-5 grid grid-cols-2 gap-2 xl:flex xl:flex-wrap" aria-label={t("yourDay")}>
+            <BriefTile value={brief.actions_required} label={t("actionsRequired", { n: brief.actions_required })} tone="accent" onClick={() => onScrollTo("attention")} />
+            <BriefTile value={brief.running + brief.paused} label={t("running")} tone="neutral" onClick={() => onScrollTo("working")} />
+            <BriefTile value={brief.results_ready} label={t("resultsReady", { n: brief.results_ready })} tone="success" hint={t("resultsHint")} onClick={() => onScrollTo("results")} />
             <BriefTile
               value={brief.projects_at_risk.length}
-              label={brief.projects_at_risk.length === 1 ? "project at risk" : "projects at risk"}
+              label={t("projectsAtRisk", { n: brief.projects_at_risk.length })}
               tone="warning"
               hint={
                 brief.projects_at_risk.length
-                  ? `${brief.projects_at_risk.join(", ")} — a task failed recently or ORBIT found contradicting knowledge`
-                  : "A project is at risk when a task failed recently or ORBIT finds contradicting knowledge"
+                  ? t("riskNamed", { names: brief.projects_at_risk.join(", ") })
+                  : t("riskRule")
               }
             />
           </div>
           {last ? (
             <Button variant="primary" className="mt-5 rounded-full px-5" asChild>
               <Link href={`/c/${last.conversation_id}`}>
-                Continue where you left off <ArrowRight />
+                {t("continueWhere")} <ArrowRight />
               </Link>
             </Button>
           ) : null}
@@ -125,26 +132,27 @@ export function Hero({ today, onScrollTo }: { today: Today; onScrollTo: (id: str
 // --- Ask NOVA suggestions ---------------------------------------------------------------------
 
 const SUGGESTIONS = [
-  { label: "Prepare my next sprint", text: "/sprint-planning Prepare my next sprint." },
-  { label: "Review my backlog", text: "/backlog-refinement Review my backlog and tell me what to fix first." },
-  { label: "Create a PRD", text: "/prd " },
-  { label: "Summarize project risks", text: "/risk-analysis Summarize the current risks of this project." },
-];
+  { label: "sugSprint", text: "sugSprintText" },
+  { label: "sugBacklog", text: "sugBacklogText" },
+  { label: "sugPrd", text: null },
+  { label: "sugRisks", text: "sugRisksText" },
+] as const;
 
 export function Suggestions() {
+  const t = useT(M);
   const composer = useComposer();
   return (
-    <div className="flex flex-wrap gap-2" aria-label="Suggested requests">
+    <div className="flex flex-wrap gap-2" aria-label={t("suggested")}>
       {SUGGESTIONS.map((s) => (
         <button
           key={s.label}
           onClick={() => {
-            composer.setDraft(s.text);
+            composer.setDraft(s.text ? t(s.text) : "/prd ");
             document.getElementById("nova-composer")?.focus();
           }}
           className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3.5 py-1.5 text-[13px] text-text/80 transition-colors hover:bg-accent-soft hover:text-accent"
         >
-          <Sparkles className="size-3.5 opacity-60" /> {s.label}
+          <Sparkles className="size-3.5 opacity-60" /> {t(s.label)}
         </button>
       ))}
     </div>
@@ -154,16 +162,17 @@ export function Suggestions() {
 // --- Continue ---------------------------------------------------------------------------------
 
 export function ContinueList({ items }: { items: Today["continue"] }) {
+  const t = useT(M);
   if (!items.length) return null;
   return (
     <section aria-labelledby="continue-title">
-      <h2 id="continue-title" className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-subtle">Continue</h2>
+      <h2 id="continue-title" className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-subtle">{t("continue")}</h2>
       <ul className="grid gap-2 sm:grid-cols-3">
         {items.map((c) => (
           <li key={c.conversation_id}>
             <Link href={`/c/${c.conversation_id}`} className="group block rounded-[16px] bg-surface-2/70 px-4 py-3 transition-colors hover:bg-surface-2">
               <span className="line-clamp-1 text-[14px] font-medium group-hover:text-accent">{c.title}</span>
-              <span className="mt-0.5 block truncate text-[12px] text-subtle">{[c.project_name, `Last active ${timeAgo(c.updated_at)}`].filter(Boolean).join(" · ")}</span>
+              <span className="mt-0.5 block truncate text-[12px] text-subtle">{[c.project_name, t("lastActive", { when: timeAgo(c.updated_at) })].filter(Boolean).join(" · ")}</span>
             </Link>
           </li>
         ))}
@@ -175,6 +184,7 @@ export function ContinueList({ items }: { items: Today["continue"] }) {
 // --- Priority 1: needs your attention ---------------------------------------------------------
 
 function useRecommendationActions() {
+  const t = useT(M);
   const router = useRouter();
   const client = useQueryClient();
   const send = useSendIntent();
@@ -191,13 +201,13 @@ function useRecommendationActions() {
   const run = async (rec: Recommendation, action: RecommendationAction) => {
     if (action.kind === "ignore") {
       dismiss.mutate(rec.id);
-      toast("Ignored. NOVA will bring it back if something changes.");
+      toast(t("ignored"));
     } else if (action.kind === "review") {
       if (action.href.startsWith("http")) window.open(action.href, "_blank", "noopener");
       else router.push(action.href);
     } else if (action.kind === "retry") {
       await api.post(`/executions/${action.task_id}/retry`);
-      toast("Retrying from the last completed step.");
+      toast(t("retrying"));
       if (rec.conversation_id) router.push(`/c/${rec.conversation_id}`);
     } else {
       const result = await send.mutateAsync({
@@ -253,6 +263,7 @@ function SourceIcon({ rec }: { rec: Recommendation }) {
 }
 
 export function Attention({ items, loading }: { items: Recommendation[]; loading: boolean }) {
+  const t = useT(M);
   const { run, pending } = useRecommendationActions();
   const [expanded, setExpanded] = useState(false);
   const [featured, ...rest] = items;
@@ -260,13 +271,13 @@ export function Attention({ items, loading }: { items: Recommendation[]; loading
   return (
     <section id="attention" aria-labelledby="attention-title" className="scroll-mt-6">
       <h2 id="attention-title" className="mb-3 flex items-center gap-2 text-[17px] font-semibold tracking-tight">
-        Needs your attention
+        {t("needsAttention")}
         {items.length ? <span className="rounded-full bg-accent px-2 text-[12px] font-semibold leading-5 text-accent-fg">{items.length}</span> : null}
       </h2>
       {loading ? <Skeleton className="h-40 rounded-[22px]" /> : null}
       {!loading && !featured ? (
         <p className="flex items-center gap-2 rounded-[18px] bg-surface-2/60 px-5 py-4 text-[14px] text-muted">
-          <Check className="size-4 text-success" /> Nothing needs you right now. NOVA will tell you when something does.
+          <Check className="size-4 text-success" /> {t("nothing")}
         </p>
       ) : null}
       <AnimatePresence initial={false}>
@@ -316,7 +327,7 @@ export function Attention({ items, loading }: { items: Recommendation[]; loading
       ) : null}
       {rest.length > 3 ? (
         <button onClick={() => setExpanded(!expanded)} className="mt-1 px-2 text-[13px] text-muted hover:text-accent">
-          {expanded ? "Show less" : `Show ${rest.length - 3} more`}
+          {expanded ? t("showLess") : t("showMore", { n: rest.length - 3 })}
         </button>
       ) : null}
     </section>
@@ -334,11 +345,12 @@ function elapsed(iso: string, now: number): string {
 }
 
 function useTaskControl() {
+  const t = useT(M);
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: "pause" | "continue" | "cancel" }) => api.post(`/executions/${id}/${action}`),
     onSuccess: (_, { action }) => {
-      toast(action === "pause" ? "NOVA will pause after the current step." : action === "continue" ? "NOVA resumes where it stopped." : "Task stopped.");
+      toast(t(action === "pause" ? "toastPause" : action === "continue" ? "toastContinue" : "toastStop"));
       void client.invalidateQueries({ queryKey: ["tasks"] });
       void client.invalidateQueries({ queryKey: keys.today });
     },
@@ -346,6 +358,7 @@ function useTaskControl() {
 }
 
 function WorkingRow({ task, now }: { task: WorkItem; now: number }) {
+  const t = useT(M);
   const { data: detail } = useTask(task.id);
   const control = useTaskControl();
   const steps = detail?.steps ?? [];
@@ -361,11 +374,11 @@ function WorkingRow({ task, now }: { task: WorkItem; now: number }) {
           <Link href={task.conversation_id ? `/c/${task.conversation_id}` : `/work?task=${task.id}`} className="truncate text-[14.5px] font-medium hover:text-accent">
             {task.objective}
           </Link>
-          {paused ? <Badge tone="warning">Paused</Badge> : null}
+          {paused ? <Badge tone="warning">{t("paused")}</Badge> : null}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-subtle">
           {task.skills[0] ? <span className="inline-flex items-center gap-1"><Sparkles className="size-3.5" /> {task.skills.join(" → ")}</span> : null}
-          <span className="inline-flex items-center gap-1"><CircleDot className="size-3.5" /> {paused ? "Paused before the next step" : current?.title ?? task.phase_label ?? "Starting"}</span>
+          <span className="inline-flex items-center gap-1"><CircleDot className="size-3.5" /> {paused ? t("pausedBefore") : current?.title ?? task.phase_label ?? t("starting")}</span>
           <span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" /> {elapsed(task.created_at, now)}</span>
         </div>
         {task.progress_total ? (
@@ -380,17 +393,17 @@ function WorkingRow({ task, now }: { task: WorkItem; now: number }) {
       <div className="flex items-center gap-1">
         {paused ? (
           <Button variant="secondary" size="sm" className="rounded-full" onClick={() => control.mutate({ id: task.id, action: "continue" })} disabled={control.isPending}>
-            <Play /> Resume
+            <Play /> {t("resume")}
           </Button>
         ) : task.status === "running" || task.status === "queued" ? (
-          <Tooltip content="Pause after the current step — completed steps are kept">
-            <Button variant="ghost" size="sm" onClick={() => control.mutate({ id: task.id, action: "pause" })} disabled={control.isPending} aria-label="Pause">
-              <Pause /> Pause
+          <Tooltip content={t("pauseHint")}>
+            <Button variant="ghost" size="sm" onClick={() => control.mutate({ id: task.id, action: "pause" })} disabled={control.isPending} aria-label={t("pause")}>
+              <Pause /> {t("pause")}
             </Button>
           </Tooltip>
         ) : null}
-        <Tooltip content="Stop this task">
-          <Button variant="ghost" size="icon" className="size-8 text-subtle" onClick={() => control.mutate({ id: task.id, action: "cancel" })} disabled={control.isPending} aria-label="Stop">
+        <Tooltip content={t("stopHint")}>
+          <Button variant="ghost" size="icon" className="size-8 text-subtle" onClick={() => control.mutate({ id: task.id, action: "cancel" })} disabled={control.isPending} aria-label={t("stop")}>
             <Square className="!size-3.5" />
           </Button>
         </Tooltip>
@@ -400,6 +413,7 @@ function WorkingRow({ task, now }: { task: WorkItem; now: number }) {
 }
 
 export function WorkingOn({ tasks }: { tasks: WorkItem[] }) {
+  const t = useT(M);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -409,8 +423,8 @@ export function WorkingOn({ tasks }: { tasks: WorkItem[] }) {
   return (
     <section id="working" aria-labelledby="working-title" className="scroll-mt-6">
       <h2 id="working-title" className="mb-1 flex items-center gap-2 text-[15px] font-semibold tracking-tight">
-        NOVA is working on
-        <span className="text-[13px] font-normal text-subtle">{live.length || "nothing right now"}</span>
+        {t("workingOn")}
+        <span className="text-[13px] font-normal text-subtle">{live.length || t("nothingNow")}</span>
       </h2>
       {live.length ? <ul className="divide-y divide-border/70">{live.map((t) => <WorkingRow key={t.id} task={t} now={now} />)}</ul> : null}
     </section>
@@ -420,11 +434,15 @@ export function WorkingOn({ tasks }: { tasks: WorkItem[] }) {
 // --- Priority 3: recent results (timeline) ---------------------------------------------------
 
 export function RecentResults({ artifacts }: { artifacts: ArtifactSummary[] }) {
+  const t = useT(M);
+  const lang = useLang();
+  const { data: types } = useArtifactTypes();
+  const defs = new Map(types?.map((d) => [d.type, d]));
   return (
     <section id="results" aria-labelledby="results-title" className="scroll-mt-6">
       <div className="mb-1 flex items-center justify-between">
-        <h2 id="results-title" className="text-[15px] font-semibold tracking-tight">Recent results</h2>
-        <Link href="/artifacts" className="text-[12.5px] text-subtle hover:text-accent">All results</Link>
+        <h2 id="results-title" className="text-[15px] font-semibold tracking-tight">{t("recentResults")}</h2>
+        <Link href="/artifacts" className="text-[12.5px] text-subtle hover:text-accent">{t("allResults")}</Link>
       </div>
       {artifacts.length ? (
         <ol className="relative ml-1.5 border-l border-border pl-4">
@@ -434,13 +452,13 @@ export function RecentResults({ artifacts }: { artifacts: ArtifactSummary[] }) {
               <Link href={`/artifacts/${a.id}`} className="group flex items-baseline gap-2">
                 <FileText className="size-3.5 shrink-0 translate-y-0.5 text-subtle" />
                 <span className="truncate text-[13.5px] group-hover:text-accent">{a.title}</span>
-                <span className="ml-auto shrink-0 text-[12px] text-subtle">{a.type_name} · v{a.version} · {timeAgo(a.updated_at)}</span>
+                <span className="ml-auto shrink-0 text-[12px] text-subtle">{typeName(defs.get(a.type), lang, a.type_name)} · v{a.version} · {timeAgo(a.updated_at)}</span>
               </Link>
             </li>
           ))}
         </ol>
       ) : (
-        <p className="text-[13.5px] text-subtle">Your work with NOVA will appear here.</p>
+        <p className="text-[13.5px] text-subtle">{t("noResults")}</p>
       )}
     </section>
   );
@@ -449,41 +467,43 @@ export function RecentResults({ artifacts }: { artifacts: ArtifactSummary[] }) {
 // --- Background capabilities: ORBIT context, FORGE quality ------------------------------------
 
 export function ContextStatus({ context }: { context: Today["context"] }) {
+  const t = useT(M);
   if (!context.linked) {
     return (
       <Link href="/settings#orbit" className="block rounded-[18px] bg-surface-2/60 px-4 py-3.5 transition-colors hover:bg-surface-2">
-        <div className="text-[11.5px] font-semibold uppercase tracking-wide text-subtle">Context</div>
+        <div className="text-[11.5px] font-semibold uppercase tracking-wide text-subtle">{t("contextLabel")}</div>
         <div className="mt-1 flex items-center gap-2 text-[14px] font-medium">
-          <Orbit className="size-4 text-subtle" /> ORBIT · Not linked
+          <Orbit className="size-4 text-subtle" /> {t("notLinked")}
         </div>
-        <div className="mt-0.5 text-[12.5px] text-muted">Link your account so NOVA knows your projects. <ChevronRight className="inline size-3.5" /></div>
+        <div className="mt-0.5 text-[12.5px] text-muted">{t("linkHint")} <ChevronRight className="inline size-3.5" /></div>
       </Link>
     );
   }
-  const t = context.totals;
-  const total = t.documents + t.memory_items;
+  const totals = context.totals;
+  const total = totals.documents + totals.memory_items;
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button className="block w-full rounded-[18px] bg-surface-2/60 px-4 py-3.5 text-left transition-colors hover:bg-surface-2">
-          <div className="text-[11.5px] font-semibold uppercase tracking-wide text-subtle">Context</div>
+          <div className="text-[11.5px] font-semibold uppercase tracking-wide text-subtle">{t("contextLabel")}</div>
           <div className="mt-1 flex items-center gap-2 text-[14px] font-medium">
-            <Orbit className="size-4 text-accent" /> ORBIT · {context.error ? "Degraded" : "Connected"}
+            <Orbit className="size-4 text-accent" /> ORBIT · {context.error ? t("degraded") : t("connected")}
           </div>
           <div className="mt-0.5 text-[12.5px] text-muted">
-            {total} sources available{context.projects.length > 1 ? ` across ${context.projects.length} projects` : ""}
-            {context.changes_24h ? ` · ${context.changes_24h} updated today` : ""}
+            {t("sources", { n: total })}
+            {context.projects.length > 1 ? t("acrossProjects", { n: context.projects.length }) : ""}
+            {context.changes_24h ? t("updatedToday", { n: context.changes_24h }) : ""}
           </div>
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80">
-        <div className="text-[13px] font-semibold">What NOVA can use</div>
+        <div className="text-[13px] font-semibold">{t("whatNovaCanUse")}</div>
         <dl className="mt-2 grid grid-cols-2 gap-2">
           {[
-            ["Documents", t.documents],
-            ["Memory", t.memory_items],
-            ["Decisions", t.decisions],
-            ["Sources", t.sources],
+            [t("documents"), totals.documents],
+            [t("memory"), totals.memory_items],
+            [t("decisions"), totals.decisions],
+            [t("sourcesLabel"), totals.sources],
           ].map(([label, value]) => (
             <div key={label as string} className="rounded-[10px] bg-surface-2 px-3 py-2">
               <dt className="text-[11.5px] text-subtle">{label}</dt>
@@ -495,13 +515,13 @@ export function ContextStatus({ context }: { context: Today["context"] }) {
           {context.projects.map((p) => (
             <li key={p.id} className="flex items-center justify-between text-[12.5px]">
               <Link href={`/projects/${p.id}`} className="truncate hover:text-accent">{p.name}</Link>
-              <span className="text-subtle">{p.documents} docs · {p.memory_items} memory</span>
+              <span className="text-subtle">{t("docsMemory", { docs: p.documents, memory: p.memory_items })}</span>
             </li>
           ))}
         </ul>
         {context.error ? <p className="mt-2 text-[12px] text-warning">{context.error}</p> : null}
         <Link href="/context" className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline">
-          Open context <ArrowRight className="size-3.5" />
+          {t("openContext")} <ArrowRight className="size-3.5" />
         </Link>
       </PopoverContent>
     </Popover>
@@ -509,6 +529,7 @@ export function ContextStatus({ context }: { context: Today["context"] }) {
 }
 
 export function QualityStatus({ quality }: { quality: Today["quality"] }) {
+  const t = useT(M);
   const last = quality.last_evaluation;
   return (
     <a
@@ -517,16 +538,16 @@ export function QualityStatus({ quality }: { quality: Today["quality"] }) {
       rel="noreferrer"
       className="block rounded-[18px] bg-surface-2/60 px-4 py-3.5 transition-colors hover:bg-surface-2"
     >
-      <div className="text-[11.5px] font-semibold uppercase tracking-wide text-subtle">Quality</div>
+      <div className="text-[11.5px] font-semibold uppercase tracking-wide text-subtle">{t("quality")}</div>
       <div className="mt-1 flex items-center gap-2 text-[14px] font-medium">
-        <Gauge className={cn("size-4", quality.monitoring ? "text-accent" : "text-subtle")} /> FORGE · {quality.monitoring ? "Monitoring" : "Not connected"}
+        <Gauge className={cn("size-4", quality.monitoring ? "text-accent" : "text-subtle")} /> FORGE · {quality.monitoring ? t("monitoring") : t("notConnected")}
       </div>
       <div className="mt-0.5 text-[12.5px] text-muted">
         {last?.score !== null && last?.score !== undefined
-          ? `Last evaluation: ${Math.round(last.score)}/100 · ${timeAgo(last.at)}`
+          ? t("lastEvaluation", { score: Math.round(last.score), when: timeAgo(last.at) })
           : last
-            ? `Last evaluation ${last.status ?? "queued"} · ${timeAgo(last.at)}`
-            : "No evaluation yet"}
+            ? t("lastEvaluationStatus", { status: last.status ?? t("queued"), when: timeAgo(last.at) })
+            : t("noEvaluation")}
       </div>
     </a>
   );

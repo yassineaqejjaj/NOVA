@@ -8,12 +8,79 @@ import { useState } from "react";
 
 import { Page, PageHeader } from "@/components/shell/page";
 import { useSkill, useSkills } from "@/lib/api/hooks";
+import { defineMessages, useLang, useT } from "@/lib/i18n";
+import { skillArtifactTypeName, skillName, skillSummary } from "@/lib/i18n/catalog";
 import { useComposer } from "@/stores/ui";
 
-const CATEGORIES = ["strategy", "discovery", "prioritization", "definition", "delivery", "analysis", "communication"];
+const CATEGORIES = ["strategy", "discovery", "prioritization", "definition", "delivery", "analysis", "communication"] as const;
+
+const M = defineMessages({
+  en: {
+    cat_strategy: "strategy",
+    cat_discovery: "discovery",
+    cat_prioritization: "prioritization",
+    cat_definition: "definition",
+    cat_delivery: "delivery",
+    cat_analysis: "analysis",
+    cat_communication: "communication",
+    close: "Close",
+    method: "Method · {name}",
+    workflow: "Workflow",
+    produces: "Produces",
+    mode_create: "create",
+    mode_update: "update",
+    orbitContext: "ORBIT context",
+    required: " · required",
+    tools: "Tools",
+    none: "None",
+    inputs: "Inputs",
+    evaluatedBy: "Evaluated by FORGE on",
+    followedBy: "Often followed by: {skills}",
+    useSkill: "Use this Skill",
+    title: "Skills",
+    description: "Versioned product workflows NOVA chooses and combines for you. You never have to pick one — but you can.",
+    search: "Search Skills",
+  },
+  fr: {
+    cat_strategy: "stratégie",
+    cat_discovery: "découverte",
+    cat_prioritization: "priorisation",
+    cat_definition: "définition",
+    cat_delivery: "livraison",
+    cat_analysis: "analyse",
+    cat_communication: "communication",
+    close: "Fermer",
+    method: "Méthode · {name}",
+    workflow: "Workflow",
+    produces: "Produit",
+    mode_create: "création",
+    mode_update: "mise à jour",
+    orbitContext: "Contexte ORBIT",
+    required: " · requis",
+    tools: "Outils",
+    none: "Aucun",
+    inputs: "Entrées",
+    evaluatedBy: "Évalué par FORGE sur",
+    followedBy: "Souvent suivie de : {skills}",
+    useSkill: "Utiliser cette Skill",
+    title: "Skills",
+    description: "Des workflows produit versionnés que NOVA choisit et combine pour vous. Vous n’avez jamais à en choisir un — mais vous le pouvez.",
+    search: "Rechercher des Skills",
+  },
+});
+type Key = keyof typeof M.en;
+
+function useCategoryLabel() {
+  const t = useT(M);
+  return (category: string) => ((CATEGORIES as readonly string[]).includes(category) ? t(`cat_${category}` as Key) : category);
+}
 
 function SkillDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const { data: skill } = useSkill(id);
+  const { data: skills } = useSkills();
+  const t = useT(M);
+  const lang = useLang();
+  const categoryLabel = useCategoryLabel();
   const setDraft = useComposer((s) => s.setDraft);
   const router = useRouter();
   if (!skill) return <div className="p-5"><Skeleton className="h-40" /></div>;
@@ -21,37 +88,37 @@ function SkillDetail({ id, onClose }: { id: string; onClose: () => void }) {
     <div className="flex h-full flex-col">
       <div className="flex items-start gap-2 border-b border-border px-5 py-4">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 text-[12px] text-subtle capitalize">{skill.category} <Badge>v{skill.version}</Badge></div>
-          <h2 className="mt-1 text-[16px] font-semibold">{skill.name}</h2>
+          <div className="flex items-center gap-2 text-[12px] text-subtle capitalize">{categoryLabel(skill.category)} <Badge>v{skill.version}</Badge></div>
+          <h2 className="mt-1 text-[16px] font-semibold">{skillName(skill, lang)}</h2>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close"><X /></Button>
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label={t("close")}><X /></Button>
       </div>
       <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4 text-[13px]">
         <p className="text-muted">{skill.purpose}</p>
         <section>
-          <h3 className="mb-1.5 text-[11.5px] font-medium uppercase tracking-wider text-subtle">Method · {skill.methodology.name}</h3>
+          <h3 className="mb-1.5 text-[11.5px] font-medium uppercase tracking-wider text-subtle">{t("method", { name: skill.methodology.name })}</h3>
           <ul className="list-disc space-y-1 pl-4 text-muted">{skill.methodology.principles.map((p) => <li key={p}>{p}</li>)}</ul>
           {skill.methodology.references.length ? <p className="mt-1.5 text-[12px] text-subtle">{skill.methodology.references.join(" · ")}</p> : null}
         </section>
         <section>
-          <h3 className="mb-1.5 text-[11.5px] font-medium uppercase tracking-wider text-subtle">Workflow</h3>
+          <h3 className="mb-1.5 text-[11.5px] font-medium uppercase tracking-wider text-subtle">{t("workflow")}</h3>
           <ol className="space-y-1.5">{skill.steps.map((s, i) => <li key={s.id} className="flex gap-2"><span className="text-subtle">{i + 1}.</span><span className="text-text">{s.title}</span></li>)}</ol>
         </section>
         <section className="grid grid-cols-2 gap-3">
-          <div><div className="text-[11.5px] text-subtle">Produces</div><div>{skill.artifact_type_name} ({skill.mode})</div></div>
-          <div><div className="text-[11.5px] text-subtle">ORBIT context</div><div>{skill.expected_context.orbit_intent}{skill.expected_context.required ? " · required" : ""}</div></div>
-          <div><div className="text-[11.5px] text-subtle">Tools</div><div>{skill.tools.join(", ") || "None"}</div></div>
-          <div><div className="text-[11.5px] text-subtle">Inputs</div><div>{skill.inputs.map((i) => i.name + (i.required ? "*" : "")).join(", ") || "—"}</div></div>
+          <div><div className="text-[11.5px] text-subtle">{t("produces")}</div><div>{skillArtifactTypeName(skill, lang)} ({t(`mode_${skill.mode}`)})</div></div>
+          <div><div className="text-[11.5px] text-subtle">{t("orbitContext")}</div><div>{skill.expected_context.orbit_intent}{skill.expected_context.required ? t("required") : ""}</div></div>
+          <div><div className="text-[11.5px] text-subtle">{t("tools")}</div><div>{skill.tools.join(", ") || t("none")}</div></div>
+          <div><div className="text-[11.5px] text-subtle">{t("inputs")}</div><div>{skill.inputs.map((i) => i.name + (i.required ? "*" : "")).join(", ") || "—"}</div></div>
         </section>
         <section>
-          <h3 className="mb-1.5 text-[11.5px] font-medium uppercase tracking-wider text-subtle">Evaluated by FORGE on</h3>
+          <h3 className="mb-1.5 text-[11.5px] font-medium uppercase tracking-wider text-subtle">{t("evaluatedBy")}</h3>
           <ul className="space-y-1 text-muted">{skill.evaluation.criteria.map((c) => <li key={c.key}>{c.question}</li>)}</ul>
         </section>
-        {skill.composes_with.length ? <p className="text-[12px] text-subtle">Often followed by: {skill.composes_with.join(", ")}</p> : null}
+        {skill.composes_with.length ? <p className="text-[12px] text-subtle">{t("followedBy", { skills: skill.composes_with.map((ref) => { const s = skills?.find((x) => x.id === ref); return s ? skillName(s, lang) : ref; }).join(", ") })}</p> : null}
         <p className="font-mono text-[10.5px] text-subtle">{skill.content_hash.slice(0, 16)}</p>
       </div>
       <div className="border-t border-border px-5 py-3">
-        <Button variant="primary" size="sm" onClick={() => { setDraft(`/${skill.id} `); router.push("/"); }}>Use this Skill</Button>
+        <Button variant="primary" size="sm" onClick={() => { setDraft(`/${skill.id} `); router.push("/"); }}>{t("useSkill")}</Button>
       </div>
     </div>
   );
@@ -59,17 +126,22 @@ function SkillDetail({ id, onClose }: { id: string; onClose: () => void }) {
 
 export default function SkillsPage() {
   const { data: skills, isLoading } = useSkills();
+  const t = useT(M);
+  const lang = useLang();
+  const categoryLabel = useCategoryLabel();
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const filtered = (skills ?? []).filter((s) => !q || `${s.name} ${s.summary} ${s.triggers.join(" ")}`.toLowerCase().includes(q.toLowerCase()));
+  const filtered = (skills ?? []).filter(
+    (s) => !q || `${s.name} ${skillName(s, lang)} ${s.summary} ${skillSummary(s, lang)} ${s.triggers.join(" ")}`.toLowerCase().includes(q.toLowerCase()),
+  );
   return (
     <div className="flex min-h-screen">
       <div className="min-w-0 flex-1">
         <Page wide>
-          <PageHeader title="Skills" description="Versioned product workflows NOVA chooses and combines for you. You never have to pick one — but you can." />
+          <PageHeader title={t("title")} description={t("description")} />
           <div className="relative mb-6 max-w-md">
             <Search className="absolute left-3 top-2.5 size-4 text-subtle" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search Skills" className="pl-9" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search")} className="pl-9" />
           </div>
           {isLoading ? <Skeleton className="h-60" /> : null}
           <div className="space-y-8">
@@ -78,12 +150,12 @@ export default function SkillsPage() {
               if (!list.length) return null;
               return (
                 <section key={category}>
-                  <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wider text-subtle">{category}</h2>
+                  <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wider text-subtle">{categoryLabel(category)}</h2>
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {list.map((s) => (
                       <button key={s.id} onClick={() => setSelected(s.id)} className={cn("rounded-[12px] border border-border bg-surface px-3.5 py-3 text-left transition-colors hover:border-border-strong", selected === s.id && "border-accent/40")}>
-                        <div className="flex items-center gap-2 text-[13.5px] font-medium">{s.name}<span className="ml-auto text-[11px] text-subtle">v{s.version}</span></div>
-                        <p className="mt-0.5 line-clamp-2 text-[12.5px] text-muted">{s.summary}</p>
+                        <div className="flex items-center gap-2 text-[13.5px] font-medium">{skillName(s, lang)}<span className="ml-auto text-[11px] text-subtle">v{s.version}</span></div>
+                        <p className="mt-0.5 line-clamp-2 text-[12.5px] text-muted">{skillSummary(s, lang)}</p>
                       </button>
                     ))}
                   </div>

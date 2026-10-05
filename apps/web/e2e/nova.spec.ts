@@ -202,3 +202,25 @@ test("Home is a command center: brief, continue, real results and the Timeline c
   await expect(page.getByRole("heading", { name: "Timeline" })).toBeVisible();
   await expect(page.getByText("NOVA", { exact: true }).first()).toBeVisible();
 });
+
+test("Settings: switch the interface to French and pick an orb color (saved to the profile)", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/settings");
+  await page.getByRole("radio", { name: "Violet" }).click();
+  await expect(page.getByRole("radio", { name: "Violet" })).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("radio", { name: "Français" }).click();
+  await expect(page.getByRole("heading", { name: "Paramètres" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Accueil" })).toBeVisible();
+
+  // Saved server-side: a fresh browser storage still gets French + violet from the profile.
+  await page.evaluate(() => localStorage.clear());
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /Voici l’essentiel/ })).toBeVisible();
+  await expect(page.getByPlaceholder(/Demandez ce que vous voulez à NOVA/)).toBeVisible();
+  const me = await page.evaluate(() => fetch("/api/v1/me").then((r) => r.json()));
+  expect(me.preferences).toMatchObject({ language: "fr", orb_color: "violet" });
+
+  await page.goto("/settings");
+  await page.getByRole("radio", { name: "English" }).click();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+});

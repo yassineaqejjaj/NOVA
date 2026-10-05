@@ -15,7 +15,13 @@ import { $createParagraphNode, $createTextNode, $getRoot, type EditorState, type
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect, useMemo, useRef } from "react";
 
+import { defineMessages, useT } from "@/lib/i18n";
 import { useActiveEditor } from "@/stores/editor";
+
+const M = defineMessages({
+  en: { placeholder: "Write, or ask NOVA to draft this section…" },
+  fr: { placeholder: "Écrivez, ou demandez à NOVA de rédiger cette section…" },
+});
 
 /** Registers the focused section editor so the document toolbar can format it. */
 function FocusTracker() {
@@ -97,6 +103,7 @@ export function RichTextEditor({
   placeholder?: string;
   ariaLabel: string;
 }) {
+  const t = useT(M);
   const previous = useRef(blocks);
   previous.current = blocks;
   const initialConfig = useMemo(
@@ -122,7 +129,7 @@ export function RichTextEditor({
               className="nova-editor min-h-[28px] text-[14.5px] leading-relaxed text-text outline-none"
             />
           }
-          placeholder={<div className="pointer-events-none absolute left-0 top-0 text-[14.5px] text-subtle">{placeholder ?? "Write, or ask NOVA to draft this section…"}</div>}
+          placeholder={<div className="pointer-events-none absolute left-0 top-0 text-[14.5px] text-subtle">{placeholder ?? t("placeholder")}</div>}
           ErrorBoundary={LexicalErrorBoundary}
         />
         <HistoryPlugin />

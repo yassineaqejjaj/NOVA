@@ -7,6 +7,82 @@ import { AlertTriangle, CheckCircle2, CircleDashed, ExternalLink, FileText, Shie
 import { api } from "@/lib/api/client";
 import { useArtifact, useResume } from "@/lib/api/hooks";
 import type { ArtifactContent, ArtifactItem, QualityCheck, SectionDiff } from "@/lib/api/types";
+import { defineMessages, useLang, useT } from "@/lib/i18n";
+import { sectionTitle } from "@/lib/i18n/catalog";
+
+const M = defineMessages({
+  en: {
+    whatWillHappen: "What will happen",
+    impact: "Impact",
+    preview: "Preview of changes",
+    qualityCheck: "Quality check",
+    becomesCurrent: (v: { version: number | null; title: string }) => `Version ${v.version} of “${v.title}” becomes the current version.`,
+    staysInHistory: "Version {version} stays in the history — you can compare or restore it at any time.",
+    sectionsChanged: "Sections changed",
+    itemsAdded: "Items added",
+    itemsUpdated: "Items updated",
+    itemsRemoved: "Items removed",
+    colItem: "Item",
+    colSection: "Section",
+    colChange: "Change",
+    colPriority: "Priority",
+    change_New: "New",
+    change_Updated: "Updated",
+    change_Removed: "Removed",
+    change_Rewritten: "Rewritten",
+    sectionText: "Section text",
+    noChange: "No content change.",
+    novaCalls: "NOVA calls",
+    aTool: "a tool",
+    externalWarning: "This changes data outside NOVA and may not be reversible from here.",
+    cancel: "Cancel",
+    reject: "Reject",
+    approve: "Approve",
+    approveAll: "Approve all",
+    // Deterministic quality checks computed by the API (labels keyed by check key).
+    quality_grounded: "Grounded in sources",
+    quality_unsupported: "No unsupported claims",
+    quality_complete: "All sections drafted",
+    quality_acceptance: "Stories have acceptance criteria",
+    quality_forge: "Consistent with context (FORGE)",
+  },
+  fr: {
+    whatWillHappen: "Ce qui va se passer",
+    impact: "Impact",
+    preview: "Aperçu des modifications",
+    qualityCheck: "Contrôle qualité",
+    becomesCurrent: (v: { version: number | null; title: string }) => `La version ${v.version} de « ${v.title} » devient la version courante.`,
+    staysInHistory: "La version {version} reste dans l’historique — vous pouvez la comparer ou la restaurer à tout moment.",
+    sectionsChanged: "Sections modifiées",
+    itemsAdded: "Éléments ajoutés",
+    itemsUpdated: "Éléments mis à jour",
+    itemsRemoved: "Éléments supprimés",
+    colItem: "Élément",
+    colSection: "Section",
+    colChange: "Modification",
+    colPriority: "Priorité",
+    change_New: "Nouveau",
+    change_Updated: "Mis à jour",
+    change_Removed: "Supprimé",
+    change_Rewritten: "Réécrit",
+    sectionText: "Texte de la section",
+    noChange: "Aucune modification de contenu.",
+    novaCalls: "NOVA appelle",
+    aTool: "un outil",
+    externalWarning: "Cette action modifie des données en dehors de NOVA et pourrait ne pas être réversible depuis ici.",
+    cancel: "Annuler",
+    reject: "Rejeter",
+    approve: "Approuver",
+    approveAll: "Tout approuver",
+    quality_grounded: "Fondé sur des sources",
+    quality_unsupported: "Aucune affirmation non étayée",
+    quality_complete: "Toutes les sections rédigées",
+    quality_acceptance: "Les stories ont des critères d’acceptation",
+    quality_forge: "Cohérent avec le contexte (FORGE)",
+  },
+});
+
+const QUALITY_KEYS = new Set(["grounded", "unsupported", "complete", "acceptance", "forge"]);
 
 export interface ApprovalData {
   id: string;
@@ -48,6 +124,10 @@ function Heading({ children }: { children: React.ReactNode }) {
 }
 
 function QualityList({ checks }: { checks: QualityCheck[] }) {
+  const t = useT(M);
+  const lang = useLang();
+  // English keeps the API label as is; French uses the known label for the check key.
+  const label = (c: QualityCheck) => (lang !== "en" && QUALITY_KEYS.has(c.key) ? t(`quality_${c.key}` as keyof typeof M.en) : c.label);
   return (
     <ul className="space-y-1.5">
       {checks.map((c) => (
@@ -60,7 +140,7 @@ function QualityList({ checks }: { checks: QualityCheck[] }) {
             <CircleDashed className="mt-0.5 size-4 shrink-0 text-subtle" />
           )}
           <span>
-            {c.label}
+            {label(c)}
             {c.detail ? <span className="text-subtle"> · {c.detail}</span> : null}
           </span>
         </li>
@@ -70,6 +150,8 @@ function QualityList({ checks }: { checks: QualityCheck[] }) {
 }
 
 function ArtifactChanges({ approval }: { approval: ApprovalData }) {
+  const t = useT(M);
+  const lang = useLang();
   const artifactId = approval.artifact_id ?? null;
   const proposedVersion = approval.proposed_version ?? null;
   const { data: current } = useArtifact(artifactId);
@@ -81,7 +163,7 @@ function ArtifactChanges({ approval }: { approval: ApprovalData }) {
   });
   if (!current || !proposed || !diff.data) return <div className="space-y-3"><Skeleton className="h-20" /><Skeleton className="h-32" /></div>;
 
-  const titles = Object.fromEntries(proposed.definition.sections.map((s) => [s.key, s.title]));
+  const titles = Object.fromEntries(proposed.definition.sections.map((s) => [s.key, sectionTitle(proposed.definition, s, lang)]));
   const changed = diff.data.sections.filter((s) => s.status !== "unchanged");
   const rows: PreviewRow[] = changed.flatMap((s) => {
     const section = titles[s.key] ?? s.key;
@@ -96,27 +178,27 @@ function ArtifactChanges({ approval }: { approval: ApprovalData }) {
       }),
       ...s.removed_items.map((id) => ({ key: `r-${id}`, title: findItem(current.content, s.key, id)?.title ?? id, section, change: "Removed" as const })),
     ];
-    return items.length ? items : [{ key: `s-${s.key}`, title: s.after_text.slice(0, 90) || "Section text", section, change: "Rewritten" as const }];
+    return items.length ? items : [{ key: `s-${s.key}`, title: s.after_text.slice(0, 90) || t("sectionText"), section, change: "Rewritten" as const }];
   });
   const count = (fn: (s: SectionDiff) => number) => changed.reduce((n, s) => n + fn(s), 0);
   const impact = [
-    { label: "Sections changed", value: changed.length },
-    { label: "Items added", value: count((s) => s.added_items.length) },
-    { label: "Items updated", value: count((s) => s.changed_items.length) },
-    { label: "Items removed", value: count((s) => s.removed_items.length) },
+    { label: t("sectionsChanged"), value: changed.length },
+    { label: t("itemsAdded"), value: count((s) => s.added_items.length) },
+    { label: t("itemsUpdated"), value: count((s) => s.changed_items.length) },
+    { label: t("itemsRemoved"), value: count((s) => s.removed_items.length) },
   ];
 
   return (
     <div className="space-y-5">
       <section>
-        <Heading>What will happen</Heading>
+        <Heading>{t("whatWillHappen")}</Heading>
         <ul className="space-y-1.5 text-[13px] text-muted">
-          <li className="flex gap-2"><FileText className="mt-0.5 size-4 shrink-0 text-accent" /> Version {proposedVersion} of “{proposed.title}” becomes the current version.</li>
-          <li className="flex gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" /> Version {current.version} stays in the history — you can compare or restore it at any time.</li>
+          <li className="flex gap-2"><FileText className="mt-0.5 size-4 shrink-0 text-accent" /> {t("becomesCurrent", { version: proposedVersion, title: proposed.title })}</li>
+          <li className="flex gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" /> {t("staysInHistory", { version: current.version })}</li>
         </ul>
       </section>
       <section>
-        <Heading>Impact</Heading>
+        <Heading>{t("impact")}</Heading>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {impact.map((i) => (
             <div key={i.label} className="rounded-[12px] border border-border bg-background/60 px-3 py-2.5">
@@ -127,28 +209,28 @@ function ArtifactChanges({ approval }: { approval: ApprovalData }) {
         </div>
       </section>
       <section>
-        <Heading>Preview of changes</Heading>
+        <Heading>{t("preview")}</Heading>
         <div className="max-h-56 overflow-auto rounded-[12px] border border-border">
           <table className="w-full text-left text-[12.5px]">
             <thead className="sticky top-0 bg-surface-2 text-[11.5px] text-subtle">
-              <tr><th className="px-3 py-2 font-medium">Item</th><th className="px-3 py-2 font-medium max-sm:hidden">Section</th><th className="px-3 py-2 font-medium">Change</th><th className="px-3 py-2 font-medium max-sm:hidden">Priority</th></tr>
+              <tr><th className="px-3 py-2 font-medium">{t("colItem")}</th><th className="px-3 py-2 font-medium max-sm:hidden">{t("colSection")}</th><th className="px-3 py-2 font-medium">{t("colChange")}</th><th className="px-3 py-2 font-medium max-sm:hidden">{t("colPriority")}</th></tr>
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((r) => (
                 <tr key={r.key}>
                   <td className="px-3 py-2"><span className="line-clamp-2">{r.title}</span></td>
                   <td className="px-3 py-2 text-muted max-sm:hidden">{r.section}</td>
-                  <td className="px-3 py-2"><Badge tone={CHANGE_TONE[r.change]}>{r.change}</Badge></td>
+                  <td className="px-3 py-2"><Badge tone={CHANGE_TONE[r.change]}>{t(`change_${r.change}`)}</Badge></td>
                   <td className="px-3 py-2 text-muted max-sm:hidden">{r.priority ?? "—"}</td>
                 </tr>
               ))}
-              {!rows.length ? <tr><td colSpan={4} className="px-3 py-3 text-subtle">No content change.</td></tr> : null}
+              {!rows.length ? <tr><td colSpan={4} className="px-3 py-3 text-subtle">{t("noChange")}</td></tr> : null}
             </tbody>
           </table>
         </div>
       </section>
       <section>
-        <Heading>Quality check</Heading>
+        <Heading>{t("qualityCheck")}</Heading>
         <QualityList checks={proposed.quality} />
       </section>
     </div>
@@ -156,20 +238,21 @@ function ArtifactChanges({ approval }: { approval: ApprovalData }) {
 }
 
 function ExternalWrite({ approval }: { approval: ApprovalData }) {
+  const t = useT(M);
   const request = approval.tool_request;
   const entries = Object.entries(request?.arguments ?? {});
   return (
     <div className="space-y-5">
       <section>
-        <Heading>What will happen</Heading>
+        <Heading>{t("whatWillHappen")}</Heading>
         <ul className="space-y-1.5 text-[13px] text-muted">
-          <li className="flex gap-2"><ExternalLink className="mt-0.5 size-4 shrink-0 text-accent" /> NOVA calls <code className="rounded bg-surface-2 px-1">{request?.tool ?? "a tool"}</code>{request?.reason ? ` — ${request.reason}` : "."}</li>
-          <li className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" /> This changes data outside NOVA and may not be reversible from here.</li>
+          <li className="flex gap-2"><ExternalLink className="mt-0.5 size-4 shrink-0 text-accent" /> {t("novaCalls")} <code className="rounded bg-surface-2 px-1">{request?.tool ?? t("aTool")}</code>{request?.reason ? ` — ${request.reason}` : "."}</li>
+          <li className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" /> {t("externalWarning")}</li>
         </ul>
       </section>
       {entries.length ? (
         <section>
-          <Heading>Preview of changes</Heading>
+          <Heading>{t("preview")}</Heading>
           <div className="max-h-56 overflow-auto rounded-[12px] border border-border">
             <table className="w-full text-left text-[12.5px]">
               <tbody className="divide-y divide-border">
@@ -200,6 +283,7 @@ export function ApprovalDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const resume = useResume();
+  const t = useT(M);
   const decide = (action: "approve" | "reject") => {
     if (!taskId) return;
     resume.mutate({ taskId, value: { action } }, { onSuccess: () => onOpenChange(false) });
@@ -209,10 +293,10 @@ export function ApprovalDialog({
       <DialogContent title={approval.title} description={approval.description} className="top-[6vh] max-h-[88vh] w-[min(94vw,680px)] overflow-y-auto rounded-[20px]">
         {approval.action === "external_write" ? <ExternalWrite approval={approval} /> : <ArtifactChanges approval={approval} />}
         <div className={cn("mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4")}>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="secondary" onClick={() => decide("reject")} disabled={resume.isPending}>Reject</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>
+          <Button variant="secondary" onClick={() => decide("reject")} disabled={resume.isPending}>{t("reject")}</Button>
           <Button variant="primary" onClick={() => decide("approve")} disabled={resume.isPending}>
-            {approval.action === "external_write" ? "Approve" : "Approve all"}
+            {approval.action === "external_write" ? t("approve") : t("approveAll")}
           </Button>
         </div>
       </DialogContent>

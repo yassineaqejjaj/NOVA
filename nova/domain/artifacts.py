@@ -73,6 +73,12 @@ class ArtifactType(BaseModel):
     description: str = ""
     icon: str = "file-text"
     sections: list[SectionDefinition]
+    # Display translations, e.g. {"fr": {"name": …, "description": …, "sections": {key: {"title": …}}}}.
+    # Prompts and schemas always use the canonical (English) definition.
+    translations: dict[str, dict[str, Any]] = Field(default_factory=dict)
+
+    def localized_name(self, lang: str) -> str:
+        return str(self.translations.get(lang, {}).get("name") or self.name)
 
     def section(self, key: str) -> SectionDefinition | None:
         return next((s for s in self.sections if s.key == key), None)

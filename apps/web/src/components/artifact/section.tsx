@@ -23,23 +23,77 @@ import { toast } from "sonner";
 import { NovaMark } from "@/components/shell/nova-mark";
 import { api } from "@/lib/api/client";
 import { keys } from "@/lib/api/hooks";
-import type { ArtifactItem, CommentInfo, SectionContent, SectionDefinition } from "@/lib/api/types";
+import type { ArtifactItem, ArtifactTypeDef, CommentInfo, SectionContent, SectionDefinition } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
+import { defineMessages, useLang, useT } from "@/lib/i18n";
+import { sectionDescription, sectionTitle } from "@/lib/i18n/catalog";
 import { useComposer } from "@/stores/ui";
 
 import { CitationChip, ItemsEditor } from "./items-editor";
 import { RichTextEditor } from "./rich-text-editor";
 
+const M = defineMessages({
+  en: {
+    improve: "Improve writing",
+    improveInstruction: "Improve the writing of this section: clearer and more concise, keep the same facts and citations.",
+    challenge: "Challenge assumptions",
+    challengeInstruction: "Challenge the assumptions in this section: make weak assumptions, risks and open questions explicit.",
+    evidence: "Add evidence",
+    evidenceInstruction: "Strengthen this section with evidence from the project context and cite each source.",
+    summarize: "Summarize",
+    summarizeInstruction: "Summarize this section: keep only what matters, keep the citations.",
+    draft: "Draft this section",
+    draftInstruction: "Draft this section from the project context and the rest of the document.",
+    updating: (v: { title: string }) => `NOVA is updating “${v.title}”.`,
+    comment: "Comment",
+    askNova: "Ask NOVA",
+    custom: "Custom instruction…",
+    askQuestion: "Ask a question about it",
+    about: (v: { title: string }) => `About “${v.title}”: `,
+    askToUpdate: (v: { title: string }) => `Ask NOVA to update “${v.title}”`,
+    customPlaceholder: "e.g. make the metrics measurable",
+    onlyThisSection: "Only this section changes. A new version is created.",
+    run: "Run",
+    resolve: "Resolve",
+    addComment: "Add a comment",
+  },
+  fr: {
+    improve: "Améliorer la rédaction",
+    improveInstruction: "Améliore la rédaction de cette section : plus claire et plus concise, en conservant les mêmes faits et les mêmes citations.",
+    challenge: "Remettre en question les hypothèses",
+    challengeInstruction: "Remets en question les hypothèses de cette section : rends explicites les hypothèses fragiles, les risques et les questions ouvertes.",
+    evidence: "Ajouter des preuves",
+    evidenceInstruction: "Renforce cette section avec des éléments probants issus du contexte du projet et cite chaque source.",
+    summarize: "Résumer",
+    summarizeInstruction: "Résume cette section : ne garde que l’essentiel et conserve les citations.",
+    draft: "Rédiger cette section",
+    draftInstruction: "Rédige cette section à partir du contexte du projet et du reste du document.",
+    updating: (v: { title: string }) => `NOVA met à jour « ${v.title} ».`,
+    comment: "Commenter",
+    askNova: "Demander à NOVA",
+    custom: "Instruction personnalisée…",
+    askQuestion: "Poser une question à ce sujet",
+    about: (v: { title: string }) => `À propos de « ${v.title} » : `,
+    askToUpdate: (v: { title: string }) => `Demander à NOVA de mettre à jour « ${v.title} »`,
+    customPlaceholder: "ex. : rendre les indicateurs mesurables",
+    onlyThisSection: "Seule cette section est modifiée. Une nouvelle version est créée.",
+    run: "Lancer",
+    resolve: "Résoudre",
+    addComment: "Ajouter un commentaire",
+  },
+});
+
 const ASK_ACTIONS = [
-  { label: "Improve writing", icon: PenLine, instruction: "Improve the writing of this section: clearer and more concise, keep the same facts and citations." },
-  { label: "Challenge assumptions", icon: ShieldQuestion, instruction: "Challenge the assumptions in this section: make weak assumptions, risks and open questions explicit." },
-  { label: "Add evidence", icon: FileSearch, instruction: "Strengthen this section with evidence from the project context and cite each source." },
-  { label: "Summarize", icon: Text, instruction: "Summarize this section: keep only what matters, keep the citations." },
-];
-const DRAFT_ACTIONS = [{ label: "Draft this section", icon: Sparkles, instruction: "Draft this section from the project context and the rest of the document." }];
+  { label: "improve", icon: PenLine, instruction: "improveInstruction" },
+  { label: "challenge", icon: ShieldQuestion, instruction: "challengeInstruction" },
+  { label: "evidence", icon: FileSearch, instruction: "evidenceInstruction" },
+  { label: "summarize", icon: Text, instruction: "summarizeInstruction" },
+] as const;
+const DRAFT_ACTIONS = [{ label: "draft", icon: Sparkles, instruction: "draftInstruction" }] as const;
 
 export function ArtifactSection({
   artifactId,
+  artifactType,
   definition,
   content,
   editable,
@@ -51,6 +105,8 @@ export function ArtifactSection({
   number,
 }: {
   artifactId: string;
+  /** The Artifact type, for the localized section title and description. */
+  artifactType?: ArtifactTypeDef;
   definition: SectionDefinition;
   content: SectionContent;
   editable: boolean;
@@ -61,6 +117,10 @@ export function ArtifactSection({
   conversationId: string | null;
   number?: number;
 }) {
+  const t = useT(M);
+  const lang = useLang();
+  const title = sectionTitle(artifactType, definition, lang);
+  const description = sectionDescription(artifactType, definition, lang);
   const [open, setOpen] = useState(true);
   const [regenOpen, setRegenOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
@@ -78,7 +138,7 @@ export function ArtifactSection({
     onSuccess: (result) => {
       setRegenOpen(false);
       setInstruction("");
-      toast(`NOVA is updating “${definition.title}”.`);
+      toast(t("updating", { title }));
       void client.invalidateQueries({ queryKey: ["conversation"] });
       if (result.conversation_id !== conversationId) router.push(`/c/${result.conversation_id}?artifact=${artifactId}`);
     },
@@ -106,7 +166,7 @@ export function ArtifactSection({
           <ChevronRight className={cn("size-4 text-subtle transition-transform", open && "rotate-90")} />
           <h3 className={cn("text-[15px] font-semibold tracking-tight", empty && "text-muted")}>
             {number ? `${number}. ` : ""}
-            {definition.title}
+            {title}
           </h3>
         </button>
         {uniqueCitations.length ? (
@@ -120,8 +180,8 @@ export function ArtifactSection({
               <MessageSquare /> {open_comments.length}
             </Button>
           ) : null}
-          <Tooltip content="Comment">
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => setCommentsOpen(!commentsOpen)} aria-label="Comment"><MessageSquarePlus className="!size-3.5" /></Button>
+          <Tooltip content={t("comment")}>
+            <Button variant="ghost" size="icon" className="size-7" onClick={() => setCommentsOpen(!commentsOpen)} aria-label={t("comment")}><MessageSquarePlus className="!size-3.5" /></Button>
           </Tooltip>
           {editable ? (
             <Popover open={regenOpen} onOpenChange={setRegenOpen}>
@@ -129,35 +189,35 @@ export function ArtifactSection({
                 <DropdownMenuTrigger asChild>
                   <PopoverAnchor asChild>
                     <button className="inline-flex h-7 items-center gap-1.5 rounded-full border border-accent/40 bg-accent-soft px-2.5 text-[12px] font-medium text-accent hover:bg-accent/15">
-                      <NovaMark size={12} /> Ask NOVA
+                      <NovaMark size={12} /> {t("askNova")}
                     </button>
                   </PopoverAnchor>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   {(empty ? DRAFT_ACTIONS : ASK_ACTIONS).map((a) => (
-                    <DropdownMenuItem key={a.label} onSelect={() => run(a.instruction)}>
-                      <a.icon /> {a.label}
+                    <DropdownMenuItem key={a.label} onSelect={() => run(t(a.instruction))}>
+                      <a.icon /> {t(a.label)}
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuItem onSelect={() => setTimeout(() => setRegenOpen(true), 0)}>
-                    <Wand2 /> Custom instruction…
+                    <Wand2 /> {t("custom")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => {
-                      setDraft(`About “${definition.title}”: `);
+                      setDraft(t("about", { title }));
                       document.getElementById("nova-composer")?.focus();
                     }}
                   >
-                    <MessageSquare /> Ask a question about it
+                    <MessageSquare /> {t("askQuestion")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <PopoverContent align="end">
                 <form onSubmit={(e) => { e.preventDefault(); run(instruction); }} className="space-y-2">
-                  <div className="text-[13px] font-medium">Ask NOVA to update “{definition.title}”</div>
-                  <Textarea rows={3} value={instruction} onChange={(e) => setInstruction(e.target.value)} placeholder="e.g. make the metrics measurable" autoFocus />
-                  <p className="text-[11.5px] text-subtle">Only this section changes. A new version is created.</p>
-                  <div className="flex justify-end"><Button type="submit" size="sm" variant="primary" disabled={regenerate.isPending}>Run</Button></div>
+                  <div className="text-[13px] font-medium">{t("askToUpdate", { title })}</div>
+                  <Textarea rows={3} value={instruction} onChange={(e) => setInstruction(e.target.value)} placeholder={t("customPlaceholder")} autoFocus />
+                  <p className="text-[11.5px] text-subtle">{t("onlyThisSection")}</p>
+                  <div className="flex justify-end"><Button type="submit" size="sm" variant="primary" disabled={regenerate.isPending}>{t("run")}</Button></div>
                 </form>
               </PopoverContent>
             </Popover>
@@ -168,13 +228,13 @@ export function ArtifactSection({
         {open ? (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
             <div className="pl-6 pt-2">
-              {definition.description && empty ? <p className="mb-1 text-[12.5px] text-subtle">{definition.description}</p> : null}
+              {description && empty ? <p className="mb-1 text-[12.5px] text-subtle">{description}</p> : null}
               {content.kind === "rich_text" ? (
                 <RichTextEditor
                   key={versionKey}
                   blocks={content.blocks}
                   editable={editable}
-                  ariaLabel={definition.title}
+                  ariaLabel={title}
                   onChange={(blocks) => onChange({ ...content, blocks })}
                 />
               ) : (
@@ -186,12 +246,12 @@ export function ArtifactSection({
                     <div key={c.id} className={cn("text-[13px]", c.resolved && "opacity-50")}>
                       <span className="font-medium">{c.author_name}</span> <span className="text-[11.5px] text-subtle">{timeAgo(c.created_at)}</span>
                       <p className="text-muted">{c.body}</p>
-                      {!c.resolved ? <button onClick={() => resolve.mutate(c.id)} className="text-[11.5px] text-accent hover:underline">Resolve</button> : null}
+                      {!c.resolved ? <button onClick={() => resolve.mutate(c.id)} className="text-[11.5px] text-accent hover:underline">{t("resolve")}</button> : null}
                     </div>
                   ))}
                   <form onSubmit={(e) => { e.preventDefault(); if (comment.trim()) addComment.mutate(); }} className="flex gap-2">
-                    <Textarea rows={1} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Add a comment" className="min-h-0" />
-                    <Button type="submit" size="sm" disabled={!comment.trim()}>Comment</Button>
+                    <Textarea rows={1} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t("addComment")} className="min-h-0" />
+                    <Button type="submit" size="sm" disabled={!comment.trim()}>{t("comment")}</Button>
                   </form>
                 </div>
               ) : null}

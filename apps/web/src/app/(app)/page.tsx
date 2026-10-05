@@ -16,12 +16,19 @@ import {
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
 import { TopSearch } from "@/components/shell/sidebar";
 import { useArtifacts, useTasks, useToday } from "@/lib/api/hooks";
+import { defineMessages, useT } from "@/lib/i18n";
+
+const M = defineMessages({
+  en: { status: "NOVA status", request: "New request", placeholder: "Ask NOVA anything — what do you want to get done?", capabilities: "Capabilities" },
+  fr: { status: "Statut de NOVA", request: "Nouvelle demande", placeholder: "Demandez ce que vous voulez à NOVA — que voulez-vous accomplir ?", capabilities: "Capacités" },
+});
 
 /**
  * Home — NOVA's command center: what NOVA knows, what it is doing, what needs the user now.
  * Everything starts from "Ask NOVA"; ORBIT (context) and FORGE (quality) stay background capabilities.
  */
 export default function HomePage() {
+  const t = useT(M);
   const { data: today, isLoading } = useToday();
   const { data: active } = useTasks("active");
   const { data: artifacts } = useArtifacts({});
@@ -32,7 +39,7 @@ export default function HomePage() {
       <div className="mb-4 flex items-center justify-between gap-3">
         <TopSearch />
         {today ? (
-          <span className="flex items-center gap-2 rounded-full bg-surface-2/80 py-1 pl-1.5 pr-3 text-[12.5px] text-muted" aria-label="NOVA status">
+          <span className="flex items-center gap-2 rounded-full bg-surface-2/80 py-1 pl-1.5 pr-3 text-[12.5px] text-muted" aria-label={t("status")}>
             <NovaOrb state={today.nova.state} size={22} /> {ORB_LABEL[today.nova.state]}
           </span>
         ) : null}
@@ -40,9 +47,9 @@ export default function HomePage() {
 
       {today ? <Hero today={today} onScrollTo={scrollTo} /> : <Skeleton className="h-[230px] rounded-[28px]" />}
 
-      <section aria-label="New request" className="mt-6 space-y-3">
+      <section aria-label={t("request")} className="mt-6 space-y-3">
         <Suggestions />
-        <Composer variant="command" placeholder="Ask NOVA anything — what do you want to get done?" />
+        <Composer variant="command" placeholder={t("placeholder")} />
       </section>
 
       {today?.continue.length ? (
@@ -57,7 +64,7 @@ export default function HomePage() {
           <WorkingOn tasks={active ?? []} />
           <RecentResults artifacts={(artifacts ?? []).slice(0, 5)} />
         </div>
-        <aside className="space-y-3 lg:sticky lg:top-6 lg:self-start" aria-label="Capabilities">
+        <aside className="space-y-3 lg:sticky lg:top-6 lg:self-start" aria-label={t("capabilities")}>
           {today ? (
             <>
               <ContextStatus context={today.context} />

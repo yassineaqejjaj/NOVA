@@ -74,3 +74,10 @@ Development only: TypeScript (Apache-2.0), ESLint (MIT), @playwright/test (Apach
 
 CrewAI, AutoGen, PydanticAI, additional workflow engines, vector databases, RAG stacks or memory frameworks:
 LangGraph covers orchestration and ORBIT owns retrieval and memory (docs/ARCHITECTURE.md).
+
+
+## Optional proprietary service
+
+* **Anthropic Claude API** (`NOVA_LLM_PROVIDER=anthropic`) — optional LLM provider chosen by the product owner. Every
+  other runtime component remains open source and self-hostable; NOVA runs fully offline with vLLM or any
+  OpenAI-compatible server.

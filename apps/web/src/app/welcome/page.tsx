@@ -12,8 +12,62 @@ import { NovaMark } from "@/components/shell/nova-mark";
 import { api } from "@/lib/api/client";
 import { keys, useMe, useProjects } from "@/lib/api/hooks";
 import type { AutonomyMode } from "@/lib/api/types";
-import { AUTONOMY } from "@/lib/autonomy";
+import { autonomyOptions } from "@/lib/autonomy";
+import { defineMessages, useLang, useT } from "@/lib/i18n";
 import { useComposer } from "@/stores/ui";
+
+const M = defineMessages({
+  en: {
+    meet: "Meet your NOVA",
+    roleTitle: "What is your role?",
+    roleHint: "NOVA adapts its methods and Artifacts to your work.",
+    rolePlaceholder: "e.g. Head of AI, Product Manager, Product Owner",
+    nameLabel: "Name your NOVA",
+    teamsTitle: "Which teams do you work with?",
+    teamsHint: "Separate with commas.",
+    teamsPlaceholder: "AI Platform, Design, Engineering",
+    projectsTitle: "Which projects are relevant?",
+    projectsPick: "Pick the ones you work on most.",
+    projectsEmpty: "Projects appear once ORBIT is connected — you can do it in a moment.",
+    methodsTitle: "Which product methods do you prefer?",
+    methodsHint: "NOVA will favor them when several Skills fit.",
+    autonomyTitle: "How much autonomy should NOVA have?",
+    autonomyHint: "Changes to external systems always follow your company’s policy.",
+    orbitTitle: "Connect NOVA to your context",
+    orbitHint: "ORBIT holds your organization’s documents, decisions and backlog. NOVA reads them as you — never more.",
+    ready: "Your {name} is ready.",
+    readyHint: "Tell it what you want to achieve. It will find the context, the method and the workflow.",
+    back: "Back",
+    skip: "Skip for now",
+    start: "Start working",
+    continue: "Continue",
+  },
+  fr: {
+    meet: "Faites connaissance avec votre NOVA",
+    roleTitle: "Quel est votre rôle ?",
+    roleHint: "NOVA adapte ses méthodes et ses Artefacts à votre travail.",
+    rolePlaceholder: "ex. Head of AI, Product Manager, Product Owner",
+    nameLabel: "Nommez votre NOVA",
+    teamsTitle: "Avec quelles équipes travaillez-vous ?",
+    teamsHint: "Séparez-les par des virgules.",
+    teamsPlaceholder: "Plateforme IA, Design, Ingénierie",
+    projectsTitle: "Quels projets vous concernent ?",
+    projectsPick: "Choisissez ceux sur lesquels vous travaillez le plus.",
+    projectsEmpty: "Les projets apparaissent une fois ORBIT connecté — vous pourrez le faire dans un instant.",
+    methodsTitle: "Quelles méthodes produit préférez-vous ?",
+    methodsHint: "NOVA les privilégiera lorsque plusieurs Skills conviennent.",
+    autonomyTitle: "Quel degré d’autonomie accorder à NOVA ?",
+    autonomyHint: "Les modifications des systèmes externes suivent toujours la politique de votre entreprise.",
+    orbitTitle: "Connectez NOVA à votre contexte",
+    orbitHint: "ORBIT contient les documents, décisions et backlog de votre organisation. NOVA les consulte avec vos droits — jamais plus.",
+    ready: "Votre {name} est prêt.",
+    readyHint: "Dites-lui ce que vous voulez accomplir. Il trouvera le contexte, la méthode et le workflow.",
+    back: "Retour",
+    skip: "Passer pour l’instant",
+    start: "Commencer",
+    continue: "Continuer",
+  },
+});
 
 const METHODS = ["RICE", "MoSCoW", "WSJF", "Jobs To Be Done", "Opportunity Solution Tree", "Story Mapping", "OKRs", "PRFAQ", "Kano"];
 const STEPS = ["role", "teams", "projects", "methods", "autonomy", "orbit", "ready"] as const;
@@ -28,6 +82,8 @@ function Toggle({ active, onClick, children }: { active: boolean; onClick: () =>
 
 export default function WelcomePage() {
   const router = useRouter();
+  const t = useT(M);
+  const lang = useLang();
   const client = useQueryClient();
   const { data: me } = useMe();
   const { data: projects } = useProjects();
@@ -65,7 +121,7 @@ export default function WelcomePage() {
         <div className="mb-8 flex items-center gap-3">
           <NovaMark size={28} phase={current === "ready" ? "completed" : "idle"} />
           <div>
-            <div className="text-[12px] uppercase tracking-wider text-subtle">Meet your NOVA</div>
+            <div className="text-[12px] uppercase tracking-wider text-subtle">{t("meet")}</div>
             <div className="mt-1 flex gap-1">
               {STEPS.map((s, i) => <span key={s} className={cn("h-1 w-6 rounded-full", i <= step ? "bg-accent" : "bg-surface-3")} />)}
             </div>
@@ -75,40 +131,40 @@ export default function WelcomePage() {
           <motion.div key={current} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.2 }} className="min-h-[260px]">
             {current === "role" ? (
               <>
-                <h1 className="text-[24px] font-semibold tracking-tight">What is your role?</h1>
-                <p className="mt-1 text-muted">NOVA adapts its methods and Artifacts to your work.</p>
-                <Input autoFocus className="mt-6 h-11 text-[15px]" value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Head of AI, Product Manager, Product Owner" />
-                <Label htmlFor="nova-name" className="mt-5 block">Name your NOVA</Label>
+                <h1 className="text-[24px] font-semibold tracking-tight">{t("roleTitle")}</h1>
+                <p className="mt-1 text-muted">{t("roleHint")}</p>
+                <Input autoFocus className="mt-6 h-11 text-[15px]" value={role} onChange={(e) => setRole(e.target.value)} placeholder={t("rolePlaceholder")} />
+                <Label htmlFor="nova-name" className="mt-5 block">{t("nameLabel")}</Label>
                 <Input id="nova-name" className="mt-1.5" value={novaName} onChange={(e) => setNovaName(e.target.value)} />
               </>
             ) : current === "teams" ? (
               <>
-                <h1 className="text-[24px] font-semibold tracking-tight">Which teams do you work with?</h1>
-                <p className="mt-1 text-muted">Separate with commas.</p>
-                <Input autoFocus className="mt-6 h-11 text-[15px]" value={teams} onChange={(e) => setTeams(e.target.value)} placeholder="AI Platform, Design, Engineering" />
+                <h1 className="text-[24px] font-semibold tracking-tight">{t("teamsTitle")}</h1>
+                <p className="mt-1 text-muted">{t("teamsHint")}</p>
+                <Input autoFocus className="mt-6 h-11 text-[15px]" value={teams} onChange={(e) => setTeams(e.target.value)} placeholder={t("teamsPlaceholder")} />
               </>
             ) : current === "projects" ? (
               <>
-                <h1 className="text-[24px] font-semibold tracking-tight">Which projects are relevant?</h1>
-                <p className="mt-1 text-muted">{projects?.length ? "Pick the ones you work on most." : "Projects appear once ORBIT is connected — you can do it in a moment."}</p>
+                <h1 className="text-[24px] font-semibold tracking-tight">{t("projectsTitle")}</h1>
+                <p className="mt-1 text-muted">{projects?.length ? t("projectsPick") : t("projectsEmpty")}</p>
                 <div className="mt-6 flex flex-wrap gap-2">
                   {(projects ?? []).map((p) => <Toggle key={p.id} active={focus.includes(p.id)} onClick={() => toggle(focus, setFocus, p.id)}>{p.name}</Toggle>)}
                 </div>
               </>
             ) : current === "methods" ? (
               <>
-                <h1 className="text-[24px] font-semibold tracking-tight">Which product methods do you prefer?</h1>
-                <p className="mt-1 text-muted">NOVA will favor them when several Skills fit.</p>
+                <h1 className="text-[24px] font-semibold tracking-tight">{t("methodsTitle")}</h1>
+                <p className="mt-1 text-muted">{t("methodsHint")}</p>
                 <div className="mt-6 flex flex-wrap gap-2">
                   {METHODS.map((m) => <Toggle key={m} active={methods.includes(m)} onClick={() => toggle(methods, setMethods, m)}>{m}</Toggle>)}
                 </div>
               </>
             ) : current === "autonomy" ? (
               <>
-                <h1 className="text-[24px] font-semibold tracking-tight">How much autonomy should NOVA have?</h1>
-                <p className="mt-1 text-muted">Changes to external systems always follow your company’s policy.</p>
+                <h1 className="text-[24px] font-semibold tracking-tight">{t("autonomyTitle")}</h1>
+                <p className="mt-1 text-muted">{t("autonomyHint")}</p>
                 <div className="mt-6 space-y-2">
-                  {AUTONOMY.map((a) => (
+                  {autonomyOptions(lang).map((a) => (
                     <button key={a.value} type="button" onClick={() => setAutonomy(a.value)} className={cn("flex w-full items-center gap-3 rounded-[12px] border px-4 py-3 text-left", autonomy === a.value ? "border-accent/50 bg-accent-soft" : "border-border hover:border-border-strong")}>
                       <span className={cn("flex size-4 items-center justify-center rounded-full border", autonomy === a.value ? "border-accent bg-accent text-accent-fg" : "border-subtle")}>{autonomy === a.value ? <Check className="size-3" /> : null}</span>
                       <span><span className="block text-[14px]">{a.label}</span><span className="block text-[12.5px] text-subtle">{a.hint}</span></span>
@@ -118,27 +174,27 @@ export default function WelcomePage() {
               </>
             ) : current === "orbit" ? (
               <>
-                <h1 className="text-[24px] font-semibold tracking-tight">Connect NOVA to your context</h1>
-                <p className="mb-6 mt-1 text-muted">ORBIT holds your organization’s documents, decisions and backlog. NOVA reads them as you — never more.</p>
+                <h1 className="text-[24px] font-semibold tracking-tight">{t("orbitTitle")}</h1>
+                <p className="mb-6 mt-1 text-muted">{t("orbitHint")}</p>
                 <OrbitLink identity={me?.orbit} onLinked={next} />
               </>
             ) : (
               <div className="pt-6 text-center">
                 <NovaMark size={44} className="mx-auto" />
-                <h1 className="mt-6 text-[26px] font-semibold tracking-tight">Your {novaName} is ready.</h1>
-                <p className="mt-2 text-muted">Tell it what you want to achieve. It will find the context, the method and the workflow.</p>
+                <h1 className="mt-6 text-[26px] font-semibold tracking-tight">{t("ready", { name: novaName })}</h1>
+                <p className="mt-2 text-muted">{t("readyHint")}</p>
               </div>
             )}
           </motion.div>
         </AnimatePresence>
         <div className="mt-8 flex items-center">
-          {step > 0 ? <Button variant="ghost" onClick={back}><ArrowLeft /> Back</Button> : null}
+          {step > 0 ? <Button variant="ghost" onClick={back}><ArrowLeft /> {t("back")}</Button> : null}
           <div className="ml-auto flex gap-2">
-            {current === "orbit" ? <Button variant="ghost" onClick={next}>Skip for now</Button> : null}
+            {current === "orbit" ? <Button variant="ghost" onClick={next}>{t("skip")}</Button> : null}
             {current === "ready" ? (
-              <Button variant="primary" size="lg" onClick={() => finish.mutate()} disabled={finish.isPending}>Start working</Button>
+              <Button variant="primary" size="lg" onClick={() => finish.mutate()} disabled={finish.isPending}>{t("start")}</Button>
             ) : current !== "orbit" ? (
-              <Button variant="primary" onClick={next} disabled={current === "role" && !role.trim()}>Continue <ArrowRight /></Button>
+              <Button variant="primary" onClick={next} disabled={current === "role" && !role.trim()}>{t("continue")} <ArrowRight /></Button>
             ) : null}
           </div>
         </div>

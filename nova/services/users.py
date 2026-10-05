@@ -85,7 +85,7 @@ async def service_user(session: AsyncSession) -> User:
 
 def preferences_dict(prefs: UserPreferences | None, user: User) -> dict[str, Any]:
     if prefs is None:
-        return {"nova_name": "NOVA", "role": user.title}
+        return {"nova_name": "NOVA", "role": user.title, "language": None, "orb_color": "coral"}
     return {
         "nova_name": prefs.nova_name,
         "avatar": prefs.avatar,
@@ -96,6 +96,8 @@ def preferences_dict(prefs: UserPreferences | None, user: User) -> dict[str, Any
         "artifact_format": prefs.artifact_format,
         "default_autonomy": prefs.default_autonomy,
         "theme": prefs.theme,
+        "language": prefs.language,
+        "orb_color": prefs.orb_color or "coral",
         "onboarding_completed": prefs.onboarding_completed_at is not None,
     }
 

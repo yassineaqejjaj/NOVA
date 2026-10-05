@@ -28,10 +28,14 @@ import { toast } from "sonner";
 import { type ApprovalData, ApprovalDialog } from "@/components/conversation/approval-dialog";
 import { ClassificationBadge, ErrorNotice } from "@/components/shell/page";
 import { api } from "@/lib/api/client";
-import { useResume, useSkills } from "@/lib/api/hooks";
+import { useArtifactTypes, useResume, useSkills } from "@/lib/api/hooks";
 import type { Action, Block, ContextSource } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
+import { useLang, useT } from "@/lib/i18n";
+import { sectionTitle, skillName, typeName } from "@/lib/i18n/catalog";
 import { useComposer } from "@/stores/ui";
+
+import { M, statusLabel, systemLabel } from "./blocks.messages";
 
 export interface BlockContext {
   taskId: string | null;
@@ -59,6 +63,9 @@ function StepIcon({ status }: { status: string }) {
 
 function TextBlockView({ block }: { block: Block<{ markdown: string; suggestions?: { skill_id: string; label: string }[]; follow_ups?: string[] }> }) {
   const setDraft = useComposer((s) => s.setDraft);
+  const t = useT(M);
+  const lang = useLang();
+  const { data: skills } = useSkills();
   const focus = (text: string) => {
     setDraft(text);
     setTimeout(() => document.getElementById("nova-composer")?.focus(), 30);
@@ -72,7 +79,7 @@ function TextBlockView({ block }: { block: Block<{ markdown: string; suggestions
         <div className="mt-3 flex flex-wrap gap-1.5">
           {block.data.suggestions?.map((s) => (
             <button key={s.skill_id} onClick={() => focus(`/${s.skill_id} `)} className="rounded-lg border border-border px-2.5 py-1 text-[12.5px] text-muted hover:border-accent/40 hover:text-text">
-              Next: {s.label}
+              {t("next", { label: skills?.find((k) => k.id === s.skill_id)?.translations?.[lang]?.name || s.label })}
             </button>
           ))}
           {block.data.follow_ups?.map((f) => (
@@ -90,6 +97,8 @@ function TextBlockView({ block }: { block: Block<{ markdown: string; suggestions
 
 function ProgressBlock({ block, live }: { block: Block<{ lines: { key: string; label: string; status: string; detail: string }[] }>; live: boolean }) {
   const [open, setOpen] = useState(live);
+  const t = useT(M);
+  const lang = useLang();
   const lines = block.data.lines ?? [];
   const done = lines.every((l) => l.status === "completed" || l.status === "failed");
   const expanded = open || live;
@@ -97,8 +106,8 @@ function ProgressBlock({ block, live }: { block: Block<{ lines: { key: string; l
     <div className="rounded-[12px] border border-border bg-surface/60">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2 px-3 py-2 text-[12.5px] text-muted">
         <ChevronRight className={cn("size-3.5 transition-transform", expanded && "rotate-90")} />
-        {live && !done ? "NOVA is working" : "What NOVA did"}
-        <span className="text-subtle">· {lines.length} step{lines.length > 1 ? "s" : ""}</span>
+        {live && !done ? t("novaWorking") : t("novaDid")}
+        <span className="text-subtle">· {t("steps", { n: lines.length })}</span>
       </button>
       <AnimatePresence initial={false}>
         {expanded ? (
@@ -108,7 +117,7 @@ function ProgressBlock({ block, live }: { block: Block<{ lines: { key: string; l
                 <span className="mt-0.5">
                   <StepIcon status={line.status} />
                 </span>
-                <span className={cn(line.status === "running" ? "text-text" : "text-muted")}>{line.label}</span>
+                <span className={cn(line.status === "running" ? "text-text" : "text-muted")}>{systemLabel(line.label, lang)}</span>
                 {line.detail ? <span className="ml-auto max-w-[55%] truncate text-right text-[12px] text-subtle">{line.detail}</span> : null}
               </li>
             ))}
@@ -125,12 +134,16 @@ interface PlanStep { id: string; title: string; skill_id: string | null; skill_n
 
 function PlanBlock({ block, ctx }: { block: Block<{ objective: string; steps: PlanStep[]; done: number; total: number; assumptions?: string[] }>; ctx: BlockContext }) {
   const { steps, done, total, assumptions } = block.data;
+  const t = useT(M);
+  const lang = useLang();
+  const { data: skills } = useSkills();
+  const skillLabel = (s: PlanStep) => (s.skill_id && skills?.find((k) => k.id === s.skill_id)?.translations?.[lang]?.name) || s.skill_name;
   return (
     <motion.div {...fade} className="rounded-[12px] border border-border bg-surface px-4 py-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[12px] font-medium uppercase tracking-wider text-subtle">Plan</span>
+        <span className="text-[12px] font-medium uppercase tracking-wider text-subtle">{t("plan")}</span>
         <span className="text-[12px] text-subtle">
-          {done} / {total} steps complete
+          {t("stepsComplete", { done, total })}
         </span>
       </div>
       <ol className="space-y-1">
@@ -138,17 +151,17 @@ function PlanBlock({ block, ctx }: { block: Block<{ objective: string; steps: Pl
           <li key={s.id} className="flex items-center gap-2.5 text-[13.5px]">
             <StepIcon status={s.status} />
             <span className={s.status === "pending" ? "text-muted" : "text-text"}>{s.title}</span>
-            {s.skill_name && s.skill_name !== s.title ? <Badge>{s.skill_name}</Badge> : null}
+            {s.skill_name && s.skill_name !== s.title ? <Badge>{skillLabel(s)}</Badge> : null}
             {s.artifact_id ? (
               <button onClick={() => ctx.onOpenArtifact(s.artifact_id!)} className="ml-auto text-[12px] text-accent hover:underline">
-                Open
+                {t("open")}
               </button>
             ) : null}
           </li>
         ))}
       </ol>
       {assumptions?.length ? (
-        <div className="mt-2.5 border-t border-border pt-2 text-[12px] text-subtle">Assumptions: {assumptions.join(" · ")}</div>
+        <div className="mt-2.5 border-t border-border pt-2 text-[12px] text-subtle">{t("assumptions", { list: assumptions.join(" · ") })}</div>
       ) : null}
     </motion.div>
   );
@@ -158,11 +171,16 @@ function PlanBlock({ block, ctx }: { block: Block<{ objective: string; steps: Pl
 
 function WorkflowBlock({ block, ctx }: { block: Block<{ status: string; objective: string; steps: { id: string; title: string; skill_id: string; rationale?: string }[]; assumptions?: string[] }>; ctx: BlockContext }) {
   const { data: skills } = useSkills();
+  const t = useT(M);
+  const lang = useLang();
   const resume = useResume();
   const [steps, setSteps] = useState(block.data.steps);
   const [adding, setAdding] = useState<string>("");
   const proposed = block.data.status === "proposed" && ctx.waiting;
-  const name = (id: string) => skills?.find((s) => s.id === id)?.name ?? id;
+  const name = (id: string) => {
+    const skill = skills?.find((s) => s.id === id);
+    return skill ? skillName(skill, lang) : id;
+  };
   const move = (i: number, d: -1 | 1) =>
     setSteps((prev) => {
       const next = [...prev];
@@ -177,7 +195,7 @@ function WorkflowBlock({ block, ctx }: { block: Block<{ status: string; objectiv
   return (
     <motion.div {...fade} className={cn("rounded-[12px] border px-4 py-3", proposed ? "border-accent/35 bg-accent-soft/40" : "border-border bg-surface")}>
       <div className="mb-1 text-[12px] font-medium uppercase tracking-wider text-subtle">
-        {proposed ? "Proposed workflow" : block.data.status === "cancelled" ? "Workflow cancelled" : "Workflow"}
+        {proposed ? t("proposedWorkflow") : block.data.status === "cancelled" ? t("workflowCancelled") : t("workflow")}
       </div>
       <p className="mb-2.5 text-[13.5px] text-muted">{block.data.objective}</p>
       <ol className="space-y-1.5">
@@ -188,9 +206,9 @@ function WorkflowBlock({ block, ctx }: { block: Block<{ status: string; objectiv
             {s.rationale ? <span className="min-w-0 truncate text-[12px] text-subtle">· {s.rationale}</span> : null}
             {proposed ? (
               <span className="ml-auto flex items-center gap-0.5">
-                <Button variant="ghost" size="icon" className="size-6" onClick={() => move(i, -1)} aria-label="Move up"><ArrowUp /></Button>
-                <Button variant="ghost" size="icon" className="size-6" onClick={() => move(i, 1)} aria-label="Move down"><ArrowDown /></Button>
-                <Button variant="ghost" size="icon" className="size-6" onClick={() => setSteps((p) => p.filter((x) => x.id !== s.id))} disabled={steps.length === 1} aria-label="Remove step"><X /></Button>
+                <Button variant="ghost" size="icon" className="size-6" onClick={() => move(i, -1)} aria-label={t("moveUp")}><ArrowUp /></Button>
+                <Button variant="ghost" size="icon" className="size-6" onClick={() => move(i, 1)} aria-label={t("moveDown")}><ArrowDown /></Button>
+                <Button variant="ghost" size="icon" className="size-6" onClick={() => setSteps((p) => p.filter((x) => x.id !== s.id))} disabled={steps.length === 1} aria-label={t("removeStep")}><X /></Button>
               </span>
             ) : null}
           </li>
@@ -199,20 +217,20 @@ function WorkflowBlock({ block, ctx }: { block: Block<{ status: string; objectiv
       {proposed ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Select
-            ariaLabel="Add a Skill"
+            ariaLabel={t("addSkill")}
             value={adding || undefined}
-            placeholder="Add a Skill…"
+            placeholder={t("addSkillPlaceholder")}
             onValueChange={(id) => {
               setSteps((p) => [...p, { id: `added-${id}`, title: name(id), skill_id: id }]);
               setAdding("");
             }}
-            options={(skills ?? []).filter((s) => !steps.some((x) => x.skill_id === s.id)).map((s) => ({ value: s.id, label: s.name }))}
+            options={(skills ?? []).filter((s) => !steps.some((x) => x.skill_id === s.id)).map((s) => ({ value: s.id, label: skillName(s, lang) }))}
             className="h-8 w-52 text-[12.5px]"
           />
           <div className="ml-auto flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => decide("cancel")} disabled={resume.isPending}>Cancel</Button>
+            <Button variant="ghost" size="sm" onClick={() => decide("cancel")} disabled={resume.isPending}>{t("cancel")}</Button>
             <Button variant="primary" size="sm" onClick={() => decide("run")} disabled={resume.isPending}>
-              {resume.isPending ? <Loader2 className="animate-spin" /> : <Plus className="hidden" />} Run workflow
+              {resume.isPending ? <Loader2 className="animate-spin" /> : <Plus className="hidden" />} {t("runWorkflow")}
             </Button>
           </div>
         </div>
@@ -225,6 +243,7 @@ function WorkflowBlock({ block, ctx }: { block: Block<{ status: string; objectiv
 
 function QuestionBlock({ block, ctx }: { block: Block<{ questions: { key: string; question: string }[]; answered: boolean; answers?: Record<string, string> }>; ctx: BlockContext }) {
   const resume = useResume();
+  const t = useT(M);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   if (block.data.answered || !ctx.waiting) {
     return (
@@ -246,7 +265,7 @@ function QuestionBlock({ block, ctx }: { block: Block<{ questions: { key: string
         if (ctx.taskId) resume.mutate({ taskId: ctx.taskId, value: answers });
       }}
     >
-      <div className="text-[12px] font-medium uppercase tracking-wider text-warning">NOVA needs a little more information</div>
+      <div className="text-[12px] font-medium uppercase tracking-wider text-warning">{t("needsInfo")}</div>
       {block.data.questions.map((q) => (
         <label key={q.key} className="block space-y-1.5">
           <span className="text-[13.5px] text-text">{q.question}</span>
@@ -254,7 +273,7 @@ function QuestionBlock({ block, ctx }: { block: Block<{ questions: { key: string
         </label>
       ))}
       <div className="flex justify-end">
-        <Button type="submit" variant="primary" size="sm" disabled={resume.isPending}>Continue</Button>
+        <Button type="submit" variant="primary" size="sm" disabled={resume.isPending}>{t("continue")}</Button>
       </div>
     </motion.form>
   );
@@ -267,12 +286,13 @@ function ContextBlock({ block }: { block: Block<{ project: string | null; refere
   const pin = useComposer((s) => s.pin);
   const exclude = useComposer((s) => s.exclude);
   const setDraft = useComposer((s) => s.setDraft);
+  const t = useT(M);
   const { items, warnings, excluded_count } = block.data;
   return (
     <div className="rounded-[12px] border border-border bg-surface/60">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2 px-3 py-2 text-[12.5px] text-muted">
         <Orbit className="size-3.5 shrink-0 text-accent" />
-        <span className="shrink-0 whitespace-nowrap">Using context from ORBIT</span>
+        <span className="shrink-0 whitespace-nowrap">{t("usingContext")}</span>
         <span className="min-w-0 truncate text-left text-subtle">· {items.slice(0, 3).map((i) => i.title).join(", ")}{items.length > 3 ? ` +${items.length - 3}` : ""}</span>
         <span className="ml-auto flex shrink-0 items-center gap-1.5">
           <ClassificationBadge level={block.data.max_classification} />
@@ -293,34 +313,34 @@ function ContextBlock({ block }: { block: Block<{ project: string | null; refere
                   <div className="flex items-center gap-2 text-[13px]">
                     <span className="rounded bg-surface-3 px-1 font-mono text-[10.5px] text-subtle">{item.citation}</span>
                     <span className="truncate font-medium text-text">{item.title}</span>
-                    {item.flagged ? <Badge tone="warning" title="Instruction-like text was found in this source; NOVA treated it strictly as data.">flagged</Badge> : null}
+                    {item.flagged ? <Badge tone="warning" title={t("flaggedHint")}>{t("flagged")}</Badge> : null}
                     <ClassificationBadge level={item.classification} />
                     <span className="ml-auto flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                       {item.uri ? (
-                        <a href={item.uri} target="_blank" rel="noreferrer" className="rounded p-1 text-subtle hover:text-text" aria-label="View in ORBIT"><ExternalLink className="size-3.5" /></a>
+                        <a href={item.uri} target="_blank" rel="noreferrer" className="rounded p-1 text-subtle hover:text-text" aria-label={t("viewInOrbit")}><ExternalLink className="size-3.5" /></a>
                       ) : null}
-                      <button onClick={() => { exclude(item.ref_id); toast("This source will be excluded from your next request."); }} className="rounded p-1 text-subtle hover:text-text" aria-label="Remove from context"><X className="size-3.5" /></button>
+                      <button onClick={() => { exclude(item.ref_id); toast(t("sourceExcluded")); }} className="rounded p-1 text-subtle hover:text-text" aria-label={t("removeFromContext")}><X className="size-3.5" /></button>
                     </span>
                   </div>
                   <div className="mt-0.5 flex flex-wrap gap-x-3 text-[11.5px] text-subtle">
                     {item.type ? <span>{item.type}</span> : null}
                     {item.project ? <span>{item.project}</span> : null}
                     <span>{item.source}</span>
-                    {item.updated ? <span>updated {timeAgo(item.updated)}</span> : null}
-                    {item.relevance !== null && item.relevance !== undefined ? <span>relevance {Math.round(item.relevance * 100)}%</span> : null}
+                    {item.updated ? <span>{t("updatedAgo", { when: timeAgo(item.updated) })}</span> : null}
+                    {item.relevance !== null && item.relevance !== undefined ? <span>{t("relevance", { pct: Math.round(item.relevance * 100) })}</span> : null}
                   </div>
                   {item.excerpt ? <p className="mt-1 line-clamp-2 text-[12px] text-muted">{item.excerpt}</p> : null}
                 </li>
               ))}
             </ul>
             <div className="flex items-center gap-2 border-t border-border px-3 py-2 text-[12px] text-subtle">
-              {excluded_count ? <span>{excluded_count} item{excluded_count > 1 ? "s" : ""} excluded by ORBIT governance</span> : null}
+              {excluded_count ? <span>{t("excludedByGovernance", { n: excluded_count })}</span> : null}
               <span className="ml-auto flex gap-1">
-                <Button variant="ghost" size="sm" onClick={() => { pin({ reference_id: block.data.reference_id, label: "Previous context", count: items.length }); toast("Context pinned to your next message."); }}>
-                  <Pin /> Reuse
+                <Button variant="ghost" size="sm" onClick={() => { pin({ reference_id: block.data.reference_id, label: t("previousContext"), count: items.length }); toast(t("contextPinned")); }}>
+                  <Pin /> {t("reuse")}
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => { setDraft("Refresh the context and update your answer."); document.getElementById("nova-composer")?.focus(); }}>
-                  Refresh
+                <Button variant="ghost" size="sm" onClick={() => { setDraft(t("refreshPrompt")); document.getElementById("nova-composer")?.focus(); }}>
+                  {t("refresh")}
                 </Button>
               </span>
             </div>
@@ -335,6 +355,14 @@ function ContextBlock({ block }: { block: Block<{ project: string | null; refere
 
 function ArtifactBlock({ block, ctx }: { block: Block<{ artifact_id: string; title: string; type_name: string; version: number; created: boolean; changed_titles: string[]; summary: string; status: string; classification: number }>; ctx: BlockContext }) {
   const d = block.data;
+  const t = useT(M);
+  const lang = useLang();
+  const { data: types } = useArtifactTypes();
+  const def = types?.find((x) => x.name === d.type_name);
+  const changed = d.changed_titles.map((title) => {
+    const section = def?.sections.find((s) => s.title === title);
+    return section ? sectionTitle(def, section, lang) : title;
+  });
   return (
     <motion.button
       {...fade}
@@ -348,11 +376,11 @@ function ArtifactBlock({ block, ctx }: { block: Block<{ artifact_id: string; tit
         <span className="flex items-center gap-2">
           <span className="truncate text-[14px] font-medium">{d.title}</span>
           <Badge>v{d.version}</Badge>
-          {d.status === "proposed" ? <Badge tone="warning">awaiting approval</Badge> : null}
+          {d.status === "proposed" ? <Badge tone="warning">{t("awaitingApproval")}</Badge> : null}
           <ClassificationBadge level={d.classification} />
         </span>
         <span className="block truncate text-[12.5px] text-subtle">
-          {d.type_name} · {d.created ? "created" : `updated ${d.changed_titles.join(", ")}`}
+          {typeName(def, lang, d.type_name)} · {d.created ? t("created") : t("updatedSections", { titles: changed.join(", ") })}
         </span>
       </span>
       <ChevronRight className="size-4 text-subtle" />
@@ -367,6 +395,8 @@ const autoOpened = new Set<string>();
 
 function DecisionBlock({ block, ctx }: { block: Block<ApprovalData>; ctx: BlockContext }) {
   const resume = useResume();
+  const t = useT(M);
+  const lang = useLang();
   const pending = block.data.status === "pending" && ctx.waiting;
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -381,15 +411,15 @@ function DecisionBlock({ block, ctx }: { block: Block<ApprovalData>; ctx: BlockC
       <p className="mt-0.5 text-[13px] text-muted">{block.data.description}</p>
       {pending ? (
         <div className="mt-2.5 flex flex-wrap gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>Review changes</Button>
+          <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>{t("reviewChanges")}</Button>
           {block.data.artifact_id ? (
-            <Button variant="ghost" size="sm" onClick={() => ctx.onOpenArtifact(block.data.artifact_id!)}>Open document</Button>
+            <Button variant="ghost" size="sm" onClick={() => ctx.onOpenArtifact(block.data.artifact_id!)}>{t("openDocument")}</Button>
           ) : null}
-          <Button variant="ghost" size="sm" onClick={() => ctx.taskId && resume.mutate({ taskId: ctx.taskId, value: { action: "reject" } })}>Reject</Button>
-          <Button variant="primary" size="sm" onClick={() => ctx.taskId && resume.mutate({ taskId: ctx.taskId, value: { action: "approve" } })}>Approve</Button>
+          <Button variant="ghost" size="sm" onClick={() => ctx.taskId && resume.mutate({ taskId: ctx.taskId, value: { action: "reject" } })}>{t("reject")}</Button>
+          <Button variant="primary" size="sm" onClick={() => ctx.taskId && resume.mutate({ taskId: ctx.taskId, value: { action: "approve" } })}>{t("approve")}</Button>
         </div>
       ) : (
-        <Badge className="mt-2" tone={block.data.status === "approved" ? "success" : "neutral"}>{block.data.status}</Badge>
+        <Badge className="mt-2" tone={block.data.status === "approved" ? "success" : "neutral"}>{statusLabel(block.data.status, lang)}</Badge>
       )}
       {pending ? <ApprovalDialog approval={block.data} taskId={ctx.taskId} open={open} onOpenChange={setOpen} /> : null}
     </motion.div>
@@ -399,29 +429,31 @@ function DecisionBlock({ block, ctx }: { block: Block<ApprovalData>; ctx: BlockC
 // --- notices --------------------------------------------------------------------------------------
 
 function useActions(ctx: BlockContext) {
+  const t = useT(M);
   return async (action: Action) => {
     if (action.action === "retry" && ctx.taskId && ctx.taskStatus === "failed") {
       await api.post(`/executions/${ctx.taskId}/retry`);
-      toast("Retrying from the last completed step.");
+      toast(t("retrying"));
     } else if (action.action === "retry" && ctx.requestText && ctx.resend) {
       // The task completed despite a non-fatal problem (e.g. ORBIT unavailable): ask again.
       await ctx.resend(ctx.requestText);
     } else if (action.action === "link_orbit") window.location.href = "/settings#orbit";
     else if (action.action === "request_access" && ctx.projectOrbitUrl) window.open(ctx.projectOrbitUrl, "_blank");
-    else if (action.action === "request_access") toast("Ask a project owner in ORBIT to grant you access.");
+    else if (action.action === "request_access") toast(t("askOwner"));
     else document.getElementById("nova-composer")?.focus();
   };
 }
 
 function NoticeBlock({ block, ctx }: { block: Block<{ title: string; message: string; actions: Action[] }>; ctx: BlockContext }) {
   const run = useActions(ctx);
+  const lang = useLang();
   if (block.type === "error") {
     return (
       <ErrorNotice
-        title={block.data.title}
+        title={systemLabel(block.data.title, lang)}
         message={block.data.message}
         actions={block.data.actions.map((a) => (
-          <Button key={a.action} size="sm" variant="secondary" onClick={() => void run(a)}>{a.label}</Button>
+          <Button key={a.action} size="sm" variant="secondary" onClick={() => void run(a)}>{systemLabel(a.label, lang)}</Button>
         ))}
       />
     );
@@ -429,13 +461,13 @@ function NoticeBlock({ block, ctx }: { block: Block<{ title: string; message: st
   return (
     <div className="rounded-[12px] border border-warning/25 bg-warning/[0.05] px-4 py-3">
       <div className="flex items-center gap-2 text-[13.5px] font-medium">
-        <AlertTriangle className="size-4 text-warning" /> {block.data.title}
+        <AlertTriangle className="size-4 text-warning" /> {systemLabel(block.data.title, lang)}
       </div>
       <p className="mt-0.5 text-[13px] text-muted">{block.data.message}</p>
       {block.data.actions.length ? (
         <div className="mt-2 flex gap-2">
           {block.data.actions.map((a) => (
-            <Button key={a.action} size="sm" variant="ghost" onClick={() => void run(a)}>{a.label}</Button>
+            <Button key={a.action} size="sm" variant="ghost" onClick={() => void run(a)}>{systemLabel(a.label, lang)}</Button>
           ))}
         </div>
       ) : null}
@@ -446,11 +478,12 @@ function NoticeBlock({ block, ctx }: { block: Block<{ title: string; message: st
 // --- citations (sources of an answer / provenance) ------------------------------------------------
 
 function CitationsBlock({ block, ctx }: { block: Block<{ sources: ContextSource[]; provenance?: boolean; artifact_id?: string }>; ctx: BlockContext }) {
+  const t = useT(M);
   if (!block.data.sources.length) return null;
   return (
     <div className="rounded-[12px] border border-border bg-surface/60 px-3 py-2.5">
       <div className="mb-1.5 text-[11.5px] font-medium uppercase tracking-wider text-subtle">
-        {block.data.provenance ? "Recorded sources" : "Sources"}
+        {block.data.provenance ? t("recordedSources") : t("sources")}
       </div>
       <ul className="space-y-1.5">
         {block.data.sources.map((s) => (
@@ -465,12 +498,12 @@ function CitationsBlock({ block, ctx }: { block: Block<{ sources: ContextSource[
               <ClassificationBadge level={s.classification} />
               <span className="ml-auto text-[11.5px] text-subtle">{[s.type, s.project, s.updated ? timeAgo(s.updated) : null].filter(Boolean).join(" · ")}</span>
             </div>
-            {s.excerpt ? <p className="mt-0.5 line-clamp-2 pl-7 text-[12px] text-muted">“{s.excerpt}”</p> : null}
+            {s.excerpt ? <p className="mt-0.5 line-clamp-2 pl-7 text-[12px] text-muted">{t("excerpt", { text: s.excerpt })}</p> : null}
           </li>
         ))}
       </ul>
       {block.data.artifact_id ? (
-        <button onClick={() => ctx.onOpenArtifact(block.data.artifact_id!)} className="mt-2 text-[12px] text-accent hover:underline">Open the Artifact</button>
+        <button onClick={() => ctx.onOpenArtifact(block.data.artifact_id!)} className="mt-2 text-[12px] text-accent hover:underline">{t("openArtifact")}</button>
       ) : null}
     </div>
   );

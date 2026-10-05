@@ -31,7 +31,9 @@ def input_schema(spec: SkillSpec) -> dict:
 def main(check: bool = False) -> int:
     artifacts = get_artifact_registry()
     stale: list[str] = []
-    for directory in sorted(p for p in get_settings().skills_dir.iterdir() if p.is_dir() and not p.name.startswith(("_", "."))):
+    for directory in sorted(
+        p for p in get_settings().skills_dir.iterdir() if p.is_dir() and p.name != "i18n" and not p.name.startswith(("_", "."))
+    ):
         spec = SkillSpec.model_validate(yaml.safe_load((directory / "skill.yaml").read_text()))
         for name, schema in (
             ("input.schema.json", input_schema(spec)),

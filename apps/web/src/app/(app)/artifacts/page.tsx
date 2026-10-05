@@ -12,8 +12,55 @@ import { api } from "@/lib/api/client";
 import { useArtifacts, useArtifactTypes, useProjects } from "@/lib/api/hooks";
 import type { ArtifactSummary } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
+import { defineMessages, useLang, useT } from "@/lib/i18n";
+import { typeDescription, typeName } from "@/lib/i18n/catalog";
+
+const M = defineMessages({
+  en: {
+    title: "Library",
+    description: "Everything NOVA produced with you — versioned, cited, editable.",
+    new: "New",
+    search: "Search Artifacts",
+    type: "Type",
+    allTypes: "All types",
+    project: "Project",
+    allProjects: "All projects",
+    personal: "Personal",
+    draft: "draft",
+    in_review: "in review",
+    final: "final",
+    archived: "archived",
+    emptyTitle: "Your work with NOVA will appear here.",
+    emptyDescription: "Ask NOVA for a PRD, a backlog or a sprint plan — or create an Artifact yourself.",
+    newArtifact: "New Artifact",
+    artifactTitle: "Title",
+    create: "Create",
+  },
+  fr: {
+    title: "Bibliothèque",
+    description: "Tout ce que NOVA a produit avec vous — versionné, sourcé, modifiable.",
+    new: "Nouveau",
+    search: "Rechercher des Artefacts",
+    type: "Type",
+    allTypes: "Tous les types",
+    project: "Projet",
+    allProjects: "Tous les projets",
+    personal: "Personnel",
+    draft: "brouillon",
+    in_review: "en revue",
+    final: "final",
+    archived: "archivé",
+    emptyTitle: "Votre travail avec NOVA apparaîtra ici.",
+    emptyDescription: "Demandez à NOVA un PRD, un backlog ou un plan de sprint — ou créez vous-même un Artefact.",
+    newArtifact: "Nouvel Artefact",
+    artifactTitle: "Titre",
+    create: "Créer",
+  },
+});
 
 function ArtifactsPage() {
+  const t = useT(M);
+  const lang = useLang();
   const params = useSearchParams();
   const router = useRouter();
   const [q, setQ] = useState(params.get("q") ?? "");
@@ -30,17 +77,18 @@ function ArtifactsPage() {
     onSuccess: (a) => router.push(`/artifacts/${a.id}`),
   });
   const names = new Map(projects?.map((p) => [p.id, p.name]));
+  const typeDefs = new Map(types?.map((d) => [d.type, d]));
 
   return (
     <Page wide>
-      <PageHeader title="Library" description="Everything NOVA produced with you — versioned, cited, editable." actions={<Button size="sm" onClick={() => setOpen(true)}><Plus /> New</Button>} />
+      <PageHeader title={t("title")} description={t("description")} actions={<Button size="sm" onClick={() => setOpen(true)}><Plus /> {t("new")}</Button>} />
       <div className="mb-4 flex flex-wrap gap-2">
         <div className="relative min-w-[240px] flex-1">
           <Search className="absolute left-3 top-2.5 size-4 text-subtle" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search Artifacts" className="pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search")} className="pl-9" />
         </div>
-        <Select ariaLabel="Type" value={type} onValueChange={setType} options={[{ value: "all", label: "All types" }, ...(types ?? []).map((t) => ({ value: t.type, label: t.name }))]} className="w-48" />
-        <Select ariaLabel="Project" value={project} onValueChange={setProject} options={[{ value: "all", label: "All projects" }, ...(projects ?? []).map((p) => ({ value: p.id, label: p.name }))]} className="w-44" />
+        <Select ariaLabel={t("type")} value={type} onValueChange={setType} options={[{ value: "all", label: t("allTypes") }, ...(types ?? []).map((d) => ({ value: d.type, label: typeName(d, lang) }))]} className="w-48" />
+        <Select ariaLabel={t("project")} value={project} onValueChange={setProject} options={[{ value: "all", label: t("allProjects") }, ...(projects ?? []).map((p) => ({ value: p.id, label: p.name }))]} className="w-44" />
       </div>
       {isLoading ? <Skeleton className="h-40" /> : null}
       {artifacts?.length ? (
@@ -49,22 +97,22 @@ function ArtifactsPage() {
             <Link key={a.id} href={`/artifacts/${a.id}`} className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0 hover:bg-surface">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2"><span className="truncate text-[14px]">{a.title}</span><ClassificationBadge level={a.classification} /></div>
-                <div className="text-[12px] text-subtle">{[a.type_name, a.project_id ? names.get(a.project_id) : "Personal", `v${a.version}`].filter(Boolean).join(" · ")}</div>
+                <div className="text-[12px] text-subtle">{[typeName(typeDefs.get(a.type), lang, a.type_name), a.project_id ? names.get(a.project_id) : t("personal"), `v${a.version}`].filter(Boolean).join(" · ")}</div>
               </div>
-              <Badge tone={a.status === "final" ? "success" : a.status === "in_review" ? "accent" : "neutral"}>{a.status.replace("_", " ")}</Badge>
+              <Badge tone={a.status === "final" ? "success" : a.status === "in_review" ? "accent" : "neutral"}>{t(a.status)}</Badge>
               <span className="w-24 text-right text-[12px] text-subtle">{timeAgo(a.updated_at)}</span>
             </Link>
           ))}
         </div>
       ) : !isLoading ? (
-        <EmptyState icon={<FileStack />} title="Your work with NOVA will appear here." description="Ask NOVA for a PRD, a backlog or a sprint plan — or create an Artifact yourself." />
+        <EmptyState icon={<FileStack />} title={t("emptyTitle")} description={t("emptyDescription")} />
       ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent title="New Artifact">
+        <DialogContent title={t("newArtifact")}>
           <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-3">
-            <div className="space-y-1.5"><Label>Type</Label><Select value={newType} onValueChange={setNewType} options={(types ?? []).map((t) => ({ value: t.type, label: t.name, hint: t.description }))} className="w-full" /></div>
-            <div className="space-y-1.5"><Label htmlFor="atitle">Title</Label><Input id="atitle" required value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-            <div className="flex justify-end"><Button type="submit" variant="primary" disabled={!title.trim() || create.isPending}>Create</Button></div>
+            <div className="space-y-1.5"><Label>{t("type")}</Label><Select value={newType} onValueChange={setNewType} options={(types ?? []).map((d) => ({ value: d.type, label: typeName(d, lang), hint: typeDescription(d, lang) }))} className="w-full" /></div>
+            <div className="space-y-1.5"><Label htmlFor="atitle">{t("artifactTitle")}</Label><Input id="atitle" required value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div className="flex justify-end"><Button type="submit" variant="primary" disabled={!title.trim() || create.isPending}>{t("create")}</Button></div>
           </form>
         </DialogContent>
       </Dialog>

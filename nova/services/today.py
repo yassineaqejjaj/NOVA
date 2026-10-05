@@ -18,6 +18,7 @@ from nova.config import get_settings
 from nova.domain.artifacts import ArtifactContent
 from nova.domain.context import ContextChange, ContextError, ContextOverview
 from nova.domain.permissions import Principal
+from nova.i18n import Lang, resolve_lang, tr, tr_count
 from nova.infra.db import aware, utcnow
 from nova.infra.models import (
     Artifact,
@@ -52,10 +53,11 @@ def _review(label: str, href: str) -> dict[str, Any]:
     return {"kind": "review", "label": label, "href": href}
 
 
-IGNORE = {"kind": "ignore", "label": "Ignore"}
+def _ignore(lang: Lang) -> dict[str, Any]:
+    return {"kind": "ignore", "label": tr(lang, "ignore")}
 
 
-def recommendation_for_change(change: ContextChange, project: dict[str, Any]) -> dict[str, Any] | None:
+def recommendation_for_change(change: ContextChange, project: dict[str, Any], lang: Lang = "en") -> dict[str, Any] | None:
     """Deterministic mapping of ORBIT change types to suggested actions (ORBIT's own wording is displayed)."""
     subject = _subject(change.title)
     orbit_url = project.get("orbit_url") or ""
@@ -74,41 +76,38 @@ def recommendation_for_change(change: ContextChange, project: dict[str, Any]) ->
     if change.type == "document.new_version":
         return {
             **base,
-            "suggestion": f"NOVA can check which of your artifacts are affected by the new version of “{subject}”.",
-            "actions": [
-                _fix("Check impact with NOVA", f'Review the impact of the new version of "{subject}" on my work.'),
-                IGNORE,
-            ],
+            "suggestion": tr(lang, "s_new_version", subject=subject),
+            "actions": [_fix(tr(lang, "check_impact"), tr(lang, "p_new_version", subject=subject)), _ignore(lang)],
         }
     if change.type in ("memory.created", "memory.validated") and kind in (None, "decision"):
         return {
             **base,
-            "suggestion": "NOVA can list the artifacts this decision affects.",
-            "actions": [_fix("Check affected work", f'Which of my artifacts are affected by the decision "{subject}"?'), IGNORE],
+            "suggestion": tr(lang, "s_decision"),
+            "actions": [_fix(tr(lang, "check_affected"), tr(lang, "p_decision", subject=subject)), _ignore(lang)],
         }
     if change.type == "memory.superseded":
         return {
             **base,
-            "suggestion": "NOVA can tell you what to update now that it was superseded.",
-            "actions": [_fix("Find what to update", f'"{subject}" was superseded. What should I update?'), IGNORE],
+            "suggestion": tr(lang, "s_superseded"),
+            "actions": [_fix(tr(lang, "find_updates"), tr(lang, "p_superseded", subject=subject)), _ignore(lang)],
         }
     if change.type == "memory.conflict_detected":
         return {
             **base,
             "risk": True,
-            "suggestion": "Two pieces of project knowledge contradict each other. Resolve it in ORBIT so NOVA uses the right one.",
-            "actions": [_review("Resolve in ORBIT", f"{orbit_url}/inbox"), IGNORE],
+            "suggestion": tr(lang, "s_conflict"),
+            "actions": [_review(tr(lang, "resolve_in_orbit"), f"{orbit_url}/inbox"), _ignore(lang)],
         }
     if change.type == "document.stale":
         return {
             **base,
-            "suggestion": "NOVA can draft a refreshed version from the latest project context.",
-            "actions": [_fix("Refresh with NOVA", f'Help me refresh "{subject}".'), IGNORE],
+            "suggestion": tr(lang, "s_stale"),
+            "actions": [_fix(tr(lang, "refresh_with_nova"), tr(lang, "p_stale", subject=subject)), _ignore(lang)],
         }
     return None
 
 
-async def _missing_acceptance_criteria(session: AsyncSession, uid: uuid.UUID) -> dict[str, Any] | None:
+async def _missing_acceptance_criteria(session: AsyncSession, uid: uuid.UUID, lang: Lang = "en") -> dict[str, Any] | None:
     members = select(ProjectMember.project_id).where(ProjectMember.user_id == uid)
     rows = (
         await session.execute(
@@ -127,34 +126,30 @@ async def _missing_acceptance_criteria(session: AsyncSession, uid: uuid.UUID) ->
             .limit(20)
         )
     ).all()
-    types = get_artifact_registry().types
+    registry = get_artifact_registry()
     for artifact, raw, project_name in rows:
         content = ArtifactContent.model_validate(raw)
         missing = [i for _, i in content.all_items() if i.kind == "story" and not i.attributes.get("acceptance_criteria")]
         if not missing:
             continue
         n = len(missing)
-        stories = "stories" if n > 1 else "story"
-        type_name = types[artifact.type].name if artifact.type in types else artifact.type
+        type_name = registry.types[artifact.type].localized_name(lang) if artifact.type in registry.types else artifact.type
         return {
             "id": f"nova:ac:{artifact.id}:{n}",
             "source": "nova",
             "project_id": str(artifact.project_id) if artifact.project_id else None,
             "project_name": project_name,
             "classification": artifact.classification,
-            "title": f"{n} {stories} need acceptance criteria",
+            "title": tr_count(lang, "ac_title", n),
             "subtitle": artifact.title,
-            "context": f"{type_name} · Backlog quality",
-            "suggestion": f"NOVA can generate acceptance criteria for {'these' if n > 1 else 'this'} {n} {stories}.",
+            "context": tr(lang, "ac_context", type=type_name),
+            "suggestion": tr_count(lang, "ac_suggestion", n),
             "actions": [
                 _fix(
-                    "Fix with NOVA",
-                    "/acceptance-criteria Complete the missing acceptance criteria of the referenced artifact.",
-                    artifact_id=str(artifact.id),
-                    artifact_title=artifact.title,
+                    tr(lang, "fix_with_nova"), tr(lang, "ac_prompt"), artifact_id=str(artifact.id), artifact_title=artifact.title
                 ),
-                _review("Review", f"/artifacts/{artifact.id}"),
-                IGNORE,
+                _review(tr(lang, "review"), f"/artifacts/{artifact.id}"),
+                _ignore(lang),
             ],
             "artifact_id": str(artifact.id),
             "at": artifact.updated_at.isoformat(),
@@ -162,16 +157,12 @@ async def _missing_acceptance_criteria(session: AsyncSession, uid: uuid.UUID) ->
     return None
 
 
-WAITING_COPY = {
-    "approval": ("NOVA prepared changes and needs your approval", "Review changes"),
-    "confirm_workflow": ("NOVA proposed a workflow and waits for your go", "Review the plan"),
-    "questions": ("NOVA needs a clarification to continue", "Answer"),
-}
+WAITING_KEYS = {"approval": "wait_approval", "confirm_workflow": "wait_workflow", "questions": "wait_questions"}
 
 
-def _waiting_recommendation(task: Task, project_name: str | None) -> dict[str, Any]:
-    kind = (task.waiting_for or {}).get("kind", "")
-    suggestion, label = WAITING_COPY.get(kind, ("NOVA is waiting for you", "Continue"))
+def _waiting_recommendation(task: Task, project_name: str | None, lang: Lang = "en") -> dict[str, Any]:
+    key = WAITING_KEYS.get((task.waiting_for or {}).get("kind", ""), "wait_default")
+    suggestion, label = tr(lang, key), tr(lang, f"{key}_action")
     href = f"/c/{task.conversation_id}" if task.conversation_id else f"/work?task={task.id}"
     return {
         "id": f"nova:waiting:{task.id}",
@@ -180,27 +171,28 @@ def _waiting_recommendation(task: Task, project_name: str | None) -> dict[str, A
         "project_name": project_name,
         "title": task.objective[:140],
         "subtitle": suggestion,
-        "context": "Waiting for you",
+        "context": tr(lang, "waiting_context"),
         "suggestion": suggestion + ".",
         "actions": [_review(label, href)],
         "task_id": str(task.id),
         "conversation_id": str(task.conversation_id) if task.conversation_id else None,
         "at": task.created_at.isoformat(),
         "urgent": True,
+        "clarification": key == "wait_questions",
     }
 
 
-def _failed_recommendation(task: Task, project_name: str | None) -> dict[str, Any]:
+def _failed_recommendation(task: Task, project_name: str | None, lang: Lang = "en") -> dict[str, Any]:
     return {
         "id": f"nova:failed:{task.id}",
         "source": "nova",
         "project_id": str(task.project_id) if task.project_id else None,
         "project_name": project_name,
         "title": task.objective[:140],
-        "subtitle": task.error or "The task stopped before the end.",
-        "context": "Didn't finish",
-        "suggestion": "NOVA can resume from the last completed step.",
-        "actions": [{"kind": "retry", "label": "Retry", "task_id": str(task.id)}, IGNORE],
+        "subtitle": task.error or tr(lang, "failed_subtitle"),
+        "context": tr(lang, "failed_context"),
+        "suggestion": tr(lang, "failed_suggestion"),
+        "actions": [{"kind": "retry", "label": tr(lang, "retry"), "task_id": str(task.id)}, _ignore(lang)],
         "task_id": str(task.id),
         "conversation_id": str(task.conversation_id) if task.conversation_id else None,
         "at": task.created_at.isoformat(),
@@ -225,12 +217,13 @@ async def dismiss(session: AsyncSession, principal: Principal, recommendation_id
     await session.flush()
 
 
-async def today(session: AsyncSession, principal: Principal) -> dict[str, Any]:
+async def today(session: AsyncSession, principal: Principal, accept_language: str | None = None) -> dict[str, Any]:
     uid = uuid.UUID(principal.user_id)
     user = await session.get(User, uid)
     assert user is not None
     prefs_row = await session.get(UserPreferences, uid)
     prefs = preferences_dict(prefs_row, user)
+    lang = resolve_lang(prefs.get("language"), accept_language)
     dismissed = set(prefs_row.dismissed_recommendations or []) if prefs_row else set()
     now = utcnow()
 
@@ -253,7 +246,7 @@ async def today(session: AsyncSession, principal: Principal) -> dict[str, Any]:
             select(Task).where(Task.user_id == uid, Task.status == "waiting_user").order_by(Task.created_at.desc()).limit(3)
         )
     ).all()
-    recommendations += [_waiting_recommendation(t, name_of(t.project_id)) for t in waiting]
+    recommendations += [_waiting_recommendation(t, name_of(t.project_id), lang) for t in waiting]
     failed = (
         await session.scalars(
             select(Task)
@@ -262,8 +255,8 @@ async def today(session: AsyncSession, principal: Principal) -> dict[str, Any]:
             .limit(2)
         )
     ).all()
-    recommendations += [_failed_recommendation(t, name_of(t.project_id)) for t in failed]
-    if ac := await _missing_acceptance_criteria(session, uid):
+    recommendations += [_failed_recommendation(t, name_of(t.project_id), lang) for t in failed]
+    if ac := await _missing_acceptance_criteria(session, uid, lang):
         recommendations.append(ac)
 
     # --- ORBIT: changes, context available ---------------------------------------------------------
@@ -312,7 +305,7 @@ async def today(session: AsyncSession, principal: Principal) -> dict[str, Any]:
                     context["last_change_at"] = created.isoformat()
                 if change.type == "memory.conflict_detected":
                     orbit_risk_projects.add(project.name)
-                if (rec := recommendation_for_change(change, info)) and all(
+                if (rec := recommendation_for_change(change, info, lang)) and all(
                     r.get("title") != rec["title"] for r in recommendations
                 ):
                     recommendations.append(rec)
@@ -393,7 +386,7 @@ async def today(session: AsyncSession, principal: Principal) -> dict[str, Any]:
     if any(t.status == "running" for t in active):
         running_phase = next(t.phase for t in active if t.status == "running")
         state = "thinking" if running_phase in ("idle", "retrieving_context", "planning") else "working"
-    elif any(r.get("urgent") and "clarification" in r.get("subtitle", "") for r in recommendations):
+    elif any(r.get("clarification") for r in recommendations):
         state = "clarification"
     elif waiting:
         state = "waiting"

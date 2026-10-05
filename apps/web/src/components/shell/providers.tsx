@@ -2,10 +2,11 @@
 
 import { TooltipProvider } from "@nova/ui";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 
 import { ApiError } from "@/lib/api/client";
+import { useLang } from "@/lib/i18n";
 import { useUi } from "@/stores/ui";
 
 function ThemeSync() {
@@ -13,6 +14,13 @@ function ThemeSync() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+  return null;
+}
+
+function LangAttribute({ lang }: { lang: string }) {
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   return null;
 }
 
@@ -32,11 +40,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   );
   const theme = useUi((s) => s.theme);
+  const lang = useLang();
   return (
     <QueryClientProvider client={client}>
       <TooltipProvider>
         <ThemeSync />
-        {children}
+        <LangAttribute lang={lang} />
+        {/* Remount on language change so every label, date and number re-renders in the new language. */}
+        <Fragment key={lang}>{children}</Fragment>
         <Toaster theme={theme} position="bottom-right" toastOptions={{ className: "!bg-surface !border-border !text-text" }} />
       </TooltipProvider>
     </QueryClientProvider>

@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -161,6 +161,10 @@ def _skill_view(spec: Any, *, detail: bool = False) -> dict[str, Any]:
         "artifact_type_name": artifact_type.name if artifact_type else None,
         "steps": [{"id": s.id, "title": s.title} for s in spec.steps],
         "triggers": spec.triggers,
+        "translations": {
+            lang: {**t, "artifact_type_name": (artifact_type.translations.get(lang, {}).get("name") if artifact_type else None)}
+            for lang, t in spec.translations.items()
+        },
     }
     if detail:
         view.update(
@@ -204,8 +208,8 @@ async def get_workflow(workflow_id: str, principal: CurrentPrincipal, session: S
 
 
 @router.get("/today")
-async def today(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
-    return await today_service.today(session, principal)
+async def today(request: Request, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    return await today_service.today(session, principal, request.headers.get("accept-language"))
 
 
 class DismissIn(BaseModel):
@@ -221,6 +225,7 @@ async def dismiss_recommendation(body: DismissIn, principal: CurrentPrincipal, s
 
 @router.get("/activity")
 async def activity(
+    request: Request,
     principal: CurrentPrincipal,
     session: SessionDep,
     project_id: str | None = None,
@@ -241,6 +246,7 @@ async def activity(
         status=status,
         since=since,
         until=until,
+        accept_language=request.headers.get("accept-language"),
     )
 
 

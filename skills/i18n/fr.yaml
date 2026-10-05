@@ -1,0 +1,194 @@
+# French display translations for skills (UI labels only).
+# Prompts keep the English definitions from ../<skill>/skill.yaml. Keys must match skill ids exactly.
+
+acceptance-criteria:
+  name: "Critères d’acceptation"
+  summary: "Rédiger ou renforcer les critères d’acceptation Given/When/Then des user stories existantes, en conservant leurs identifiants."
+
+artifact-edit:
+  name: "Modification d’artefact"
+  summary: "Mettre à jour les sections sélectionnées d’un artefact existant selon votre demande."
+
+backlog-refinement:
+  name: "Affinage du backlog"
+  summary: "Affiner les éléments du backlog : clarifier les user stories, préciser les critères d’acceptation, proposer des découpages et faire remonter les questions pour l’équipe."
+
+decision-record:
+  name: "Fiche de décision"
+  summary: "Documenter une décision produit ou technique : le contexte, les options envisagées, la décision et ses conséquences."
+
+definition-of-done:
+  name: "Definition of Done"
+  summary: "Rédiger la Definition of Done de l’équipe : le niveau de qualité que chaque incrément doit atteindre pour être considéré comme terminé."
+
+definition-of-ready:
+  name: "Definition of Ready"
+  summary: "Rédiger la Definition of Ready de l’équipe : les conditions qu’un élément du backlog doit remplir avant d’entrer dans un sprint."
+
+dependency-analysis:
+  name: "Analyse des dépendances"
+  summary: "Cartographier les dépendances d’un plan, identifier le chemin critique et définir les actions pour les débloquer."
+
+epic-definition:
+  name: "Définition d’epic"
+  summary: "Définir un epic comme un incrément de valeur livrable, avec son périmètre, ses user stories candidates, ses indicateurs de succès, ses dépendances et ses risques."
+
+executive-summary:
+  name: "Synthèse exécutive"
+  summary: "Condenser un sujet, un document ou un projet en une synthèse prête pour la décision, destinée à la direction."
+
+experiment-analysis:
+  name: "Analyse d’expérimentation"
+  summary: "Analyser les résultats d’une expérimentation au regard de l’hypothèse et de la règle de décision fixées à l’avance, et en tirer une décision."
+
+experiment-definition:
+  name: "Définition d’expérimentation"
+  summary: "Concevoir une expérimentation qui teste une hypothèse, avec méthode, indicateurs, seuil de succès et règle de décision fixés à l’avance."
+
+feedback-synthesis:
+  name: "Synthèse des retours utilisateurs"
+  summary: "Synthétiser les retours utilisateurs en thèmes, avec fréquence et gravité, verbatims représentatifs et opportunités produit."
+
+functional-requirements:
+  name: "Exigences fonctionnelles"
+  summary: "Spécifier ce que le système doit faire sous forme d’exigences fonctionnelles priorisées et testables, avec contraintes, hypothèses et questions ouvertes."
+
+hypothesis-generation:
+  name: "Formulation d’hypothèses"
+  summary: "Transformer idées et présupposés en hypothèses réfutables, avec un signal de succès clair et mesurable."
+
+impact-effort-prioritization:
+  name: "Priorisation impact / effort"
+  summary: "Placer les éléments sur une matrice impact/effort pour repérer les quick wins, les paris majeurs, les tâches d’appoint et les gouffres à ressources."
+
+initiative-definition:
+  name: "Définition d’initiative"
+  summary: "Cadrer une initiative : le problème traité, les objectifs servis, les indicateurs de succès, les jalons, les dépendances et les risques."
+
+interview-guide:
+  name: "Guide d’entretien"
+  summary: "Rédiger une trame d’entretien de discovery avec mise en confiance, questions ouvertes fondées sur des récits, relances et conclusion."
+
+jobs-to-be-done:
+  name: "Jobs To Be Done"
+  summary: "Identifier les jobs pour lesquels les clients « recrutent » le produit, leurs résultats attendus, leurs moments de difficulté et les alternatives actuelles."
+
+kano-analysis:
+  name: "Analyse de Kano"
+  summary: "Classer les fonctionnalités selon leur effet sur la satisfaction client : obligatoires, de performance, attractives, indifférentes ou inverses."
+
+moscow-prioritization:
+  name: "Priorisation MoSCoW"
+  summary: "Classer exigences ou fonctionnalités en Must, Should, Could et Won’t have pour une release ou une période donnée."
+
+non-functional-requirements:
+  name: "Exigences non fonctionnelles"
+  summary: "Définir des exigences de qualité mesurables (performance, sécurité, confidentialité, accessibilité, fiabilité) pour une fonctionnalité ou un système."
+
+north-star-metric:
+  name: "North Star Metric"
+  summary: "Identifier l’indicateur unique qui reflète le mieux la valeur perçue par les clients, avec ses indicateurs d’entrée et ses garde-fous."
+
+okr-definition:
+  name: "Définition des OKR"
+  summary: "Définir un ensemble ciblé d’OKR pour une équipe et une période, avec des résultats clés ambitieux et mesurables."
+
+opportunity-solution-tree:
+  name: "Arbre opportunités-solutions"
+  summary: "Relier un résultat visé aux opportunités client, aux solutions candidates et aux expérimentations qui les testent."
+
+persona:
+  name: "Persona"
+  summary: "Construire un persona fondé sur des données probantes, décrivant les objectifs, frustrations, comportements et besoins d’un segment d’utilisateurs."
+
+prd:
+  name: "Document d’exigences produit (PRD)"
+  summary: "Transformer une idée ou une initiative en un PRD complet et structuré, sur lequel l’équipe technique peut s’appuyer pour développer."
+
+prfaq:
+  name: "PR/FAQ (Working Backwards)"
+  summary: "Rédiger un communiqué de presse et une FAQ à la manière d’Amazon, décrivant le produit du point de vue du client avant de le construire."
+
+problem-framing:
+  name: "Cadrage du problème"
+  summary: "Poser clairement un problème (qui est concerné, données probantes, impact et causes supposées) avant de discuter des solutions."
+
+product-metrics:
+  name: "Plan d’indicateurs produit"
+  summary: "Définir les indicateurs qui montrent si un produit ou une fonctionnalité réussit, et l’instrumentation nécessaire pour les mesurer."
+
+product-principles:
+  name: "Principes produit"
+  summary: "Rédiger un petit ensemble de principes produit affirmés qui guident les décisions lorsque l’équipe fait face à des arbitrages."
+
+product-strategy:
+  name: "Stratégie produit"
+  summary: "Définir comment le produit atteindra sa vision : le diagnostic, les paris stratégiques, les arbitrages et la mesure des progrès."
+
+product-update:
+  name: "Point d’avancement produit"
+  summary: "Rédiger un point d’avancement concis : statut en une phrase, faits marquants, indicateurs clés, risques et points de blocage, demandes et prochaines étapes."
+
+product-vision:
+  name: "Vision produit"
+  summary: "Formuler où va le produit, pour qui et pourquoi c’est important, dans une vision autour de laquelle l’équipe peut se rassembler."
+
+release-notes:
+  name: "Release notes"
+  summary: "Rédiger des release notes destinées aux utilisateurs, qui expliquent ce qui a changé et pourquoi c’est important pour eux."
+
+release-planning:
+  name: "Planification de release"
+  summary: "Planifier une release : objectif, périmètre par epic, jalons, dépendances, risques, déploiement et checklist go/no-go."
+
+rice-prioritization:
+  name: "Priorisation RICE"
+  summary: "Classer initiatives, epics ou fonctionnalités avec RICE : Reach × Impact × Confidence ÷ Effort."
+
+risk-analysis:
+  name: "Analyse des risques"
+  summary: "Identifier les risques produit et de livraison, évaluer leur probabilité et leur impact, et planifier les mesures d’atténuation avec des responsables."
+
+root-cause-analysis:
+  name: "Analyse des causes racines"
+  summary: "Comprendre pourquoi un problème ou un incident est survenu, trouver les causes racines et définir des actions correctives et préventives."
+
+sprint-planning:
+  name: "Sprint planning"
+  summary: "Préparer une proposition de sprint à partir de l’objectif de sprint, du backlog, du travail non terminé et de la capacité."
+
+sprint-preparation:
+  name: "Préparation du sprint"
+  summary: "Vérifier que les éléments en tête du backlog sont prêts avant le sprint planning : les affiner, proposer des découpages, soulever les questions et contrôler la Definition of Ready."
+
+stakeholder-brief:
+  name: "Note aux parties prenantes"
+  summary: "Adapter ce que chaque partie prenante doit savoir d’un projet ou d’un changement, avec messages clés, demandes et calendrier de communication."
+
+story-mapping:
+  name: "Story mapping"
+  summary: "Construire une story map : une colonne vertébrale d’activités utilisateur, les user stories associées et les tranches de release."
+
+user-journey:
+  name: "Parcours utilisateur"
+  summary: "Cartographier le parcours de bout en bout d’un utilisateur pour un scénario, avec actions, pensées, émotions, points de friction et opportunités."
+
+user-research-plan:
+  name: "Plan de recherche utilisateur"
+  summary: "Planifier une étude : ce qu’il faut apprendre, la bonne méthode, les participants à recruter, le calendrier et les livrables."
+
+user-story-generation:
+  name: "Rédaction de user stories"
+  summary: "Rédiger des user stories INVEST avec des critères d’acceptation Given/When/Then, regroupées par epic."
+
+vision-to-backlog:
+  name: "De la vision au backlog"
+  summary: "Transformer une vision produit en objectifs, initiatives, epics et user stories avec critères d’acceptation."
+
+vision-to-objectives:
+  name: "De la vision aux objectifs"
+  summary: "Traduire une vision produit en objectifs orientés résultats, résultats clés mesurables et initiatives censées les faire progresser."
+
+wsjf-prioritization:
+  name: "Priorisation WSJF"
+  summary: "Séquencer fonctionnalités ou epics selon le Weighted Shortest Job First : coût du retard divisé par la taille du travail."

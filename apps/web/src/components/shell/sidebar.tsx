@@ -16,45 +16,90 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { api } from "@/lib/api/client";
 import { useMe } from "@/lib/api/hooks";
+import { defineMessages, useT } from "@/lib/i18n";
 import { useNovaState, useUi } from "@/stores/ui";
 
 import { NovaLogo, NovaMark, PHASE_LABEL } from "./nova-mark";
 
-type NavItem = { href: string; label: string; icon: "orb" | typeof FolderKanban };
+const M = defineMessages({
+  en: {
+    home: "Home",
+    projects: "Projects",
+    tasks: "Tasks",
+    library: "Library",
+    context: "Context",
+    skills: "Skills",
+    timeline: "Timeline",
+    workspace: "Workspace",
+    knowledge: "Knowledge",
+    nova: "NOVA",
+    main: "Main",
+    settings: "Settings",
+    signOut: "Sign out",
+    lightTheme: "Light theme",
+    darkTheme: "Dark theme",
+    accountMenu: "Account menu",
+    search: "Search",
+    searchAria: "Search (⌘K)",
+  },
+  fr: {
+    home: "Accueil",
+    projects: "Projets",
+    tasks: "Tâches",
+    library: "Bibliothèque",
+    context: "Contexte",
+    skills: "Skills",
+    timeline: "Timeline",
+    workspace: "Espace de travail",
+    knowledge: "Connaissances",
+    nova: "NOVA",
+    main: "Principal",
+    settings: "Paramètres",
+    signOut: "Se déconnecter",
+    lightTheme: "Thème clair",
+    darkTheme: "Thème sombre",
+    accountMenu: "Menu du compte",
+    search: "Rechercher",
+    searchAria: "Rechercher (⌘K)",
+  },
+});
+type Label = keyof typeof M.en;
+
+type NavItem = { href: string; label: Label; icon: "orb" | typeof FolderKanban };
 
 /** Compact, grouped navigation (7 entries): workspace, knowledge, NOVA itself. */
-export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+export const NAV_GROUPS: { label: Label; items: NavItem[] }[] = [
   {
-    label: "Workspace",
+    label: "workspace",
     items: [
-      { href: "/", label: "Home", icon: "orb" },
-      { href: "/projects", label: "Projects", icon: FolderKanban },
-      { href: "/work", label: "Tasks", icon: ListTodo },
+      { href: "/", label: "home", icon: "orb" },
+      { href: "/projects", label: "projects", icon: FolderKanban },
+      { href: "/work", label: "tasks", icon: ListTodo },
     ],
   },
   {
-    label: "Knowledge",
+    label: "knowledge",
     items: [
-      { href: "/artifacts", label: "Library", icon: Library },
-      { href: "/context", label: "Context", icon: Orbit },
+      { href: "/artifacts", label: "library", icon: Library },
+      { href: "/context", label: "context", icon: Orbit },
     ],
   },
   {
-    label: "NOVA",
+    label: "nova",
     items: [
-      { href: "/skills", label: "Skills", icon: Sparkles },
-      { href: "/activity", label: "Timeline", icon: History },
+      { href: "/skills", label: "skills", icon: Sparkles },
+      { href: "/activity", label: "timeline", icon: History },
     ],
   },
 ];
 
 /** Bottom tab bar on phones (5 entries). */
 export const NAV: NavItem[] = [
-  { href: "/", label: "Home", icon: "orb" },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/work", label: "Tasks", icon: ListTodo },
-  { href: "/artifacts", label: "Library", icon: Library },
-  { href: "/activity", label: "Timeline", icon: History },
+  { href: "/", label: "home", icon: "orb" },
+  { href: "/projects", label: "projects", icon: FolderKanban },
+  { href: "/work", label: "tasks", icon: ListTodo },
+  { href: "/artifacts", label: "library", icon: Library },
+  { href: "/activity", label: "timeline", icon: History },
 ];
 
 export function isActive(pathname: string, href: string): boolean {
@@ -70,6 +115,7 @@ function NavIcon({ icon, active, phase }: { icon: NavItem["icon"]; active: boole
 }
 
 export function UserMenu({ compact = false }: { compact?: boolean }) {
+  const t = useT(M);
   const { data: me } = useMe();
   const router = useRouter();
   const theme = useUi((s) => s.theme);
@@ -82,7 +128,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex w-full items-center gap-2.5 rounded-[12px] px-2 py-2 text-left hover:bg-surface-2" aria-label="Account menu">
+        <button className="flex w-full items-center gap-2.5 rounded-[12px] px-2 py-2 text-left hover:bg-surface-2" aria-label={t("accountMenu")}>
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-3 text-[13px] font-semibold text-text">
             {me.display_name.slice(0, 1).toUpperCase()}
           </span>
@@ -95,18 +141,19 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="top" className="w-56">
-        <DropdownMenuItem onSelect={() => router.push("/settings")}><Settings /> Settings</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => router.push("/settings")}><Settings /> {t("settings")}</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}>
-          {theme === "dark" ? <Sun /> : <Moon />} {theme === "dark" ? "Light theme" : "Dark theme"}
+          {theme === "dark" ? <Sun /> : <Moon />} {theme === "dark" ? t("lightTheme") : t("darkTheme")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void logout()}><LogOut /> Sign out</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void logout()}><LogOut /> {t("signOut")}</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 export function Sidebar() {
+  const t = useT(M);
   const pathname = usePathname();
   const running = useNovaState((s) => s.running);
   const current = Object.values(running)[0];
@@ -115,10 +162,10 @@ export function Sidebar() {
       <Link href="/" className="mb-8 px-2">
         <NovaLogo height={26} />
       </Link>
-      <nav className="flex flex-col gap-5" aria-label="Main">
+      <nav className="flex flex-col gap-5" aria-label={t("main")}>
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-subtle">{group.label}</div>
+            <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-subtle">{t(group.label)}</div>
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -133,7 +180,7 @@ export function Sidebar() {
                     )}
                   >
                     <NavIcon icon={item.icon} active={active} phase={item.icon === "orb" ? current?.phase : undefined} />
-                    {item.label}
+                    {t(item.label)}
                   </Link>
                 );
                 return item.icon === "orb" && current ? (
@@ -154,7 +201,7 @@ export function Sidebar() {
             pathname.startsWith("/settings") ? "bg-surface-2 font-medium text-text" : "text-muted hover:bg-surface-2/70 hover:text-text",
           )}
         >
-          <Settings className="size-[18px] text-subtle" /> Settings
+          <Settings className="size-[18px] text-subtle" /> {t("settings")}
         </Link>
         <UserMenu />
       </div>
@@ -164,21 +211,23 @@ export function Sidebar() {
 
 /** Search finds what already exists (⌘K); asking NOVA to act happens in the composer. */
 export function TopSearch() {
+  const t = useT(M);
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
   return (
     <button
       onClick={() => setPaletteOpen(true)}
-      aria-label="Search (⌘K)"
+      aria-label={t("searchAria")}
       className="flex h-9 items-center gap-2 rounded-full bg-surface-2/80 px-3.5 text-[13px] text-subtle transition-colors hover:bg-surface-3 hover:text-muted"
     >
       <Search className="size-4" />
-      <span>Search</span>
+      <span>{t("search")}</span>
       <Kbd className="ml-3">⌘K</Kbd>
     </button>
   );
 }
 
 export function MobileTabBar() {
+  const t = useT(M);
   const pathname = usePathname();
   const running = useNovaState((s) => s.running);
   const current = Object.values(running)[0];
@@ -189,7 +238,7 @@ export function MobileTabBar() {
         return (
           <Link key={item.href} href={item.href} className={cn("flex flex-1 flex-col items-center justify-center gap-1 text-[11px]", active ? "text-accent" : "text-subtle")}>
             <NavIcon icon={item.icon} active={active} phase={item.icon === "orb" ? current?.phase : undefined} />
-            {item.label}
+            {t(item.label)}
           </Link>
         );
       })}

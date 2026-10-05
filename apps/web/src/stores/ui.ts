@@ -5,10 +5,17 @@ import { persist } from "zustand/middleware";
 
 import type { NovaPhase } from "@/lib/api/types";
 
+export type OrbColor = "coral" | "rose" | "violet" | "ocean" | "emerald" | "amber" | "graphite";
+
 interface UiState {
   sidebarCollapsed: boolean;
   paletteOpen: boolean;
   theme: "dark" | "light";
+  /** Interface language (null: follow the browser) — mirrors the user's preference. */
+  lang: "en" | "fr" | null;
+  orbColor: OrbColor;
+  setLang: (lang: "en" | "fr" | null) => void;
+  setOrbColor: (color: OrbColor) => void;
   toggleSidebar: () => void;
   setPaletteOpen: (open: boolean) => void;
   setTheme: (theme: "dark" | "light") => void;
@@ -20,11 +27,15 @@ export const useUi = create<UiState>()(
       sidebarCollapsed: false,
       paletteOpen: false,
       theme: "light",
+      lang: null,
+      orbColor: "coral",
+      setLang: (lang) => set({ lang }),
+      setOrbColor: (orbColor) => set({ orbColor }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
       setTheme: (theme) => set({ theme }),
     }),
-    { name: "nova-ui-v2", partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed, theme: s.theme }) },
+    { name: "nova-ui-v2", partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed, theme: s.theme, lang: s.lang, orbColor: s.orbColor }) },
   ),
 );
 

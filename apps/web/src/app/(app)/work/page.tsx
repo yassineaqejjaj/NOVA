@@ -14,16 +14,122 @@ import { api } from "@/lib/api/client";
 import { useProjects, useTask, useTasks } from "@/lib/api/hooks";
 import type { WorkItem } from "@/lib/api/types";
 import { duration, timeAgo } from "@/lib/format";
+import { defineMessages, useLang, useT } from "@/lib/i18n";
 
-const STATUS: Record<string, { label: string; tone: "accent" | "warning" | "success" | "danger" | "neutral" }> = {
-  queued: { label: "Queued", tone: "neutral" },
-  scheduled: { label: "Scheduled", tone: "neutral" },
-  running: { label: "Running", tone: "accent" },
-  waiting_user: { label: "Waiting for you", tone: "warning" },
-  completed: { label: "Completed", tone: "success" },
-  failed: { label: "Failed", tone: "danger" },
-  cancelled: { label: "Cancelled", tone: "neutral" },
+const M = defineMessages({
+  en: {
+    status_queued: "Queued",
+    status_scheduled: "Scheduled",
+    status_running: "Running",
+    status_waiting_user: "Waiting for you",
+    status_paused: "Paused",
+    status_completed: "Completed",
+    status_failed: "Failed",
+    status_cancelled: "Cancelled",
+    scheduledFor: "scheduled for {date}",
+    steps: (v: { done: number; total: number }) => `${v.done} / ${v.total} steps`,
+    retrying: "Retrying from the last completed step.",
+    cancelled: "Cancelled.",
+    close: "Close",
+    plan: "Plan",
+    planLater: "The plan is created when the work starts.",
+    noPlan: "No plan yet.",
+    outputs: "Outputs",
+    created: "Created",
+    duration: "Duration",
+    model: "Model",
+    tokens: "Tokens",
+    tokensValue: "{input} in · {output} out",
+    traceId: "Trace ID",
+    forgeEvaluation: "FORGE evaluation",
+    evalQueued: "queued",
+    passed: " · passed",
+    notPassed: " · not passed",
+    notEvaluated: "Not evaluated",
+    openConversation: "Open conversation",
+    retry: "Retry",
+    cancel: "Cancel",
+    empty_active: "NOVA has no active tasks.",
+    empty_scheduled: "Nothing scheduled.",
+    empty_completed: "Completed work will appear here.",
+    empty_failed: "No failed work. Good.",
+    emptyActiveHint: "Ask NOVA for something on Today.",
+    title: "Work",
+    description: "Everything NOVA is doing, has done, or will do for you.",
+    tab_active: "Active",
+    tab_scheduled: "Scheduled",
+    tab_completed: "Completed",
+    tab_failed: "Failed",
+  },
+  fr: {
+    status_queued: "En file d’attente",
+    status_scheduled: "Planifié",
+    status_running: "En cours",
+    status_waiting_user: "En attente de vous",
+    status_paused: "En pause",
+    status_completed: "Terminé",
+    status_failed: "Échec",
+    status_cancelled: "Annulé",
+    scheduledFor: "planifié le {date}",
+    steps: (v: { done: number; total: number }) => `${v.done} / ${v.total} étape${v.total > 1 ? "s" : ""}`,
+    retrying: "Reprise depuis la dernière étape terminée.",
+    cancelled: "Annulé.",
+    close: "Fermer",
+    plan: "Plan",
+    planLater: "Le plan est établi au démarrage du travail.",
+    noPlan: "Pas encore de plan.",
+    outputs: "Livrables",
+    created: "Créé",
+    duration: "Durée",
+    model: "Modèle",
+    tokens: "Tokens",
+    tokensValue: "{input} en entrée · {output} en sortie",
+    traceId: "ID de trace",
+    forgeEvaluation: "Évaluation FORGE",
+    evalQueued: "en file d’attente",
+    passed: " · réussie",
+    notPassed: " · non réussie",
+    notEvaluated: "Non évalué",
+    openConversation: "Ouvrir la conversation",
+    retry: "Relancer",
+    cancel: "Annuler",
+    empty_active: "NOVA n’a aucune tâche en cours.",
+    empty_scheduled: "Rien de planifié.",
+    empty_completed: "Le travail terminé apparaîtra ici.",
+    empty_failed: "Aucun travail en échec. Parfait.",
+    emptyActiveHint: "Demandez quelque chose à NOVA depuis l’Accueil.",
+    title: "Tâches",
+    description: "Tout ce que NOVA fait, a fait ou fera pour vous.",
+    tab_active: "En cours",
+    tab_scheduled: "Planifié",
+    tab_completed: "Terminé",
+    tab_failed: "Échec",
+  },
+});
+
+type Key = keyof typeof M.en;
+type Tone = "accent" | "warning" | "success" | "danger" | "neutral";
+
+const STATUS: Record<string, Tone> = {
+  queued: "neutral",
+  scheduled: "neutral",
+  running: "accent",
+  waiting_user: "warning",
+  paused: "neutral",
+  completed: "success",
+  failed: "danger",
+  cancelled: "neutral",
 };
+
+function useStatus() {
+  const t = useT(M);
+  return (status: string) => {
+    const known = status in STATUS ? status : "queued";
+    return { label: t(`status_${known}` as Key), tone: STATUS[known]! };
+  };
+}
+
+const locale = (lang: string) => (lang === "fr" ? "fr-FR" : undefined);
 
 function StepStatus({ status }: { status: string }) {
   if (status === "completed") return <Check className="size-3.5 text-success" />;
@@ -34,13 +140,15 @@ function StepStatus({ status }: { status: string }) {
 }
 
 function WorkRow({ item, projectName, selected, onSelect }: { item: WorkItem; projectName?: string; selected: boolean; onSelect: () => void }) {
-  const s = STATUS[item.status] ?? STATUS.queued!;
+  const t = useT(M);
+  const lang = useLang();
+  const s = useStatus()(item.status);
   return (
     <button onClick={onSelect} className={cn("flex w-full items-center gap-4 border-b border-border px-4 py-3 text-left transition-colors hover:bg-surface", selected && "bg-surface")}>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] text-text">{item.objective}</div>
         <div className="mt-0.5 truncate text-[12px] text-subtle">
-          {[projectName, item.skills.join(" → ") || null, item.scheduled_for ? `scheduled for ${new Date(item.scheduled_for).toLocaleString()}` : timeAgo(item.created_at)].filter(Boolean).join(" · ")}
+          {[projectName, item.skills.join(" → ") || null, item.scheduled_for ? t("scheduledFor", { date: new Date(item.scheduled_for).toLocaleString(locale(lang)) }) : timeAgo(item.created_at)].filter(Boolean).join(" · ")}
         </div>
       </div>
       {item.progress_total ? (
@@ -48,7 +156,7 @@ function WorkRow({ item, projectName, selected, onSelect }: { item: WorkItem; pr
           <div className="h-1 overflow-hidden rounded-full bg-surface-3">
             <motion.div className="h-full bg-accent" initial={false} animate={{ width: `${(item.progress_done / item.progress_total) * 100}%` }} transition={{ duration: 0.25 }} />
           </div>
-          <div className="mt-1 text-right text-[11px] text-subtle">{item.progress_done} / {item.progress_total} steps</div>
+          <div className="mt-1 text-right text-[11px] text-subtle">{t("steps", { done: item.progress_done, total: item.progress_total })}</div>
         </div>
       ) : null}
       <Badge tone={s.tone}>{s.label}</Badge>
@@ -59,16 +167,19 @@ function WorkRow({ item, projectName, selected, onSelect }: { item: WorkItem; pr
 function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const { data: task } = useTask(id);
   const client = useQueryClient();
+  const t = useT(M);
+  const lang = useLang();
+  const status = useStatus();
   const retry = useMutation({
     mutationFn: () => api.post(`/executions/${id}/retry`),
-    onSuccess: () => { toast("Retrying from the last completed step."); void client.invalidateQueries({ queryKey: ["tasks"] }); },
+    onSuccess: () => { toast(t("retrying")); void client.invalidateQueries({ queryKey: ["tasks"] }); },
   });
   const cancel = useMutation({
     mutationFn: () => api.post(`/executions/${id}/cancel`),
-    onSuccess: () => { toast("Cancelled."); void client.invalidateQueries({ queryKey: ["tasks"] }); },
+    onSuccess: () => { toast(t("cancelled")); void client.invalidateQueries({ queryKey: ["tasks"] }); },
   });
   if (!task) return <div className="p-5"><Skeleton className="h-32 w-full" /></div>;
-  const s = STATUS[task.status] ?? STATUS.queued!;
+  const s = status(task.status);
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-start gap-2 border-b border-border px-5 py-4">
@@ -76,11 +187,11 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
           <Badge tone={s.tone}>{s.label}</Badge>
           <h2 className="mt-1.5 text-[15px] font-semibold leading-snug">{task.objective}</h2>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close"><X /></Button>
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label={t("close")}><X /></Button>
       </div>
       <div className="flex-1 space-y-6 overflow-y-auto px-5 py-4 text-[13px]">
         <section>
-          <h3 className="mb-2 text-[11.5px] font-medium uppercase tracking-wider text-subtle">Plan</h3>
+          <h3 className="mb-2 text-[11.5px] font-medium uppercase tracking-wider text-subtle">{t("plan")}</h3>
           {task.steps?.length ? (
             <ol className="space-y-1.5">
               {task.steps.map((step) => (
@@ -93,11 +204,11 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
                 </li>
               ))}
             </ol>
-          ) : <p className="text-subtle">{task.status === "scheduled" ? "The plan is created when the work starts." : "No plan yet."}</p>}
+          ) : <p className="text-subtle">{task.status === "scheduled" ? t("planLater") : t("noPlan")}</p>}
         </section>
         {task.artifacts?.length ? (
           <section>
-            <h3 className="mb-2 text-[11.5px] font-medium uppercase tracking-wider text-subtle">Outputs</h3>
+            <h3 className="mb-2 text-[11.5px] font-medium uppercase tracking-wider text-subtle">{t("outputs")}</h3>
             {task.artifacts.map((a) => (
               <Link key={a.id} href={`/artifacts/${a.id}`} className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 hover:bg-surface-2">
                 <FileText className="size-3.5 text-accent" /> <span className="truncate">{a.title}</span> <Badge>v{a.version}</Badge>
@@ -106,30 +217,30 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
           </section>
         ) : null}
         <section className="grid grid-cols-2 gap-x-4 gap-y-2">
-          <Meta label="Created" value={new Date(task.created_at).toLocaleString()} />
-          <Meta label="Duration" value={duration(task.duration_seconds)} />
-          <Meta label="Model" value={task.model ?? "—"} />
-          <Meta label="Tokens" value={task.usage?.input_tokens != null ? `${task.usage.input_tokens} in · ${task.usage.output_tokens ?? 0} out` : "—"} />
-          <Meta label="Trace ID" value={task.trace_id ?? "—"} mono />
+          <Meta label={t("created")} value={new Date(task.created_at).toLocaleString(locale(lang))} />
+          <Meta label={t("duration")} value={duration(task.duration_seconds)} />
+          <Meta label={t("model")} value={task.model ?? "—"} />
+          <Meta label={t("tokens")} value={task.usage?.input_tokens != null ? t("tokensValue", { input: task.usage.input_tokens, output: task.usage.output_tokens ?? 0 }) : "—"} />
+          <Meta label={t("traceId")} value={task.trace_id ?? "—"} mono />
           <Meta
-            label="FORGE evaluation"
+            label={t("forgeEvaluation")}
             value={
               task.evaluation ? (
                 <a href={task.evaluation.url ?? "#"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
                   <FlaskConical className="size-3" />
-                  {task.evaluation.composite_score != null ? `${Math.round(task.evaluation.composite_score)} / 100` : task.evaluation.status ?? "queued"}
-                  {task.evaluation.passed != null ? (task.evaluation.passed ? " · passed" : " · not passed") : ""}
+                  {task.evaluation.composite_score != null ? `${Math.round(task.evaluation.composite_score)} / 100` : task.evaluation.status ?? t("evalQueued")}
+                  {task.evaluation.passed != null ? (task.evaluation.passed ? t("passed") : t("notPassed")) : ""}
                 </a>
-              ) : "Not evaluated"
+              ) : t("notEvaluated")
             }
           />
         </section>
         {task.error ? <p className="rounded-[10px] bg-danger/[0.06] px-3 py-2 text-muted">{task.error}</p> : null}
       </div>
       <div className="flex gap-2 border-t border-border px-5 py-3">
-        {task.conversation_id ? <Button variant="secondary" size="sm" asChild><Link href={`/c/${task.conversation_id}`}>Open conversation</Link></Button> : null}
-        {task.status === "failed" ? <Button size="sm" variant="primary" onClick={() => retry.mutate()} disabled={retry.isPending}>Retry</Button> : null}
-        {["queued", "running", "waiting_user", "scheduled"].includes(task.status) ? <Button size="sm" variant="ghost" onClick={() => cancel.mutate()}>Cancel</Button> : null}
+        {task.conversation_id ? <Button variant="secondary" size="sm" asChild><Link href={`/c/${task.conversation_id}`}>{t("openConversation")}</Link></Button> : null}
+        {task.status === "failed" ? <Button size="sm" variant="primary" onClick={() => retry.mutate()} disabled={retry.isPending}>{t("retry")}</Button> : null}
+        {["queued", "running", "waiting_user", "scheduled"].includes(task.status) ? <Button size="sm" variant="ghost" onClick={() => cancel.mutate()}>{t("cancel")}</Button> : null}
       </div>
     </div>
   );
@@ -144,16 +255,12 @@ function Meta({ label, value, mono }: { label: string; value: React.ReactNode; m
   );
 }
 
-const EMPTY: Record<string, string> = {
-  active: "NOVA has no active tasks.",
-  scheduled: "Nothing scheduled.",
-  completed: "Completed work will appear here.",
-  failed: "No failed work. Good.",
-};
+const TABS = ["active", "scheduled", "completed", "failed"] as const;
 
 function WorkPage() {
   const params = useSearchParams();
   const router = useRouter();
+  const t = useT(M);
   const [tab, setTab] = useState(params.get("tab") ?? "active");
   const selected = params.get("task");
   const { data: items, isLoading } = useTasks(tab);
@@ -165,13 +272,10 @@ function WorkPage() {
     <div className="flex min-h-screen">
       <div className="min-w-0 flex-1">
         <Page wide>
-          <PageHeader title="Work" description="Everything NOVA is doing, has done, or will do for you." />
+          <PageHeader title={t("title")} description={t("description")} />
           <Tabs value={tab} onValueChange={(v) => { setTab(v); router.replace(`/work?tab=${v}`, { scroll: false }); }}>
             <TabsList>
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
-              <TabsTrigger value="failed">Failed</TabsTrigger>
+              {TABS.map((v) => <TabsTrigger key={v} value={v}>{t(`tab_${v}`)}</TabsTrigger>)}
             </TabsList>
           </Tabs>
           <div className="mt-4 overflow-hidden rounded-[14px] border border-border">
@@ -180,7 +284,7 @@ function WorkPage() {
               <WorkRow key={item.id} item={item} projectName={item.project_id ? names.get(item.project_id) : undefined} selected={selected === item.id} onSelect={() => select(item.id)} />
             ))}
           </div>
-          {items && items.length === 0 ? <div className="mt-4"><EmptyState icon={<ListTodo />} title={EMPTY[tab] ?? ""} description={tab === "active" ? "Ask NOVA for something on Today." : undefined} /></div> : null}
+          {items && items.length === 0 ? <div className="mt-4"><EmptyState icon={<ListTodo />} title={(TABS as readonly string[]).includes(tab) ? t(`empty_${tab}` as Key) : ""} description={tab === "active" ? t("emptyActiveHint") : undefined} /></div> : null}
         </Page>
       </div>
       <AnimatePresence>

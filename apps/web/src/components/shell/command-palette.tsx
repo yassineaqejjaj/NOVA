@@ -21,6 +21,51 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useProjects, useSearch } from "@/lib/api/hooks";
+import { defineMessages, useLang, useT } from "@/lib/i18n";
+import { skillName } from "@/lib/i18n/catalog";
+
+const M = defineMessages({
+  en: {
+    palette: "Command palette",
+    placeholder: "Ask NOVA, run a Skill, open a project…",
+    actions: "Actions",
+    ask: "Ask NOVA",
+    askQuery: "Ask NOVA: “{query}”",
+    createPrd: "Create PRD",
+    discovery: "Start Discovery",
+    sprint: "Prepare Sprint",
+    sprintPrompt: "/sprint-planning Prepare the next sprint",
+    stories: "Create User Stories",
+    activeWork: "View Active Work",
+    searchArtifacts: "Search Artifacts",
+    searchContext: "Search Context",
+    openProject: "Open project",
+    artifacts: "Artifacts",
+    conversations: "Conversations",
+    skills: "Skills",
+    orbitContext: "ORBIT context",
+  },
+  fr: {
+    palette: "Palette de commandes",
+    placeholder: "Demander à NOVA, lancer une Skill, ouvrir un projet…",
+    actions: "Actions",
+    ask: "Demander à NOVA",
+    askQuery: "Demander à NOVA : « {query} »",
+    createPrd: "Créer un PRD",
+    discovery: "Lancer une discovery",
+    sprint: "Préparer le sprint",
+    sprintPrompt: "/sprint-planning Prépare le prochain sprint",
+    stories: "Créer des user stories",
+    activeWork: "Voir le travail en cours",
+    searchArtifacts: "Rechercher des artefacts",
+    searchContext: "Rechercher dans le contexte",
+    openProject: "Ouvrir un projet",
+    artifacts: "Artefacts",
+    conversations: "Conversations",
+    skills: "Skills",
+    orbitContext: "Contexte ORBIT",
+  },
+});
 import { useComposer, useUi } from "@/stores/ui";
 
 function Item({ icon: Icon, label, hint, onSelect }: { icon: typeof Search; label: string; hint?: string; onSelect: () => void }) {
@@ -45,6 +90,8 @@ function Group({ heading, children }: { heading: string; children: React.ReactNo
 }
 
 export function CommandPalette() {
+  const t = useT(M);
+  const lang = useLang();
   const open = useUi((s) => s.paletteOpen);
   const setOpen = useUi((s) => s.setPaletteOpen);
   const setDraft = useComposer((s) => s.setDraft);
@@ -97,32 +144,32 @@ export function CommandPalette() {
             className="w-[min(92vw,620px)] overflow-hidden rounded-[16px] border border-border-strong bg-surface shadow-panel"
             onClick={(e) => e.stopPropagation()}
           >
-            <Command label="Command palette" shouldFilter={true} loop>
+            <Command label={t("palette")} shouldFilter={true} loop>
               <div className="flex items-center gap-3 border-b border-border px-4">
                 <Search className="size-4 text-subtle" />
                 <Command.Input
                   autoFocus
                   value={query}
                   onValueChange={setQuery}
-                  placeholder="Ask NOVA, run a Skill, open a project…"
+                  placeholder={t("placeholder")}
                   className="h-12 w-full bg-transparent text-[14.5px] outline-none placeholder:text-subtle"
                 />
                 <Kbd>esc</Kbd>
               </div>
               <Command.List className="max-h-[56vh] overflow-y-auto py-1.5">
                 <Command.Empty className="px-4 py-6 text-center text-sm text-subtle">Nothing matches. Press Enter on “Ask NOVA”.</Command.Empty>
-                <Group heading="Actions">
-                  <Item icon={Sparkles} label={query ? `Ask NOVA: “${query}”` : "Ask NOVA"} onSelect={() => compose(query)} />
-                  <Item icon={FileText} label="Create PRD" hint="/prd" onSelect={() => compose("/prd ")} />
-                  <Item icon={Telescope} label="Start Discovery" hint="/problem-framing" onSelect={() => compose("/problem-framing ")} />
-                  <Item icon={CalendarRange} label="Prepare Sprint" hint="/sprint-planning" onSelect={() => compose("/sprint-planning Prepare the next sprint")} />
-                  <Item icon={Layers} label="Create User Stories" hint="/user-story-generation" onSelect={() => compose("/user-story-generation ")} />
-                  <Item icon={ListTodo} label="View Active Work" onSelect={() => run(() => router.push("/work"))} />
-                  <Item icon={FileStack} label="Search Artifacts" onSelect={() => run(() => router.push(`/artifacts${query ? `?q=${encodeURIComponent(query)}` : ""}`))} />
-                  <Item icon={Orbit} label="Search Context" hint="ORBIT" onSelect={() => run(() => router.push(`/context${query ? `?q=${encodeURIComponent(query)}` : ""}`))} />
+                <Group heading={t("actions")}>
+                  <Item icon={Sparkles} label={query ? t("askQuery", { query }) : t("ask")} onSelect={() => compose(query)} />
+                  <Item icon={FileText} label={t("createPrd")} hint="/prd" onSelect={() => compose("/prd ")} />
+                  <Item icon={Telescope} label={t("discovery")} hint="/problem-framing" onSelect={() => compose("/problem-framing ")} />
+                  <Item icon={CalendarRange} label={t("sprint")} hint="/sprint-planning" onSelect={() => compose(t("sprintPrompt"))} />
+                  <Item icon={Layers} label={t("stories")} hint="/user-story-generation" onSelect={() => compose("/user-story-generation ")} />
+                  <Item icon={ListTodo} label={t("activeWork")} onSelect={() => run(() => router.push("/work"))} />
+                  <Item icon={FileStack} label={t("searchArtifacts")} onSelect={() => run(() => router.push(`/artifacts${query ? `?q=${encodeURIComponent(query)}` : ""}`))} />
+                  <Item icon={Orbit} label={t("searchContext")} hint="ORBIT" onSelect={() => run(() => router.push(`/context${query ? `?q=${encodeURIComponent(query)}` : ""}`))} />
                 </Group>
                 {projects?.length ? (
-                  <Group heading="Open project">
+                  <Group heading={t("openProject")}>
                     {projects.map((p) => (
                       <Item key={p.id} icon={FolderKanban} label={p.name} hint={p.description} onSelect={() => run(() => router.push(`/projects/${p.id}`))} />
                     ))}
@@ -131,28 +178,28 @@ export function CommandPalette() {
                 {results ? (
                   <>
                     {results.artifacts.length ? (
-                      <Group heading="Artifacts">
+                      <Group heading={t("artifacts")}>
                         {results.artifacts.map((a) => (
                           <Item key={a.id} icon={FileText} label={a.title} hint={a.type} onSelect={() => run(() => router.push(`/artifacts/${a.id}`))} />
                         ))}
                       </Group>
                     ) : null}
                     {results.conversations.length ? (
-                      <Group heading="Conversations">
+                      <Group heading={t("conversations")}>
                         {results.conversations.map((c) => (
                           <Item key={c.id} icon={MessageSquare} label={c.title} onSelect={() => run(() => router.push(`/c/${c.id}`))} />
                         ))}
                       </Group>
                     ) : null}
                     {results.skills.length ? (
-                      <Group heading="Skills">
+                      <Group heading={t("skills")}>
                         {results.skills.map((s) => (
-                          <Item key={s.id} icon={Boxes} label={s.name} hint={`/${s.id}`} onSelect={() => compose(`/${s.id} `)} />
+                          <Item key={s.id} icon={Boxes} label={skillName(s, lang)} hint={`/${s.id}`} onSelect={() => compose(`/${s.id} `)} />
                         ))}
                       </Group>
                     ) : null}
                     {results.context.length ? (
-                      <Group heading="ORBIT context">
+                      <Group heading={t("orbitContext")}>
                         {results.context.map((c) => (
                           <Item key={c.ref_id} icon={Orbit} label={c.title} hint={c.source_kind ?? undefined} onSelect={() => run(() => router.push(`/context?q=${encodeURIComponent(query)}`))} />
                         ))}

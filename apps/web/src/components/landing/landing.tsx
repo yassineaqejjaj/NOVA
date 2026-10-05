@@ -29,42 +29,24 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { useLang as useAppLang } from "@/lib/i18n";
 import { useUi } from "@/stores/ui";
 
 import { COPY, type Lang } from "./copy";
 
 const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL ?? "yassine.aqejjaj@devoteam.com";
-const LANG_KEY = "nova-landing-lang";
 
 function demoHref(subject: string): string {
   return process.env.NEXT_PUBLIC_DEMO_URL ?? `mailto:${DEMO_EMAIL}?subject=${encodeURIComponent(subject)}`;
 }
 
+/** Same language preference as the app (persisted, applied after sign-in too). */
 function useLang(): [Lang, (lang: Lang) => void] {
-  const [lang, setLang] = useState<Lang>("fr");
-  useEffect(() => {
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem(LANG_KEY);
-    } catch {
-      /* storage unavailable */
-    }
-    setLang(stored === "en" || stored === "fr" ? stored : navigator.language.toLowerCase().startsWith("fr") ? "fr" : "en");
-  }, []);
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-  const update = (next: Lang) => {
-    setLang(next);
-    try {
-      localStorage.setItem(LANG_KEY, next);
-    } catch {
-      /* storage unavailable */
-    }
-  };
-  return [lang, update];
+  const lang = useAppLang();
+  const setLang = useUi((s) => s.setLang);
+  return [lang, setLang];
 }
 
 function Brand() {

@@ -1,0 +1,423 @@
+# French display translations for artifact types (UI labels only).
+# Prompts keep the English definitions from ../<type>.yaml. Keys must match the source files exactly.
+
+backlog:
+  name: "Backlog"
+  description: "Objectifs → initiatives → epics → user stories"
+  sections:
+    summary: {title: "Synthèse"}
+    objectives: {title: "Objectifs"}
+    initiatives: {title: "Initiatives", description: "parent_id = identifiant de l’objectif"}
+    epics: {title: "Epics", description: "parent_id = identifiant de l’initiative"}
+    stories: {title: "User stories", description: "parent_id = identifiant de l’epic"}
+    dependencies: {title: "Dépendances"}
+    risks: {title: "Risques"}
+    questions: {title: "Questions ouvertes"}
+
+decision_record:
+  name: "Fiche de décision"
+  description: "Contexte, options et décision"
+  sections:
+    context: {title: "Contexte"}
+    options: {title: "Options envisagées"}
+    decision: {title: "Décision"}
+    consequences: {title: "Conséquences"}
+    follow_ups: {title: "Actions de suivi"}
+
+definition_checklist:
+  name: "Definition of Ready / Done"
+  description: "Accord de fonctionnement de l’équipe"
+  sections:
+    summary: {title: "Objectif"}
+    ready: {title: "Definition of Ready"}
+    done: {title: "Definition of Done"}
+
+dependency_analysis:
+  name: "Analyse des dépendances"
+  description: "Dépendances, chemin critique et responsables"
+  sections:
+    summary: {title: "Synthèse"}
+    dependencies: {title: "Dépendances"}
+    critical_path: {title: "Chemin critique"}
+    risks: {title: "Risques"}
+    actions: {title: "Actions"}
+
+epic:
+  name: "Epic"
+  description: "Définition de l’epic"
+  sections:
+    summary: {title: "Synthèse"}
+    problem: {title: "Problème et valeur"}
+    epics: {title: "Epic"}
+    scope: {title: "Dans le périmètre"}
+    out_of_scope: {title: "Hors périmètre"}
+    user_stories: {title: "User stories candidates", description: "parent_id = identifiant de l’epic"}
+    metrics: {title: "Indicateurs de succès"}
+    dependencies: {title: "Dépendances"}
+    risks: {title: "Risques"}
+
+executive_summary:
+  name: "Synthèse exécutive"
+  description: "Synthèse prête pour la décision, destinée à la direction"
+  sections:
+    summary: {title: "Synthèse"}
+    key_points: {title: "Points clés"}
+    decisions_needed: {title: "Décisions attendues"}
+    risks: {title: "Risques"}
+    recommendation: {title: "Recommandation"}
+
+experiment:
+  name: "Expérimentation"
+  description: "Conception ou analyse d’une expérimentation"
+  sections:
+    summary: {title: "Synthèse"}
+    hypotheses: {title: "Hypothèses"}
+    experiments: {title: "Expérimentations"}
+    metrics: {title: "Indicateurs"}
+    risks: {title: "Risques et éthique"}
+    decision_rule: {title: "Règle de décision"}
+
+experiment_analysis:
+  name: "Analyse d’expérimentation"
+  description: "Ce qu’une expérimentation nous a appris"
+  sections:
+    summary: {title: "Synthèse"}
+    setup: {title: "Dispositif"}
+    results: {title: "Résultats"}
+    insights: {title: "Enseignements"}
+    validity: {title: "Validité et limites"}
+    decisions: {title: "Décision"}
+    next_steps: {title: "Prochaines étapes"}
+
+feedback_synthesis:
+  name: "Synthèse des retours utilisateurs"
+  description: "Thèmes issus des retours utilisateurs"
+  sections:
+    summary: {title: "Synthèse"}
+    themes: {title: "Thèmes"}
+    opportunities: {title: "Opportunités"}
+    quotes: {title: "Verbatims représentatifs"}
+    next_steps: {title: "Prochaines étapes"}
+
+hypotheses:
+  name: "Hypothèses"
+  description: "Hypothèses produit testables"
+  sections:
+    summary: {title: "Contexte"}
+    hypotheses: {title: "Hypothèses"}
+    assumptions: {title: "Présupposés sous-jacents"}
+
+initiative:
+  name: "Fiche initiative"
+  description: "Une initiative cadrée et son impact attendu"
+  sections:
+    summary: {title: "Synthèse"}
+    problem: {title: "Problème"}
+    objectives: {title: "Objectifs servis"}
+    scope: {title: "Périmètre"}
+    metrics: {title: "Indicateurs de succès"}
+    dependencies: {title: "Dépendances"}
+    risks: {title: "Risques"}
+    milestones: {title: "Jalons"}
+
+interview_guide:
+  name: "Guide d’entretien"
+  description: "Trame pour les entretiens de discovery"
+  sections:
+    intro: {title: "Introduction et consentement"}
+    warm_up: {title: "Questions de mise en confiance"}
+    core: {title: "Questions principales"}
+    probes: {title: "Relances"}
+    wrap_up: {title: "Conclusion"}
+    do_dont: {title: "À faire et à éviter pour l’intervieweur"}
+
+journey_map:
+  name: "Parcours utilisateur"
+  description: "Parcours de bout en bout avec points de friction et opportunités"
+  sections:
+    summary: {title: "Scénario"}
+    persona: {title: "Persona et objectif"}
+    steps: {title: "Étapes du parcours"}
+    opportunities: {title: "Opportunités"}
+
+jtbd:
+  name: "Jobs To Be Done"
+  description: "Les jobs pour lesquels les clients « recrutent » le produit"
+  sections:
+    summary: {title: "Contexte"}
+    jobs: {title: "Jobs"}
+    outcomes: {title: "Résultats attendus"}
+    struggles: {title: "Moments de difficulté"}
+    alternatives: {title: "Alternatives actuelles"}
+
+metrics_plan:
+  name: "Indicateurs produit"
+  description: "Cadre d’indicateurs et instrumentation"
+  sections:
+    summary: {title: "Synthèse"}
+    metrics: {title: "Indicateurs"}
+    instrumentation: {title: "Instrumentation"}
+    events: {title: "Événements à suivre"}
+    risks: {title: "Risques liés aux données"}
+
+north_star:
+  name: "North Star Metric"
+  description: "L’indicateur qui reflète le mieux la valeur délivrée"
+  sections:
+    summary: {title: "North Star"}
+    north_star: {title: "North Star Metric"}
+    input_metrics: {title: "Indicateurs d’entrée"}
+    guardrails: {title: "Indicateurs garde-fous"}
+    rationale: {title: "Pourquoi cet indicateur"}
+    risks: {title: "Risques de mesure"}
+
+objectives:
+  name: "Objectifs et résultats clés (OKR)"
+  description: "Objectifs orientés résultats avec des résultats clés mesurables"
+  sections:
+    summary: {title: "Contexte"}
+    objectives: {title: "Objectifs"}
+    key_results: {title: "Résultats clés", description: "parent_id = identifiant de l’objectif"}
+    initiatives: {title: "Initiatives", description: "parent_id = identifiant de l’objectif"}
+    assumptions: {title: "Hypothèses"}
+
+opportunity_tree:
+  name: "Arbre opportunités-solutions"
+  description: "Résultat visé → opportunités → solutions → expérimentations"
+  sections:
+    outcome: {title: "Résultat visé"}
+    nodes: {title: "Arbre", description: "parent_id relie les nœuds de l’arbre ; les nœuds racines sont des opportunités"}
+    assumptions: {title: "Hypothèses les plus risquées"}
+
+persona:
+  name: "Persona"
+  description: "Persona fondé sur des données probantes"
+  sections:
+    summary: {title: "Qui est-ce ?"}
+    goals: {title: "Objectifs"}
+    frustrations: {title: "Frustrations"}
+    behaviors: {title: "Comportements"}
+    needs: {title: "Besoins"}
+    quotes: {title: "Verbatims représentatifs"}
+    evidence: {title: "Sources et données probantes"}
+
+prd:
+  name: "Document d’exigences produit (PRD)"
+  description: "PRD complet"
+  sections:
+    summary: {title: "Synthèse"}
+    problem: {title: "Problème"}
+    context: {title: "Contexte"}
+    users: {title: "Utilisateurs"}
+    jobs: {title: "Jobs To Be Done"}
+    objectives: {title: "Objectifs"}
+    non_objectives: {title: "Non-objectifs"}
+    scope: {title: "Périmètre"}
+    out_of_scope: {title: "Hors périmètre"}
+    user_journeys: {title: "Parcours utilisateurs"}
+    functional_requirements: {title: "Exigences fonctionnelles"}
+    non_functional_requirements: {title: "Exigences non fonctionnelles"}
+    dependencies: {title: "Dépendances"}
+    assumptions: {title: "Hypothèses"}
+    risks: {title: "Risques"}
+    metrics: {title: "Indicateurs de succès"}
+    analytics: {title: "Mesure et analytics"}
+    rollout: {title: "Déploiement"}
+    epics: {title: "Epics"}
+    user_stories: {title: "User stories", description: "parent_id = identifiant de l’epic"}
+    acceptance_criteria: {title: "Critères d’acceptation", description: "Critères d’acceptation transverses"}
+    open_questions: {title: "Questions ouvertes"}
+    decisions: {title: "Décisions"}
+
+prfaq:
+  name: "PR/FAQ"
+  description: "Communiqué de presse et FAQ en mode Working Backwards"
+  sections:
+    headline: {title: "Titre"}
+    press_release: {title: "Communiqué de presse"}
+    customer_quote: {title: "Citation client"}
+    external_faq: {title: "FAQ externe"}
+    internal_faq: {title: "FAQ interne"}
+
+prioritization_matrix:
+  name: "Matrice de priorisation"
+  description: "Initiatives classées selon une méthode explicite"
+  sections:
+    summary: {title: "Méthode et contexte"}
+    items: {title: "Éléments classés"}
+    assumptions: {title: "Hypothèses de notation"}
+    recommendation: {title: "Recommandation"}
+
+problem_statement:
+  name: "Cadrage du problème"
+  description: "Un problème bien posé avant toute solution"
+  sections:
+    problem: {title: "Énoncé du problème"}
+    who: {title: "Qui est concerné"}
+    evidence: {title: "Données probantes"}
+    impact: {title: "Impact et coût de l’inaction"}
+    root_causes: {title: "Causes supposées"}
+    constraints: {title: "Contraintes"}
+    assumptions: {title: "Hypothèses"}
+    questions: {title: "Questions ouvertes"}
+    success: {title: "À quoi ressemble le succès"}
+
+product_principles:
+  name: "Principes produit"
+  description: "Principes qui guident les décisions produit"
+  sections:
+    summary: {title: "Objectif"}
+    principles: {title: "Principes"}
+    examples: {title: "Décisions qu’ils permettraient de trancher"}
+
+product_strategy:
+  name: "Stratégie produit"
+  description: "Comment la vision sera atteinte"
+  sections:
+    summary: {title: "Synthèse de la stratégie"}
+    market_context: {title: "Marché et contexte"}
+    bets: {title: "Paris stratégiques"}
+    objectives: {title: "Objectifs"}
+    metrics: {title: "Mesure des progrès"}
+    risks: {title: "Risques"}
+    trade_offs: {title: "Arbitrages"}
+
+product_update:
+  name: "Point d’avancement produit"
+  description: "Point d’avancement"
+  sections:
+    headline: {title: "Message clé"}
+    highlights: {title: "Faits marquants"}
+    metrics: {title: "Indicateurs clés"}
+    risks: {title: "Risques et points de blocage"}
+    asks: {title: "Demandes"}
+    next: {title: "À venir"}
+
+product_vision:
+  name: "Vision produit"
+  description: "Où va le produit et pourquoi c’est important"
+  sections:
+    summary: {title: "Énoncé de vision", description: "Une ou deux phrases, inspirantes et concrètes"}
+    problem: {title: "Problème et opportunité"}
+    target_users: {title: "Utilisateurs cibles"}
+    value_proposition: {title: "Proposition de valeur"}
+    principles: {title: "Principes directeurs"}
+    outcomes: {title: "Résultats à long terme"}
+    differentiators: {title: "Éléments différenciants"}
+    non_goals: {title: "Ce que nous ne ferons pas"}
+
+refinement:
+  name: "Affinage du backlog"
+  description: "Résultat de l’affinage"
+  sections:
+    summary: {title: "Synthèse"}
+    stories: {title: "User stories affinées"}
+    splits: {title: "Découpages proposés"}
+    questions: {title: "Questions pour l’équipe"}
+    ready: {title: "Vérification de la Definition of Ready"}
+
+release_notes:
+  name: "Release notes"
+  description: "Ce qui a changé pour les utilisateurs"
+  sections:
+    summary: {title: "Synthèse"}
+    new: {title: "Nouveautés"}
+    improved: {title: "Améliorations"}
+    fixed: {title: "Corrections"}
+    known_issues: {title: "Problèmes connus"}
+
+release_plan:
+  name: "Plan de release"
+  description: "Plan pour une ou plusieurs releases"
+  sections:
+    summary: {title: "Synthèse"}
+    milestones: {title: "Jalons"}
+    scope: {title: "Périmètre"}
+    dependencies: {title: "Dépendances"}
+    risks: {title: "Risques"}
+    rollout: {title: "Déploiement et communication"}
+    go_no_go: {title: "Checklist go / no-go"}
+
+requirements:
+  name: "Exigences"
+  description: "Exigences fonctionnelles et non fonctionnelles"
+  sections:
+    summary: {title: "Contexte"}
+    functional: {title: "Exigences fonctionnelles"}
+    non_functional: {title: "Exigences non fonctionnelles"}
+    constraints: {title: "Contraintes"}
+    assumptions: {title: "Hypothèses"}
+    questions: {title: "Questions ouvertes"}
+
+research_plan:
+  name: "Plan de recherche utilisateur"
+  description: "Un plan pour apprendre ce que nous avons besoin de savoir"
+  sections:
+    summary: {title: "Objectif de la recherche"}
+    questions: {title: "Questions de recherche"}
+    method: {title: "Méthode"}
+    participants: {title: "Participants et recrutement"}
+    milestones: {title: "Calendrier"}
+    risks: {title: "Risques et biais"}
+    deliverables: {title: "Livrables"}
+
+risk_register:
+  name: "Registre des risques"
+  description: "Risques avec probabilité, impact et mesures d’atténuation"
+  sections:
+    summary: {title: "Synthèse"}
+    risks: {title: "Risques"}
+    assumptions: {title: "Hypothèses"}
+    actions: {title: "Actions"}
+
+root_cause_analysis:
+  name: "Analyse des causes racines"
+  description: "Pourquoi c’est arrivé et ce qu’il faut changer"
+  sections:
+    problem: {title: "Problème"}
+    timeline: {title: "Chronologie"}
+    causes: {title: "Causes"}
+    root_cause: {title: "Cause racine"}
+    actions: {title: "Actions correctives"}
+    decisions: {title: "Décisions"}
+
+sprint_plan:
+  name: "Plan de sprint"
+  description: "Proposition de sprint avec objectif, périmètre et capacité"
+  sections:
+    goal: {title: "Objectif de sprint"}
+    capacity: {title: "Capacité"}
+    carry_over: {title: "Travail non terminé reporté"}
+    committed: {title: "Périmètre engagé"}
+    stretch: {title: "Périmètre optionnel (stretch)"}
+    dependencies: {title: "Dépendances"}
+    risks: {title: "Risques"}
+    questions: {title: "Questions pour le sprint planning"}
+
+stakeholder_brief:
+  name: "Note aux parties prenantes"
+  description: "Ce que chaque partie prenante doit savoir"
+  sections:
+    summary: {title: "Synthèse"}
+    stakeholders: {title: "Parties prenantes"}
+    messages: {title: "Messages clés"}
+    asks: {title: "Demandes et décisions"}
+    timeline: {title: "Calendrier"}
+
+story_map:
+  name: "Story map"
+  description: "Colonne vertébrale d’activités découpée en releases"
+  sections:
+    summary: {title: "Récit"}
+    activities: {title: "Activités (colonne vertébrale)"}
+    stories: {title: "User stories", description: "parent_id = identifiant de l’activité"}
+    releases: {title: "Tranches de release"}
+
+user_stories:
+  name: "User stories"
+  description: "User stories avec critères d’acceptation"
+  sections:
+    summary: {title: "Contexte"}
+    epics: {title: "Epics"}
+    stories: {title: "User stories", description: "parent_id = identifiant de l’epic"}
+    questions: {title: "Questions ouvertes"}

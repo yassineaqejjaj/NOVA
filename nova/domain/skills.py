@@ -75,6 +75,8 @@ class SkillSpec(BaseModel):
     outputs: SkillOutputs
     composes_with: list[str] = Field(default_factory=list)
     system: bool = False  # internal Skill (not proposed by routing, e.g. artifact-edit)
+    # Display translations from skills/i18n/<lang>.yaml: {"fr": {"name": …, "summary": …}}
+    translations: dict[str, dict[str, str]] = Field(default_factory=dict)
 
     # Loaded from sibling files (not in skill.yaml)
     instructions: str = ""

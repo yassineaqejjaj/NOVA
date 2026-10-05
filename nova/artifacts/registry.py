@@ -57,6 +57,13 @@ class ArtifactRegistry:
                 if section.item_kind and section.item_kind not in self.item_schemas:
                     raise ValueError(f"{path.name}: unknown item kind '{section.item_kind}'")
             self.types[artifact_type.type] = artifact_type
+        for path in sorted((types_dir / "i18n").glob("*.yaml")):  # display translations (fr.yaml, …)
+            lang = path.stem
+            for type_key, translation in (yaml.safe_load(path.read_text()) or {}).items():
+                if type_key not in self.types:
+                    raise ValueError(f"i18n/{path.name}: unknown artifact type '{type_key}'")
+                current = self.types[type_key]
+                self.types[type_key] = current.model_copy(update={"translations": {**current.translations, lang: translation}})
 
     def get(self, type_key: str) -> ArtifactType:
         try:
