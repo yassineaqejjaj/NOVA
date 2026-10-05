@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge, Button, cn, Dialog, DialogPrimitive, Switch, Tooltip } from "@nova/ui";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { ExternalLink, Mic, MicOff, Square, X } from "lucide-react";
 import Link from "next/link";
@@ -47,6 +47,8 @@ const M = defineMessages({
     stop: "Stop",
     close: "Close",
     confidentialBadge: "Not read aloud",
+    providerExternal: "Speech recognition and voice by ElevenLabs (external service). Confidential answers are never read aloud.",
+    providerSelfHosted: "Speech recognition and voice run on NOVA's own servers.",
   },
   fr: {
     title: "Parler avec NOVA",
@@ -78,6 +80,8 @@ const M = defineMessages({
     stop: "Arrêter",
     close: "Fermer",
     confidentialBadge: "Non lu à voix haute",
+    providerExternal: "Reconnaissance vocale et voix par ElevenLabs (service externe). Les réponses confidentielles ne sont jamais lues.",
+    providerSelfHosted: "La reconnaissance vocale et la voix tournent sur les serveurs de NOVA.",
   },
 });
 
@@ -107,6 +111,12 @@ export function VoiceSession({
   const t = useT(M);
   const lang = useLang();
   const client = useQueryClient();
+  const { data: voiceStatus } = useQuery({
+    queryKey: ["voice-status"],
+    queryFn: () => api.get<{ enabled: boolean; stt?: string; tts?: string }>("/voice/status"),
+    staleTime: 300_000,
+    enabled: open,
+  });
   const send = useSendIntent();
   const [phase, setPhase] = useState<Phase>("idle");
   const [orb, setOrb] = useState<OrbState>("idle");
@@ -400,6 +410,11 @@ export function VoiceSession({
               ) : null}
             </div>
             <p className="max-w-lg text-center text-[12px] text-subtle">{t("autonomous")}</p>
+            {voiceStatus ? (
+              <p className="max-w-lg text-center text-[11.5px] text-subtle" data-testid="voice-provider">
+                {voiceStatus.stt === "elevenlabs" || voiceStatus.tts === "elevenlabs" ? t("providerExternal") : t("providerSelfHosted")}
+              </p>
+            ) : null}
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

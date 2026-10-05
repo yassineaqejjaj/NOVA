@@ -287,7 +287,7 @@ async def test_voice_relays_audio_to_the_voice_service_and_never_without_auth(ap
     assert (await anonymous.post("/api/v1/voice/speak", json={"text": "Bonjour"})).status_code == 401
 
     client = await _client(app)
-    assert (await client.get("/api/v1/voice/status")).json() == {"enabled": True}
+    assert (await client.get("/api/v1/voice/status")).json() == {"enabled": True, "stt": "selfhosted", "tts": "selfhosted"}
     heard = await client.post("/api/v1/voice/transcribe", files={"audio": ("speech.webm", b"\x1aE\xdf\xa3fake", "audio/webm")})
     assert heard.status_code == 200 and heard.json()["text"] == fake_voice_server.TRANSCRIPT
     spoken = await client.post("/api/v1/voice/speak", json={"text": "Bonjour, je suis NOVA.", "language": "fr"})
@@ -296,3 +296,41 @@ async def test_voice_relays_audio_to_the_voice_service_and_never_without_auth(ap
 
     monkeypatch.setattr(get_settings(), "voice_url", "")
     assert (await client.post("/api/v1/voice/speak", json={"text": "x"})).json()["code"] == "voice_unavailable"
+
+
+async def test_voice_uses_elevenlabs_and_falls_back_to_the_self_hosted_service(app, monkeypatch):
+    import httpx as _httpx
+
+    from nova.config import get_settings
+    from nova_api.routers import voice
+    from tests.support import fake_voice_server as fake
+
+    settings = get_settings()
+    for key, value in {
+        "voice_url": "http://voice.test",
+        "voice_token": fake.TOKEN,
+        "voice_tts_provider": "elevenlabs",
+        "voice_stt_provider": "elevenlabs",
+        "elevenlabs_api_key": fake.ELEVENLABS_KEY,
+    }.items():
+        monkeypatch.setattr(settings, key, value)
+    monkeypatch.setattr(voice, "TRANSPORT", _httpx.ASGITransport(app=fake.app))
+    fake.calls.clear()
+    client = await _client(app)
+
+    status = (await client.get("/api/v1/voice/status")).json()
+    assert status == {"enabled": True, "stt": "elevenlabs", "tts": "elevenlabs"}
+    heard = (await client.post("/api/v1/voice/transcribe", files={"audio": ("s.webm", b"\x1aE\xdf\xa3x", "audio/webm")})).json()
+    assert heard == {"text": fake.TRANSCRIPT, "language": "fr", "provider": "elevenlabs"}
+    spoken = await client.post("/api/v1/voice/speak", json={"text": "Bonjour", "language": "fr"})
+    assert spoken.headers["content-type"] == "audio/mpeg" and spoken.content.startswith(b"ID3")
+    assert any(c.startswith("el-tts:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2:fr") for c in fake.calls)
+
+    fake.elevenlabs_down["value"] = True  # ElevenLabs outage: NOVA keeps talking with the self-hosted voice
+    try:
+        assert (await client.post("/api/v1/voice/transcribe", files={"audio": ("s.webm", b"x", "audio/webm")})).json()[
+            "provider"
+        ] == "selfhosted"
+        assert (await client.post("/api/v1/voice/speak", json={"text": "Bonjour"})).headers["content-type"] == "audio/wav"
+    finally:
+        fake.elevenlabs_down["value"] = False

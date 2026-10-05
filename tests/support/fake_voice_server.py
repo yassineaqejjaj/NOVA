@@ -52,3 +52,29 @@ def speak(body: SpeakIn, x_voice_token: str = Header(default="")) -> Response:
         wav.setframerate(16000)
         wav.writeframes(b"\x00\x00" * 4800)
     return Response(buffer.getvalue(), media_type="audio/wav")
+
+
+# --- Fake ElevenLabs (same app; reached at https://api.elevenlabs.io/v1/... through the injected transport) ---
+ELEVENLABS_KEY = "el-test-key"
+elevenlabs_down = {"value": False}
+
+
+def _el_auth(key: str) -> None:
+    if elevenlabs_down["value"]:
+        raise HTTPException(status_code=503)
+    if key != ELEVENLABS_KEY:
+        raise HTTPException(status_code=401)
+
+
+@app.post("/v1/speech-to-text")
+async def el_transcribe(file: UploadFile = File(...), model_id: str = Form(...), xi_api_key: str = Header(default="")):
+    _el_auth(xi_api_key)
+    calls.append(f"el-stt:{model_id}:{len(await file.read())}")
+    return {"text": f" {TRANSCRIPT} ", "language_code": "fra"}
+
+
+@app.post("/v1/text-to-speech/{voice_id}")
+async def el_speak(voice_id: str, body: dict, xi_api_key: str = Header(default="")) -> Response:
+    _el_auth(xi_api_key)
+    calls.append(f"el-tts:{voice_id}:{body.get('model_id')}:{body.get('language_code')}")
+    return Response(b"ID3\x04fake-mp3", media_type="audio/mpeg")

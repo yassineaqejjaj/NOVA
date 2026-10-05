@@ -77,9 +77,16 @@ class Settings(BaseSettings):
     forge_timeout_seconds: float = 20.0
 
     # --- Voice (self-hosted speech-to-text / text-to-speech service) ---------------------------------
-    voice_url: str = ""  # empty: voice disabled
+    voice_url: str = ""  # self-hosted voice service (empty: not deployed)
     voice_token: str = ""
     voice_timeout_seconds: float = 60.0
+    # Providers: "selfhosted" (services/voice) or "elevenlabs"; the self-hosted service is the fallback when configured.
+    voice_tts_provider: Literal["selfhosted", "elevenlabs"] = "selfhosted"
+    voice_stt_provider: Literal["selfhosted", "elevenlabs"] = "selfhosted"
+    elevenlabs_api_key: str = ""
+    elevenlabs_voice_id: str = "EXAVITQu4vr4xnSDxMaL"  # premade "Sarah" (multilingual)
+    elevenlabs_tts_model: str = "eleven_multilingual_v2"
+    elevenlabs_stt_model: str = "scribe_v1"
 
     # --- Observability --------------------------------------------------------------------------
     otel_exporter_otlp_endpoint: str = ""
@@ -151,6 +158,8 @@ class Settings(BaseSettings):
                 problems.append("NOVA_PUBLIC_URL must be https")
             if self.auth_mode == "oidc" and len(self.oidc_client_secret) < 16:
                 problems.append("NOVA_OIDC_CLIENT_SECRET")
+            if "elevenlabs" in (self.voice_tts_provider, self.voice_stt_provider) and not self.elevenlabs_api_key:
+                problems.append("NOVA_ELEVENLABS_API_KEY (required by the ElevenLabs voice provider)")
             if self.voice_url and len(self.voice_token) < 24:
                 problems.append("NOVA_VOICE_TOKEN (required with NOVA_VOICE_URL)")
             if self.llm_provider == "anthropic" and not self.llm_api_key:
