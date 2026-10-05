@@ -33,7 +33,8 @@ import type { ArtifactSummary, OrbState, Recommendation, RecommendationAction, T
 import { timeAgo } from "@/lib/format";
 import { useLang, useT } from "@/lib/i18n";
 import { typeName } from "@/lib/i18n/catalog";
-import { useComposer } from "@/stores/ui";
+import { useVoiceAvailable } from "@/components/voice/voice-button";
+import { useComposer, useUi } from "@/stores/ui";
 
 import { M } from "./command-center.messages";
 
@@ -75,6 +76,8 @@ function BriefTile({ value, label, tone, hint, onClick }: { value: number; label
 
 export function Hero({ today, onScrollTo }: { today: Today; onScrollTo: (id: string) => void }) {
   const t = useT(M);
+  const voice = useVoiceAvailable();
+  const openVoice = useUi((s) => s.openVoice);
   const state = today.nova.state;
   const last = today.continue[0];
   const brief = today.brief;
@@ -121,7 +124,18 @@ export function Hero({ today, onScrollTo }: { today: Today; onScrollTo: (id: str
           ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-center gap-3 md:pr-4">
-          <NovaOrb state={state} size={112} reflection title={`NOVA — ${ORB_LABEL[state]}`} />
+          {voice ? (
+            <button
+              type="button"
+              onClick={() => openVoice({ conversationId: null, projectId: useComposer.getState().projectId })}
+              aria-label={t("talk")}
+              className="group rounded-full outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <NovaOrb state={state} size={112} reflection title={`NOVA — ${ORB_LABEL[state]}`} />
+            </button>
+          ) : (
+            <NovaOrb state={state} size={112} reflection title={`NOVA — ${ORB_LABEL[state]}`} />
+          )}
           <span className="mt-3 rounded-full bg-surface/80 px-3 py-1 text-[12px] font-medium text-muted backdrop-blur">{ORB_LABEL[state]}</span>
         </div>
       </div>

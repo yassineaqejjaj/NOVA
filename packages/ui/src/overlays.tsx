@@ -106,3 +106,6 @@ export function Tooltip({ content, children, side = "top" }: { content: React.Re
     </TooltipPrimitive.Root>
   );
 }
+
+/** Radix dialog primitives, for full-screen experiences that do not fit DialogContent. */
+export { DialogPrimitive };

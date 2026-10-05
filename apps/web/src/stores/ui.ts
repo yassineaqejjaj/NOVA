@@ -15,6 +15,10 @@ interface UiState {
   lang: "en" | "fr" | null;
   orbColor: OrbColor;
   setLang: (lang: "en" | "fr" | null) => void;
+  /** Voice session (talking with NOVA), opened from the composer mic, the orb or ⌘K. */
+  voice: { open: boolean; conversationId: string | null; projectId: string | null };
+  openVoice: (context?: { conversationId?: string | null; projectId?: string | null }) => void;
+  closeVoice: () => void;
   setOrbColor: (color: OrbColor) => void;
   toggleSidebar: () => void;
   setPaletteOpen: (open: boolean) => void;
@@ -30,6 +34,9 @@ export const useUi = create<UiState>()(
       lang: null,
       orbColor: "coral",
       setLang: (lang) => set({ lang }),
+      voice: { open: false, conversationId: null, projectId: null },
+      openVoice: (context) => set({ voice: { open: true, conversationId: context?.conversationId ?? null, projectId: context?.projectId ?? null } }),
+      closeVoice: () => set((s) => ({ voice: { ...s.voice, open: false } })),
       setOrbColor: (orbColor) => set({ orbColor }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setPaletteOpen: (paletteOpen) => set({ paletteOpen }),

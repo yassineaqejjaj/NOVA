@@ -4,7 +4,7 @@
 # repositories (ORBIT on :8000/:3000, FORGE on :8100/:3100) and NOVA reaches them through
 # NOVA_ORBIT_BASE_URL / NOVA_FORGE_BASE_URL (host.docker.internal by default).
 #
-# Host ports (127.0.0.1 only): web 3200, api 8200, postgres 5435, valkey 6382, keycloak 8280.
+# Host ports (127.0.0.1 only): web 3200, api 8200, voice 8300, postgres 5435, valkey 6382, keycloak 8280.
 # Optional profiles: `--profile gpu` (vLLM), `--profile cpu-llm` (Ollama, laptops), `--profile observability` (Jaeger).
 
 name: nova
@@ -20,6 +20,8 @@ x-backend-env: &backend-env
   NOVA_FORGE_BASE_URL: ${NOVA_DOCKER_FORGE_BASE_URL:-http://host.docker.internal:8100}
   NOVA_LLM_BASE_URL: ${NOVA_DOCKER_LLM_BASE_URL:-http://vllm:8000/v1}
   NOVA_BIND_HOST: 0.0.0.0
+  NOVA_VOICE_URL: ${NOVA_DOCKER_VOICE_URL:-http://voice:8300}
+  NOVA_VOICE_TOKEN: ${NOVA_VOICE_TOKEN:-nova-dev-voice-token-0123456789}
 
 x-backend: &backend
   build:
@@ -142,6 +144,23 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+  # Speech-to-text (faster-whisper) and text-to-speech (Piper) for talking with NOVA. Models are baked into the image.
+  voice:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/voice.Dockerfile
+    image: nova-voice:latest
+    restart: unless-stopped
+    environment:
+      VOICE_TOKEN: ${NOVA_VOICE_TOKEN:-nova-dev-voice-token-0123456789}
+    ports: ["127.0.0.1:8300:8300"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8300/health', timeout=3).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
 
   # --- Optional inference servers (open-weight models, self-hosted) -------------------------------
   vllm:

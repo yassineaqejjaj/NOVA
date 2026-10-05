@@ -10,6 +10,7 @@ deployments of their own repositories; NOVA only needs their URLs.
 | Keycloak (OIDC) | Railway, service `keycloak` | https://keycloak-production-e609.up.railway.app |
 | Worker / Beat (Celery) | Railway, services `worker`, `beat` | private |
 | Valkey (broker, live events) | Railway, service `valkey` | private (`valkey.railway.internal`) |
+| Voice (Whisper STT, Piper TTS) | Railway, service `voice` | private (`voice.railway.internal:8300`) |
 | PostgreSQL (NOVA) | Railway, `Postgres` | private |
 | PostgreSQL (Keycloak) | Railway, `Postgres-tDoj` | private |
 | ORBIT | Railway `orbit` + Vercel `orbit` | https://api-production-deffe.up.railway.app · https://orbit-virid-psi-70.vercel.app |

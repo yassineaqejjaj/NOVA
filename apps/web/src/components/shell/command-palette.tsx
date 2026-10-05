@@ -4,6 +4,7 @@ import { Kbd } from "@nova/ui";
 import { Command } from "cmdk";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Mic,
   Boxes,
   FileStack,
   FileText,
@@ -20,6 +21,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { useVoiceAvailable } from "@/components/voice/voice-button";
 import { useProjects, useSearch } from "@/lib/api/hooks";
 import { defineMessages, useLang, useT } from "@/lib/i18n";
 import { skillName } from "@/lib/i18n/catalog";
@@ -30,6 +32,7 @@ const M = defineMessages({
     placeholder: "Ask NOVA, run a Skill, open a project…",
     actions: "Actions",
     ask: "Ask NOVA",
+    talk: "Talk with NOVA",
     askQuery: "Ask NOVA: “{query}”",
     createPrd: "Create PRD",
     discovery: "Start Discovery",
@@ -50,6 +53,7 @@ const M = defineMessages({
     placeholder: "Demander à NOVA, lancer une Skill, ouvrir un projet…",
     actions: "Actions",
     ask: "Demander à NOVA",
+    talk: "Parler avec NOVA",
     askQuery: "Demander à NOVA : « {query} »",
     createPrd: "Créer un PRD",
     discovery: "Lancer une discovery",
@@ -92,6 +96,8 @@ function Group({ heading, children }: { heading: string; children: React.ReactNo
 export function CommandPalette() {
   const t = useT(M);
   const lang = useLang();
+  const voiceAvailable = useVoiceAvailable();
+  const openVoice = useUi((s) => s.openVoice);
   const open = useUi((s) => s.paletteOpen);
   const setOpen = useUi((s) => s.setPaletteOpen);
   const setDraft = useComposer((s) => s.setDraft);
@@ -160,6 +166,7 @@ export function CommandPalette() {
                 <Command.Empty className="px-4 py-6 text-center text-sm text-subtle">Nothing matches. Press Enter on “Ask NOVA”.</Command.Empty>
                 <Group heading={t("actions")}>
                   <Item icon={Sparkles} label={query ? t("askQuery", { query }) : t("ask")} onSelect={() => compose(query)} />
+                  {voiceAvailable ? <Item icon={Mic} label={t("talk")} onSelect={() => run(() => openVoice())} /> : null}
                   <Item icon={FileText} label={t("createPrd")} hint="/prd" onSelect={() => compose("/prd ")} />
                   <Item icon={Telescope} label={t("discovery")} hint="/problem-framing" onSelect={() => compose("/problem-framing ")} />
                   <Item icon={CalendarRange} label={t("sprint")} hint="/sprint-planning" onSelect={() => compose(t("sprintPrompt"))} />

@@ -19,7 +19,7 @@ from nova.infra.telemetry import configure_telemetry
 from nova.services.skills_sync import sync_skills
 from nova.skills.registry import get_skill_registry
 from nova_api import auth, errors
-from nova_api.routers import artifacts, context, conversations, executions, forge_protocol, me, work
+from nova_api.routers import artifacts, context, conversations, executions, forge_protocol, me, voice, work
 
 log = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def create_app() -> FastAPI:
 
     api = APIRouter(prefix="/api/v1")
     api.include_router(auth.router)
-    for module in (me, work, conversations, executions, artifacts, context):
+    for module in (me, work, conversations, executions, artifacts, context, voice):
         api.include_router(module.router)
     app.include_router(api)
     app.include_router(forge_protocol.router)

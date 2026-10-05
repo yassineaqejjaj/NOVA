@@ -5,6 +5,7 @@ export {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogPrimitive,
   DialogTrigger,
   DropdownMenu,
   DropdownMenuContent,

@@ -23,6 +23,8 @@ import { useComposer } from "@/stores/ui";
 
 import { NovaMark } from "@/components/shell/nova-mark";
 
+import { VoiceButton } from "@/components/voice/voice-button";
+
 import { ContextPicker } from "./context-picker";
 
 const TEXT_TYPES = [".txt", ".md", ".csv", ".json", ".yaml", ".yml"];
@@ -295,6 +297,7 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
               command && "min-h-[64px] py-[18px] text-[17px]",
             )}
           />
+          <VoiceButton conversationId={conversationId} size={command ? "md" : "sm"} />
           <Button variant="primary" size="icon" className={cn("shrink-0 rounded-full", command ? "size-11" : "size-9")} onClick={() => void submit()} disabled={!state.draft.trim() || send.isPending || disabled} aria-label={t("send")}>
             <ArrowUp />
           </Button>
@@ -391,6 +394,7 @@ export function Composer({ conversationId, activeArtifactId, placeholder, autoFo
           ) : (
             <span className="hidden whitespace-nowrap text-[11px] text-subtle xl:inline">{t("hint")}</span>
           )}
+          {variant !== "default" ? null : <VoiceButton conversationId={conversationId} size="sm" />}
           {variant !== "default" ? null : (
             <Button variant="primary" size="icon" onClick={() => void submit()} disabled={!state.draft.trim() || send.isPending || disabled} aria-label={t("send")}>
               <ArrowUp />

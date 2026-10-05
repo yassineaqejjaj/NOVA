@@ -1,0 +1,7 @@
+fastapi>=0.142,<0.143
+uvicorn[standard]>=0.54,<0.55
+python-multipart>=0.0.20
+faster-whisper==1.2.1
+piper-tts==1.8.0
+huggingface_hub>=0.25
+av>=14,<16  # faster-whisper 1.2.1 passes metadata_errors (removed in PyAV 16)

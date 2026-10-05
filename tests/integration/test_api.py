@@ -270,3 +270,29 @@ async def test_language_and_orb_color_preferences_localize_server_text(app, llm)
     english = await _client(app)  # no preference: follows Accept-Language
     events_fr = (await english.get("/api/v1/activity", headers={"Accept-Language": "fr-FR,fr;q=0.9"})).json()
     assert isinstance(events_fr, list)
+
+
+async def test_voice_relays_audio_to_the_voice_service_and_never_without_auth(app, monkeypatch):
+    import httpx as _httpx
+
+    from nova.config import get_settings
+    from nova_api.routers import voice
+    from tests.support import fake_voice_server
+
+    monkeypatch.setattr(get_settings(), "voice_url", "http://voice.test")
+    monkeypatch.setattr(get_settings(), "voice_token", fake_voice_server.TOKEN)
+    monkeypatch.setattr(voice, "TRANSPORT", _httpx.ASGITransport(app=fake_voice_server.app))
+
+    anonymous = _httpx.AsyncClient(transport=_httpx.ASGITransport(app=app), base_url="http://test")
+    assert (await anonymous.post("/api/v1/voice/speak", json={"text": "Bonjour"})).status_code == 401
+
+    client = await _client(app)
+    assert (await client.get("/api/v1/voice/status")).json() == {"enabled": True}
+    heard = await client.post("/api/v1/voice/transcribe", files={"audio": ("speech.webm", b"\x1aE\xdf\xa3fake", "audio/webm")})
+    assert heard.status_code == 200 and heard.json()["text"] == fake_voice_server.TRANSCRIPT
+    spoken = await client.post("/api/v1/voice/speak", json={"text": "Bonjour, je suis NOVA.", "language": "fr"})
+    assert spoken.status_code == 200 and spoken.headers["content-type"] == "audio/wav" and spoken.content[:4] == b"RIFF"
+    assert (await client.post("/api/v1/voice/transcribe", files={"audio": ("s.webm", b"", "audio/webm")})).status_code == 422
+
+    monkeypatch.setattr(get_settings(), "voice_url", "")
+    assert (await client.post("/api/v1/voice/speak", json={"text": "x"})).json()["code"] == "voice_unavailable"

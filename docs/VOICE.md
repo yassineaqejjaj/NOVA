@@ -1,6 +1,6 @@
-# Voice for NOVA's orb — feasibility study
+# Voice for NOVA's orb
 
-Goal: talk to the orb (speech-to-text, STT), let it answer aloud (text-to-speech, TTS), and make the orb
+**Status: implemented** (phase 1 + self-hosted TTS) — see §7. Goal: talk to the orb (speech-to-text, STT), let it answer aloud (text-to-speech, TTS), and make the orb
 express *listening* and *speaking* — in French and English — without weakening NOVA's security model
 (C0–C3 classification, audit, redaction).
 
@@ -65,3 +65,22 @@ express *listening* and *speaking* — in French and English — without weakeni
 Open questions for the product owner: which voice personality (choice of 2–3 Piper/Kokoro voices to listen to),
 whether speaking answers aloud should ever be allowed for C2/C3 content, and whether a cloud speech processor could
 be approved later for lower latency.
+
+
+## 7. What is implemented
+
+* **Voice service** (`services/voice`, image `infrastructure/docker/voice.Dockerfile`, ≈2 GB with models): faster-whisper
+  `small` (int8, CPU) for `POST /transcribe`, Piper (`fr_FR-siwis-medium`, `en_US-amy-medium`) for `POST /speak`.
+  Private network only, `X-Voice-Token` shared with NOVA's API; nothing stored or logged.
+* **NOVA API** relays `POST /api/v1/voice/transcribe|speak` and `GET /api/v1/voice/status` for signed-in users
+  (`NOVA_VOICE_URL`, `NOVA_VOICE_TOKEN`).
+* **Talking with NOVA** (`components/voice/voice-session.tsx`): opened from the composer microphone, the Home orb or
+  ⌘K. The orb listens (end of speech detected after a pause), the transcript is sent as an **autonomous** request
+  (`autonomy=execute_automatically`: NOVA runs workflows without confirmation; external writes still follow
+  company policy), NOVA's progress drives the orb, and the answer is spoken and captioned; in hands-free mode it
+  listens again. Questions are asked aloud and answered by voice; decisions are answered "yes/no".
+  Tapping the microphone (or Space) interrupts NOVA.
+* **C2/C3 rule**: an answer built on Confidential or Secret context is never read aloud — NOVA says it is on screen
+  (tested end-to-end).
+* Measured on a laptop CPU: speech synthesis ≈0.5 s per sentence; transcription ≈1× real time (container) — a 5-second
+  request is understood in a few seconds.

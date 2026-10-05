@@ -26,6 +26,7 @@ export const M = defineMessages({
     riskNamed: "{names} — a task failed recently or ORBIT found contradicting knowledge",
     riskRule: "A project is at risk when a task failed recently or ORBIT finds contradicting knowledge",
     continueWhere: "Continue where you left off",
+    talk: "Talk with NOVA",
     // ask
     suggested: "Suggested requests",
     sugSprint: "Prepare my next sprint",
@@ -107,6 +108,7 @@ export const M = defineMessages({
     riskNamed: "{names} — une tâche a échoué récemment ou ORBIT a détecté des connaissances contradictoires",
     riskRule: "Un projet est à risque quand une tâche a échoué récemment ou qu’ORBIT détecte des connaissances contradictoires",
     continueWhere: "Reprendre là où vous en étiez",
+    talk: "Parler avec NOVA",
     suggested: "Demandes suggérées",
     sugSprint: "Préparer mon prochain sprint",
     sugSprintText: "/sprint-planning Prépare mon prochain sprint.",

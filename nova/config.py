@@ -76,6 +76,11 @@ class Settings(BaseSettings):
     forge_capture_sample_rate: float = 0.1
     forge_timeout_seconds: float = 20.0
 
+    # --- Voice (self-hosted speech-to-text / text-to-speech service) ---------------------------------
+    voice_url: str = ""  # empty: voice disabled
+    voice_token: str = ""
+    voice_timeout_seconds: float = 60.0
+
     # --- Observability --------------------------------------------------------------------------
     otel_exporter_otlp_endpoint: str = ""
     otel_exporter_otlp_headers: str = ""
@@ -146,6 +151,8 @@ class Settings(BaseSettings):
                 problems.append("NOVA_PUBLIC_URL must be https")
             if self.auth_mode == "oidc" and len(self.oidc_client_secret) < 16:
                 problems.append("NOVA_OIDC_CLIENT_SECRET")
+            if self.voice_url and len(self.voice_token) < 24:
+                problems.append("NOVA_VOICE_TOKEN (required with NOVA_VOICE_URL)")
             if self.llm_provider == "anthropic" and not self.llm_api_key:
                 problems.append("NOVA_LLM_API_KEY (required by NOVA_LLM_PROVIDER=anthropic)")
             if problems:

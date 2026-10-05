@@ -224,3 +224,39 @@ test("Settings: switch the interface to French and pick an orb color (saved to t
   await page.getByRole("radio", { name: "English" }).click();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 });
+
+test("Voice: talk to NOVA from the orb — transcript sent as an autonomous request, answer spoken and captioned", async ({ page }) => {
+  await signIn(page);
+  const sent: Record<string, unknown>[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && /\/api\/v1\/conversations\/[^/]+\/messages$/.test(request.url())) sent.push(request.postDataJSON());
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Talk with NOVA" }).first().click();
+
+  const captions = page.getByTestId("voice-captions");
+  await expect(captions).toContainText("What is a good north star metric", { timeout: 30_000 }); // from the fake microphone
+  await expect(captions.getByText("NOVA", { exact: true }).last()).toBeVisible({ timeout: 45_000 }); // NOVA's spoken reply
+  expect(sent[0]).toMatchObject({ autonomy: "execute_automatically" });
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(page.getByTestId("voice-captions")).toBeHidden();
+});
+
+test("Voice never reads C2/C3 answers aloud: it says the answer is on screen", async ({ page }) => {
+  await signIn(page);
+  await linkOrbit(page);
+  const spoken: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/api/v1/voice/speak")) spoken.push(String(request.postDataJSON()?.text ?? ""));
+  });
+  await page.goto("/");
+  await page.getByLabel("Project").click();
+  await page.getByRole("option", { name: "FORGE" }).click();
+  await page.getByRole("button", { name: "Talk with NOVA" }).first().click();
+
+  const captions = page.getByTestId("voice-captions");
+  await expect(captions.getByText("Not read aloud")).toBeVisible({ timeout: 45_000 });
+  await expect(captions).toContainText("contains confidential information");
+  expect(spoken.every((text) => text === "On it." || text.includes("confidential information"))).toBeTruthy();
+  await page.getByRole("button", { name: "Close" }).click();
+});
