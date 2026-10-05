@@ -12,16 +12,18 @@ import hmac
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import Settings, get_settings
 from nova.infra.db import utcnow
-from nova.infra.models import EmailCode, User
+from nova.infra.models import EmailCode, User, UserPreferences
 from nova.services.audit import audit
 from nova.services.identity import IdentityError, IdentityUser, check_password_strength, identity_backend
 from nova.services.mailer import MailerError, code_email, send_email
 from nova.services.users import upsert_user
+
+DEMO_LOCK = 4_617_002
 
 
 def _aware(value: datetime) -> datetime:
@@ -40,6 +42,8 @@ def company_domain(email: str, settings: Settings | None = None) -> str | None:
     """The allowed company domain of ``email`` (exact domain, not a look-alike sub-domain)."""
     settings = settings or get_settings()
     domain = email.rsplit("@", 1)[-1] if "@" in email else ""
+    if settings.signup_any_domain:
+        return domain or None
     return domain if domain in settings.signup_domain_list else None
 
 
@@ -95,7 +99,8 @@ async def _consume_code(session: AsyncSession, email: str, purpose: str, code: s
     row.consumed_at = utcnow()
 
 
-async def start_signup(session: AsyncSession, *, email: str, name: str, password: str, lang: str) -> None:
+async def start_signup(session: AsyncSession, *, email: str, name: str, password: str, lang: str) -> User | None:
+    """Creates the account; returns the activated user when no e-mail verification is required, else None."""
     settings = get_settings()
     email = normalize_email(email)
     if not settings.signup_enabled:
@@ -111,11 +116,28 @@ async def start_signup(session: AsyncSession, *, email: str, name: str, password
     if existing is not None and existing.enabled:
         raise IdentityError("account_exists", "An account already exists for this address. Sign in instead.")
     if existing is None:
-        await backend.create(email, name.strip(), password)
+        pending = await backend.create(email, name.strip(), password)
     else:  # an unconfirmed sign-up: the latest details win
         await backend.update_pending(existing, name.strip(), password)
+        pending = existing
+    if not settings.signup_verifies_email:
+        await backend.activate(pending)
+        pending.roles = ["nova-user"]
+        pending.name = name.strip()
+        user = await _nova_user(session, pending)
+        await audit(
+            session,
+            actor_id=user.id,
+            action="auth.signup",
+            target_type="user",
+            target_id=str(user.id),
+            summary="Account created (no e-mail verification)",
+        )
+        await session.commit()
+        return user
     await _send_code(session, email, "signup", lang)
     await session.commit()
+    return None
 
 
 async def resend_signup_code(session: AsyncSession, *, email: str, lang: str) -> None:
@@ -195,3 +217,32 @@ async def reset_password(session: AsyncSession, *, email: str, code: str, passwo
     if user is not None:
         await audit(session, actor_id=user.id, action="auth.password_reset", target_type="user", target_id=str(user.id))
     await session.commit()
+
+
+async def ensure_demo_account(session: AsyncSession) -> User | None:
+    """The shared demo account (``NOVA_DEMO_ACCOUNT_*``): created, activated and kept on the configured password."""
+    settings = get_settings()
+    email, password = normalize_email(settings.demo_account_email), settings.demo_account_password
+    if not email or not password:
+        return None
+    check_password_strength(password)
+    if session.get_bind().dialect.name == "postgresql":  # API workers start together: one prepares the account
+        await session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": DEMO_LOCK})
+    backend = identity_backend(session, settings)
+    identity = await backend.find(email)
+    if identity is None:
+        identity = await backend.create(email, settings.demo_account_name, password)
+    else:
+        await backend.set_password(identity, password)
+    if not identity.enabled:
+        await backend.activate(identity)
+    identity.roles, identity.name = ["nova-user"], identity.name or settings.demo_account_name
+    user = await _nova_user(session, identity)
+    user.is_admin = False  # a shared account never administers NOVA
+    if not user.title:
+        user.title = "Démo"
+    prefs = await session.get(UserPreferences, user.id)
+    if prefs is not None and prefs.onboarding_completed_at is None:
+        prefs.onboarding_completed_at, prefs.role, prefs.language = utcnow(), "Product Manager", "fr"
+    await session.commit()
+    return user

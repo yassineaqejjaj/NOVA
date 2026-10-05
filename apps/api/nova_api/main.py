@@ -16,6 +16,7 @@ from nova.agent.runtime import setup_checkpointer
 from nova.config import get_settings
 from nova.infra import db
 from nova.infra.telemetry import configure_telemetry
+from nova.services.accounts import ensure_demo_account
 from nova.services.skills_sync import sync_skills
 from nova.skills.registry import get_skill_registry
 from nova_api import auth, errors
@@ -33,6 +34,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     async with db.session_scope() as session:
         result = await sync_skills(session, registry)
     log.info("Skill catalog %s: %s skills (%s)", registry.catalog_digest(), len(registry.all()), result)
+    if settings.demo_account_email and settings.demo_account_password:
+        try:
+            async with db.session_scope() as session:
+                demo = await ensure_demo_account(session)
+            log.info("Demo account ready: %s", demo.email if demo else None)
+        except Exception:  # the identity service may be starting: never block the API on the demo account
+            log.exception("Demo account could not be prepared")
     if not settings.database_url.startswith("sqlite"):
         await setup_checkpointer(settings.database_url)
     yield

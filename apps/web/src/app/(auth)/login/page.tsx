@@ -15,7 +15,8 @@ import { translate, useLang, useT } from "@/lib/i18n";
 
 interface AuthConfig {
   mode: "oidc" | "dev";
-  signup: { enabled: boolean; domains: string[] };
+  /** domains: [] = any address; verification: the account waits for the e-mailed code */
+  signup: { enabled: boolean; domains: string[]; verification: boolean };
   password_reset: boolean;
   dev_outbox: boolean;
   providers: { id: string; name: string; available: boolean }[];
@@ -137,6 +138,8 @@ function companyOf(email: string, domains: string[]): string {
 function SignUp({ config, onSent }: { config: AuthConfig; onSent: (email: string) => void }) {
   const t = useT(M);
   const lang = useLang();
+  const router = useRouter();
+  const anyDomain = config.signup.domains.length === 0;
   const errorText = useErrorText(config.signup.domains);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -153,7 +156,8 @@ function SignUp({ config, onSent }: { config: AuthConfig; onSent: (email: string
     setPending(true);
     setError(null);
     try {
-      await api.post("/auth/signup", { email, name, password, accept_terms: accept, lang });
+      const result = await api.post<{ verification: boolean }>("/auth/signup", { email, name, password, accept_terms: accept, lang });
+      if (!result.verification) return router.replace("/welcome"); // active at once (no e-mail verification)
       onSent(email.trim().toLowerCase());
     } catch (err) {
       setError(errorText(err));
@@ -163,9 +167,9 @@ function SignUp({ config, onSent }: { config: AuthConfig; onSent: (email: string
   };
   return (
     <form onSubmit={submit} className="space-y-3" aria-label={t("signUp")}>
-      <Field icon={Mail} label={t("workEmail")} type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("emailPlaceholder")} hint={t("companyHint", { domains })} />
+      <Field icon={Mail} label={anyDomain ? t("email") : t("workEmail")} type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={anyDomain ? t("anyEmailPlaceholder") : t("emailPlaceholder")} hint={anyDomain ? undefined : t("companyHint", { domains })} />
       <Field icon={User} label={t("fullName")} autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} />
-      <Field icon={Building2} label={t("company")} readOnly tabIndex={-1} value={companyOf(email, config.signup.domains)} placeholder="—" />
+      {anyDomain ? null : <Field icon={Building2} label={t("company")} readOnly tabIndex={-1} value={companyOf(email, config.signup.domains)} placeholder="—" />}
       <div>
         <PasswordField icon={Lock} label={t("createPassword")} value={password} onChange={setPassword} autoComplete="new-password" />
         <PasswordRules password={password} />

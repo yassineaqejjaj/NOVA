@@ -121,9 +121,19 @@ railway variable set NOVA_LLM_PROVIDER=anthropic NOVA_LLM_BASE_URL=https://api.a
 NOVA has its own sign-in, sign-up and logout screens (`/login`, `/logout`). Keycloak remains the identity provider:
 NOVA's back end signs users in with the password grant of the confidential `nova-web` client and creates accounts
 with its service account; Keycloak keeps the passwords and its brute-force protection. Sign-up is restricted to
-`NOVA_SIGNUP_DOMAINS` (default `devoteam.com`); the account stays disabled until the 6-digit code e-mailed to the
-address is entered (15 minutes, 5 attempts, one new code per minute, stored as an HMAC only). The same codes reset
-forgotten passwords.
+`NOVA_SIGNUP_DOMAINS` (default `devoteam.com`; `*` accepts any address — current production setting). With
+`NOVA_SIGNUP_EMAIL_VERIFICATION=auto` (default) the account stays disabled until the 6-digit code e-mailed to the
+address is entered (15 minutes, 5 attempts, one new code per minute, stored as an HMAC only) whenever NOVA can send
+e-mail; without SMTP in production the account is activated at once (`required` / `off` force either behaviour).
+The same codes reset forgotten passwords (unavailable without SMTP).
+
+**Demo account.** With `NOVA_DEMO_ACCOUNT_EMAIL` and `NOVA_DEMO_ACCOUNT_PASSWORD` (secret, ≥ 12 characters with letters
+and digits) on `api`, the API creates the account at start-up, activates it, keeps it on that password (change the
+variable to rotate it), marks onboarding done and never gives it admin rights. Production uses `demo@nova.local`:
+
+```bash
+printf '%s' '<demo password>' | railway variable set NOVA_DEMO_ACCOUNT_PASSWORD --stdin -s api
+```
 
 1. Enable the client on an existing realm (new realms get it from `nova-realm.json`):
 

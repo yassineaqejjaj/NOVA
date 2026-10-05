@@ -18,7 +18,7 @@ const DOCS: Record<"terms" | "privacy", Record<"en" | "fr", Doc>> = {
       draft: "Working version describing how NOVA operates — to be validated by Devoteam’s legal team.",
       back: "Back to sign-in",
       sections: [
-        { h: "Who can use NOVA", p: ["NOVA is Devoteam’s personal AI product agent. Accounts are reserved to holders of a company address (@devoteam.com), confirmed by an e-mailed code. One account per person; never share your password."] },
+        { h: "Who can use NOVA", p: ["NOVA is Devoteam’s personal AI product agent. Accounts are personal: one per person, with your own e-mail address (confirmed by an e-mailed code when verification is enabled); never share your password. The shared demo account is for demonstrations only."] },
         { h: "What NOVA does", p: ["NOVA plans and carries out product, project, design and engineering work with specialist AI agents, from your requests and the project context you can access in ORBIT. Its deliverables are proposals: you remain responsible for reviewing them before using or sharing them."] },
         { h: "Acceptable use", p: ["Use NOVA for your professional work only. Respect the classification of the information you handle (C0 public to C3 secret) and the confidentiality commitments made to clients. Do not use NOVA for content related to crypto exchanges, adult content, pirated content or healthcare."] },
         { h: "Availability", p: ["NOVA is provided as is, without a service-level commitment. Features may change; accounts may be suspended in case of misuse."] },
@@ -30,7 +30,7 @@ const DOCS: Record<"terms" | "privacy", Record<"en" | "fr", Doc>> = {
       draft: "Version de travail décrivant le fonctionnement de NOVA — à valider par le service juridique de Devoteam.",
       back: "Retour à la connexion",
       sections: [
-        { h: "Qui peut utiliser NOVA", p: ["NOVA est l’agent produit IA personnel de Devoteam. Les comptes sont réservés aux titulaires d’une adresse professionnelle (@devoteam.com), confirmée par un code envoyé par e-mail. Un compte par personne ; ne partagez jamais votre mot de passe."] },
+        { h: "Qui peut utiliser NOVA", p: ["NOVA est l’agent produit IA personnel de Devoteam. Les comptes sont personnels : un par personne, avec votre propre adresse e-mail (confirmée par un code envoyé par e-mail lorsque la vérification est active) ; ne partagez jamais votre mot de passe. Le compte démo partagé est réservé aux démonstrations."] },
         { h: "Ce que fait NOVA", p: ["NOVA planifie et réalise des travaux produit, projet, design et ingénierie avec des agents IA spécialisés, à partir de vos demandes et du contexte projet auquel vous avez accès dans ORBIT. Ses livrables sont des propositions : vous restez responsable de leur relecture avant de les utiliser ou de les partager."] },
         { h: "Usage acceptable", p: ["Utilisez NOVA uniquement pour votre travail professionnel. Respectez la classification des informations manipulées (C0 public à C3 secret) et les engagements de confidentialité pris envers les clients. N’utilisez pas NOVA pour des contenus liés aux plateformes d’échange de cryptomonnaies, aux contenus pour adultes, aux contenus piratés ou à la santé."] },
         { h: "Disponibilité", p: ["NOVA est fourni en l’état, sans engagement de niveau de service. Les fonctionnalités peuvent évoluer ; un compte peut être suspendu en cas d’usage abusif."] },

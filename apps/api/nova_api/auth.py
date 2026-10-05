@@ -127,7 +127,11 @@ async def auth_config() -> dict[str, Any]:
         "mode": settings.auth_mode,
         "issuer": settings.oidc_issuer if settings.auth_mode == "oidc" else None,
         "password_login": True,
-        "signup": {"enabled": settings.signup_enabled, "domains": settings.signup_domain_list},
+        "signup": {
+            "enabled": settings.signup_enabled,
+            "domains": [] if settings.signup_any_domain else settings.signup_domain_list,  # [] = any address
+            "verification": settings.signup_verifies_email,
+        },
         "password_reset": settings.smtp_configured or settings.email_outbox,
         "dev_outbox": settings.email_outbox,
         # Identity providers shown on the sign-in screen; "available" once configured in Keycloak.
@@ -318,14 +322,17 @@ async def password_login(body: PasswordLoginIn, session: SessionDep, response: R
 
 
 @router.post("/signup", status_code=202)
-async def signup(body: SignupIn, session: SessionDep) -> dict[str, Any]:
+async def signup(body: SignupIn, session: SessionDep, response: Response) -> dict[str, Any]:
     if not body.accept_terms:
         raise ApiError(422, "terms_required", "Accept the terms of service and the privacy policy.")
     try:
-        await accounts.start_signup(session, email=body.email, name=body.name, password=body.password, lang=body.lang)
+        user = await accounts.start_signup(session, email=body.email, name=body.name, password=body.password, lang=body.lang)
     except IdentityError as exc:
         raise _identity_error(exc) from exc
-    return {"email": body.email, "expires_in_minutes": get_settings().email_code_ttl_minutes}
+    if user is not None:  # no e-mail verification configured: the account is active and signed in
+        _sign_in(response, str(user.id), get_settings(), remember=False)
+        return {"email": body.email, "verification": False, "user_id": str(user.id)}
+    return {"email": body.email, "verification": True, "expires_in_minutes": get_settings().email_code_ttl_minutes}
 
 
 @router.post("/signup/resend", status_code=202)

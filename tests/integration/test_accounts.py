@@ -37,7 +37,7 @@ async def _code(client: httpx.AsyncClient, email: str) -> str:
 async def test_signup_requires_a_devoteam_address_terms_and_a_strong_password(app):
     client = _anonymous(app)
     config = (await client.get("/api/v1/auth/config")).json()
-    assert config["signup"] == {"enabled": True, "domains": ["devoteam.com"]}
+    assert config["signup"] == {"enabled": True, "domains": ["devoteam.com"], "verification": True}
     assert config["providers"] == [{"id": "google", "name": "Google", "available": False}]
 
     base = {"name": "Camille Martin", "password": PASSWORD, "accept_terms": True}
@@ -123,3 +123,47 @@ async def test_password_reset_by_code_without_revealing_unknown_addresses(app):
     assert reset.status_code == 200, reset.text
     assert (await client.post("/api/v1/auth/password-login", json={"email": email, "password": PASSWORD})).status_code == 401
     assert (await client.post("/api/v1/auth/password-login", json={"email": email, "password": new_password})).status_code == 200
+
+
+async def test_open_signup_without_email_server_activates_the_account_at_once(app, monkeypatch):
+    """NOVA_SIGNUP_DOMAINS=* and no way to send e-mail: any address signs up and is signed in directly."""
+    from nova.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "signup_domains", "*")
+    monkeypatch.setattr(settings, "signup_email_verification", "off")
+    client = _anonymous(app)
+    config = (await client.get("/api/v1/auth/config")).json()
+    assert config["signup"] == {"enabled": True, "domains": [], "verification": False}
+    email = f"alex.{uuid.uuid4().hex[:6]}@gmail.com"
+    response = await client.post(
+        "/api/v1/auth/signup", json={"email": email, "name": "Alex Doe", "password": PASSWORD, "accept_terms": True}
+    )
+    assert response.status_code == 202 and response.json()["verification"] is False
+    assert (await client.get("/api/v1/me")).json()["email"] == email  # signed in
+    other = _anonymous(app)
+    assert (await other.post("/api/v1/auth/password-login", json={"email": email, "password": PASSWORD})).status_code == 200
+
+
+async def test_demo_account_is_created_active_kept_on_its_password_and_never_admin(app, monkeypatch):
+    from nova.config import get_settings
+    from nova.infra import db
+    from nova.services.accounts import ensure_demo_account
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "demo_account_email", "Demo@Nova.local")
+    monkeypatch.setattr(settings, "demo_account_password", "Nova-demo-2026-ok")
+    async with db.session_scope() as session:
+        user = await ensure_demo_account(session)
+    assert user is not None and user.email == "demo@nova.local" and not user.is_admin
+    client = _anonymous(app)
+    ok = await client.post("/api/v1/auth/password-login", json={"email": "demo@nova.local", "password": "Nova-demo-2026-ok"})
+    assert ok.status_code == 200
+    me = (await client.get("/api/v1/me")).json()
+    assert me["display_name"] == "Compte démo" and me["preferences"]["onboarding_completed"] is True
+
+    monkeypatch.setattr(settings, "demo_account_password", "Nova-demo-rotated-9")  # rotation at the next start
+    async with db.session_scope() as session:
+        await ensure_demo_account(session)
+    old = await client.post("/api/v1/auth/password-login", json={"email": "demo@nova.local", "password": "Nova-demo-2026-ok"})
+    assert old.status_code == 401

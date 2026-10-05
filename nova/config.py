@@ -48,7 +48,13 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
 
     # --- Accounts: sign-up with a company address, verified by an e-mailed code -------------------
-    signup_domains: str = "devoteam.com"  # comma-separated; empty disables sign-up
+    signup_domains: str = "devoteam.com"  # comma-separated; "*" = any address; empty disables sign-up
+    # "auto": confirm the address by an e-mailed code when NOVA can send e-mail, else activate the account at once
+    signup_email_verification: Literal["auto", "required", "off"] = "auto"
+    # Shared demo account, created / kept in sync at API start-up when both are set (password via secret variable)
+    demo_account_email: str = ""
+    demo_account_password: str = ""
+    demo_account_name: str = "Compte démo"
     email_code_ttl_minutes: int = 15
     email_code_max_attempts: int = 5
     email_code_resend_seconds: int = 60
@@ -157,8 +163,19 @@ class Settings(BaseSettings):
         return not self.is_production and not self.smtp_configured
 
     @property
+    def signup_any_domain(self) -> bool:
+        return "*" in self.signup_domain_list
+
+    @property
+    def signup_verifies_email(self) -> bool:
+        if self.signup_email_verification == "auto":
+            return self.smtp_configured or self.email_outbox
+        return self.signup_email_verification == "required"
+
+    @property
     def signup_enabled(self) -> bool:
-        return bool(self.signup_domain_list) and (self.smtp_configured or self.email_outbox)
+        can_verify = self.smtp_configured or self.email_outbox
+        return bool(self.signup_domain_list) and (can_verify or not self.signup_verifies_email)
 
     @property
     def oidc_backchannel(self) -> str:
