@@ -40,6 +40,10 @@ def extract_json(text: str) -> Any:
         raise
 
 
+TRUNCATED = {"length", "max_tokens"}
+MAX_STRUCTURED_TOKENS = 32_000
+
+
 class OpenAICompatibleProvider:
     provider_name = "openai_compatible"
 
@@ -175,12 +179,20 @@ class OpenAICompatibleProvider:
         usage = TokenUsage()
         latency = 0.0
         last_error = ""
+        budget = max_tokens or self.default_max_tokens
         for attempt in range(2):
             result = await self.generate(
-                conversation, temperature=0.0 if temperature is None else temperature, max_tokens=max_tokens, **params
+                conversation, temperature=0.0 if temperature is None else temperature, max_tokens=budget, **params
             )
             usage = usage.add(result.usage)
             latency += result.latency_ms
+            if result.finish_reason in TRUNCATED:
+                # Cut off by the token budget: the JSON is incomplete (or empty for a tool call). Asking the model
+                # to "repair" it with the same budget fails the same way, so retry once with a larger budget.
+                last_error = f"output truncated at {budget} tokens"
+                budget = min(budget * 2, MAX_STRUCTURED_TOKENS)
+                conversation = list(messages)
+                continue
             try:
                 raw = extract_json(result.text)
                 if validator is not None:

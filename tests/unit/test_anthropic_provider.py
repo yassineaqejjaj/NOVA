@@ -99,3 +99,22 @@ async def test_reasoning_budget_is_added_to_max_tokens_for_reasoning_models():
     )
     assert (await provider.generate([LLMMessage(role="user", content="Hi")])).text == "ok"
     assert seen["max_tokens"] == 4096 + 2048
+
+
+async def test_truncated_structured_output_retries_with_a_larger_budget():
+    """A forced tool call cut off by max_tokens comes back as ``{}``: retry with twice the budget, not a "repair"."""
+    budgets = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        budgets.append(body["max_tokens"])
+        if len(budgets) == 1:
+            return httpx.Response(200, json={"content": [{"type": "tool_use", "name": STRUCTURED_TOOL, "input": {}}],
+                                             "usage": {"output_tokens": 4096}, "stop_reason": "max_tokens"})  # fmt: skip
+        assert len(body["messages"]) == 1  # the truncated answer is not replayed
+        return httpx.Response(200, json={"content": [{"type": "tool_use", "name": STRUCTURED_TOOL, "input": {"title": "PRD", "score": 9}}],
+                                         "usage": {"output_tokens": 30}, "stop_reason": "tool_use"})  # fmt: skip
+
+    provider = AnthropicProvider("", "", api_key="sk-test", default_max_tokens=4096, transport=httpx.MockTransport(handler))
+    result = await provider.structured_output([LLMMessage(role="user", content="Rate it")], Answer)
+    assert result.value.score == 9 and budgets == [4096, 8192]

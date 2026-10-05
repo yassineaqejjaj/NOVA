@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 import re
+from collections.abc import Awaitable
 from typing import Any
 
 from langgraph.runtime import Runtime
@@ -31,6 +33,7 @@ from nova.domain.artifacts import ArtifactReference, Citation, apply_section_upd
 from nova.domain.blocks import Block
 from nova.domain.context import ContextBundle
 from nova.domain.enums import BlockType, NovaPhase, SectionKind, StepStatus
+from nova.domain.llm import LLMError
 from nova.domain.outputs import ToolRequest, ToolResult
 from nova.domain.permissions import AutonomyPolicy, action_permission
 from nova.domain.skills import SkillStep
@@ -43,6 +46,9 @@ class RawStepOutput(BaseModel):
     summary: str = ""
     sections: dict[str, Any] = Field(default_factory=dict)
     tool_requests: list[ToolRequest] = Field(default_factory=list)
+
+
+log = logging.getLogger(__name__)
 
 
 def policy_for(state: NovaState, d: AgentDeps) -> AutonomyPolicy:
@@ -72,6 +78,19 @@ def _previous_outputs(state: NovaState, d: AgentDeps, current: str) -> list[str]
             lines += [f"#### {title}", *render_section(section)]
         result.append("\n".join(lines))
     return result
+
+
+async def _optional[T](call: Awaitable[T], what: str) -> T | None:
+    """Run a quality-improvement model call (review, revision) whose failure must not fail the step.
+
+    The deliverable is already produced: if the call fails, the step is kept and flagged "with reservations"
+    instead of being retried as a whole (which would regenerate everything and multiply the latency).
+    """
+    try:
+        return await call
+    except LLMError as exc:
+        log.warning("Validation %s skipped: %s", what, exc)
+        return None
 
 
 def _count(sections: dict, keys: list[str]) -> str:
@@ -211,17 +230,23 @@ async def validate_step(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
     results = checks()
     review: ValidationReview | None = None
     if d.settings.validation_review and not is_edit and out.sections:
-        reviewed = await d.llm.structured_output(
-            prompts.review_messages(
-                state,
-                skill,
-                artifact_type,
-                out.sections,
-                step_goal=plan_step.goal if plan_step else "",
-                failed_checks=[f"{c.label} ({c.detail})" for c in results if not c.passed],
+        reviewed = await _optional(
+            d.llm.structured_output(
+                prompts.review_messages(
+                    state,
+                    skill,
+                    artifact_type,
+                    out.sections,
+                    step_goal=plan_step.goal if plan_step else "",
+                    failed_checks=[f"{c.label} ({c.detail})" for c in results if not c.passed],
+                ),
+                ValidationReview,
             ),
-            ValidationReview,
+            "review",
         )
+    else:
+        reviewed = None
+    if reviewed is not None:
         review, usage, model = reviewed.value, usage.add(reviewed.usage), reviewed.model
         known = {str(c.get("key")) for c in skill.evaluation.criteria}
         review.criteria = [c for c in review.criteria if c.key in known]
@@ -240,42 +265,50 @@ async def validate_step(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
         sub = SkillStep(id="revise", title="Revising after review", instruction=revision_feedback(results, review), fills=targets)
         schema = d.artifacts.output_schema(artifact_type, targets, with_tools=False)
         schema["properties"]["sections"]["required"] = []
-        revised = await d.llm.structured_output(
-            prompts.skill_step_messages(
-                state,
-                skill,
-                sub,
-                artifact_type,
-                fills=targets,
-                produced=out.sections,
-                existing=None,
-                previous_outputs=_previous_outputs(state, d, step_id),
-                tool_results=[],
-                tools_allowed=[],
-                edit_instruction=revision_feedback(results, review),
+        revised = await _optional(
+            d.llm.structured_output(
+                prompts.skill_step_messages(
+                    state,
+                    skill,
+                    sub,
+                    artifact_type,
+                    fills=targets,
+                    produced=out.sections,
+                    existing=None,
+                    previous_outputs=_previous_outputs(state, d, step_id),
+                    tool_results=[],
+                    tools_allowed=[],
+                    edit_instruction=revision_feedback(results, review),
+                ),
+                RawStepOutput,
+                json_schema=schema,
             ),
-            RawStepOutput,
-            json_schema=schema,
+            "revision",
         )
-        usage, model = usage.add(revised.usage), revised.model
-        out.usage = out.usage.add(revised.usage)
-        out.duration_ms += revised.latency_ms
-        id_scope = set(out.id_scope)
-        sections = d.artifacts.normalize_sections(
-            artifact_type,
-            revised.value.sections,
-            allowed_keys=targets,
-            citation_index=citation_index(state),
-            existing=None,
-            report=NormalizationReport(),
-            id_scope=id_scope,
-        )
-        out.sections = {**out.sections, **{k: v for k, v in sections.items() if not v.is_empty()}}
-        out.id_scope = sorted(id_scope)
-        out.revisions += 1
-        await progress(d, state, revise_key, "Revising after review", "completed", _count(out.sections, targets))
-        results = checks()
-        status = "revised" if all(c.passed for c in results) else "warning"
+        if revised is None:
+            # The revision could not be produced: keep the delivered sections, flagged "with reservations".
+            await progress(d, state, revise_key, "Revising after review", "failed")
+            status = "warning"
+        else:
+            usage, model = usage.add(revised.usage), revised.model
+            out.usage = out.usage.add(revised.usage)
+            out.duration_ms += revised.latency_ms
+            id_scope = set(out.id_scope)
+            sections = d.artifacts.normalize_sections(
+                artifact_type,
+                revised.value.sections,
+                allowed_keys=targets,
+                citation_index=citation_index(state),
+                existing=None,
+                report=NormalizationReport(),
+                id_scope=id_scope,
+            )
+            out.sections = {**out.sections, **{k: v for k, v in sections.items() if not v.is_empty()}}
+            out.id_scope = sorted(id_scope)
+            out.revisions += 1
+            await progress(d, state, revise_key, "Revising after review", "completed", _count(out.sections, targets))
+            results = checks()
+            status = "revised" if all(c.passed for c in results) else "warning"
     elif needs_revision:
         status = "warning"
 

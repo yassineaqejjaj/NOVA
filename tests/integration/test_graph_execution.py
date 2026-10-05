@@ -230,6 +230,32 @@ async def test_nova_core_decomposes_assigns_validates_and_hands_off_between_sub_
     assert report["1-brief"]["validation"]["status"] == "revised" and report["1-brief"]["handoff"]["to"] == "engineering"
 
 
+async def test_a_failed_revision_keeps_the_deliverable_with_reservations(user, project, llm):
+    """The Validation agent asks for a revision that the model cannot produce: the step is delivered "with
+    reservations" instead of failing (and retrying) the whole task."""
+    from nova.domain.llm import LLMError
+
+    llm.intent = lambda m: IntentClassification(kind="run_workflow", goal="Brief", candidate_skill_ids=["design-brief"])
+    llm.plan = lambda m: PlanOutput(objective="Brief", steps=[{"id": "a", "title": "Brief", "skill_id": "design-brief"}])
+    llm.review = lambda m: {
+        "verdict": "revise",
+        "issues": [{"section": "problem", "problem": "Too vague", "fix": "Name the users"}],
+    }
+
+    def step(raw, messages):
+        if "REVISION REQUESTED" in messages[1].content:
+            raise LLMError("The model did not return valid structured output", retryable=True)
+        return raw
+
+    llm.step_override = step
+    task_id, message_id = await _start(user, project, "Design brief for onboarding", autonomy="execute_automatically")
+    assert await run_task(task_id, "start") == "completed"
+    brief = (await _blocks(message_id))["plan"]["steps"][0]
+    assert brief["validation"]["status"] == "warning" and brief["validation"]["revisions"] == 0
+    revisions = [m for name, m in llm.calls if name == "RawStepOutput" and "REVISION REQUESTED" in m[1].content]
+    assert len(revisions) == 1  # no node retry storm
+
+
 async def test_explicit_skill_asks_its_question_in_the_users_language(user, project, llm):
     llm.intent = lambda m: IntentClassification(kind="run_workflow", goal="Un epic", response_language="fr")
     task_id, message_id = await _start(user, project, "/epic-definition")
