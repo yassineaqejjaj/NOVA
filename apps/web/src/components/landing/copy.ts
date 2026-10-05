@@ -38,9 +38,9 @@ export const COPY = {
       eyebrow: "Produit",
       title: "De l’intention à l’Artefact, en une conversation.",
       subtitle: "Exprimez ce que vous voulez obtenir. Nova trouve le contexte, choisit la méthode, exécute le workflow et vous rend un livrable structuré.",
-      steps: ["Intention", "Contexte ORBIT", "Plan", "Skills", "Artefact", "Validation", "Évaluation FORGE"],
+      steps: ["Intention", "Contexte ORBIT", "Plan", "Compétences", "Artefact", "Validation", "Évaluation FORGE"],
       features: [
-        { title: "64 Skills versionnées", body: "Produit, projet, design et ingénierie — chaque étape confiée au sous-agent spécialiste, combinées automatiquement en workflows." },
+        { title: "64 compétences versionnées", body: "Produit, projet, design et ingénierie — chaque étape confiée au sous-agent spécialiste, combinées automatiquement en workflows." },
         { title: "54 types d’Artefacts", body: "PRD, backlog, conception technique, ADR, plan de test, brief de design, charte de projet, RAID… Versions, comparaison, commentaires et export." },
         { title: "Provenance vérifiable", body: "« Pourquoi cette exigence ? » Nova cite les sources ORBIT réellement utilisées — jamais de source inventée." },
         { title: "Autonomie réglable", body: "Suggérer, assister, exécuter avec validation ou automatiquement : vous décidez de ce que Nova peut faire seul." },

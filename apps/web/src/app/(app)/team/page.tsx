@@ -37,7 +37,7 @@ const M = defineMessages({
     description: "Vous parlez à NOVA. NOVA délègue à ses spécialistes, contrôle leur travail et vous apporte le résultat.",
     partner: "Partenaire produit",
     partnerHint: "Planifie, délègue, supervise — votre interlocuteur unique",
-    skills: (v: { n: number }) => `${v.n} Skills`,
+    skills: (v: { n: number }) => `${v.n} compétences`,
     delivered: (v: { n: number }) => `${v.n} livré${v.n > 1 ? "s" : ""} (30 jours)`,
     available: "Disponible",
     workingOn: "Travaille sur",

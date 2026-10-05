@@ -72,7 +72,7 @@ export const M = defineMessages({
     open: "Ouvrir",
     goal: "Sous-objectif",
     assigned: (v: { agent: string }) => `Affecté à l’${v.agent}`,
-    owner: (v: { skill: string }) => `responsable de la Skill ${v.skill}`,
+    owner: (v: { skill: string }) => `responsable de la compétence ${v.skill}`,
     revising: "Révision après relecture",
     verifying: "Vérification du livrable…",
     revisionRequested: "Révision demandée — le spécialiste corrige",

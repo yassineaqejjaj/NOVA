@@ -37,7 +37,7 @@ T = {
     },
     "ready_sub": {
         "en": "NOVA is ready to run the next step of this goal.",
-        "fr": "NOVA est prêt à lancer l’étape suivante de ce goal.",
+        "fr": "NOVA est prêt à lancer l’étape suivante de cet objectif.",
     },
     "blocked_sub": {"en": "This milestone failed. Retry it or skip it.", "fr": "Ce jalon a échoué. Relancez-le ou passez-le."},
     "validate_title": {"en": "{title} is ready", "fr": "{title} est prêt"},

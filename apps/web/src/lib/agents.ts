@@ -108,7 +108,7 @@ export const SUPPORT_AGENTS: Record<SupportAgent, { icon: LucideIcon; color: str
     name: { en: "Validation agent", fr: "Agent Validation" },
     mission: {
       en: "Verifies every deliverable against the Skill’s checks and criteria before NOVA hands it over.",
-      fr: "Vérifie chaque livrable selon les contrôles et critères de la Skill avant que NOVA ne le remette.",
+      fr: "Vérifie chaque livrable selon les contrôles et critères de la compétence avant que NOVA ne le remette.",
     },
   },
 };

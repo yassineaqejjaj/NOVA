@@ -51,7 +51,7 @@ const M = defineMessages({
     tasks: "Tâches",
     library: "Bibliothèque",
     context: "Contexte",
-    skills: "Skills",
+    skills: "Compétences",
     timeline: "Timeline",
     workspace: "Espace de travail",
     knowledge: "Connaissances",

@@ -40,7 +40,7 @@ const M = defineMessages({
   fr: {
     title: "Autonomie & permissions",
     hint: "La confiance se construit progressivement : choisissez jusqu’où NOVA agit seul, puis affinez action par action. La politique de l’entreprise s’applique toujours.",
-    level: "Autonomie par défaut (conversations, goals et routines)",
+    level: "Autonomie par défaut (conversations, objectifs et routines)",
     action: "Action",
     "orbit.read": "Lire le contexte projet (ORBIT)",
     "artifacts.create": "Créer un Artefact",

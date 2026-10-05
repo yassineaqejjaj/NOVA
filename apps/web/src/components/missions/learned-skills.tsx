@@ -17,11 +17,11 @@ const M = defineMessages({
     run: "Run", remove: "Delete", removed: "Skill deleted.",
   },
   fr: {
-    title: "Les Skills que NOVA a apprises de vous",
+    title: "Les compétences que NOVA a apprises de vous",
     hint: "Créées avec « Apprendre à NOVA ». Lancez-les ici, avec /nom dans le composeur, ou dans une routine.",
     steps: (v: { n: number }) => (v.n > 1 ? `${v.n} étapes` : "1 étape"),
     uses: (v: { n: number }) => (v.n > 1 ? `utilisée ${v.n} fois` : v.n === 1 ? "utilisée 1 fois" : "jamais utilisée"),
-    run: "Lancer", remove: "Supprimer", removed: "Skill supprimée.",
+    run: "Lancer", remove: "Supprimer", removed: "Compétence supprimée.",
   },
 });
 

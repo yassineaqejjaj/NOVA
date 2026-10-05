@@ -61,7 +61,7 @@ const M = defineMessages({
     projectsPick: "Choisissez ceux sur lesquels vous travaillez le plus.",
     projectsEmpty: "Les projets apparaissent une fois ORBIT connecté — vous pourrez le faire dans un instant.",
     methodsTitle: "Quelles méthodes produit préférez-vous ?",
-    methodsHint: "NOVA les privilégiera lorsque plusieurs Skills conviennent.",
+    methodsHint: "NOVA les privilégiera lorsque plusieurs compétences conviennent.",
     autonomyTitle: "Quel degré d’autonomie accorder à NOVA ?",
     autonomyHint: "Les modifications des systèmes externes suivent toujours la politique de votre entreprise.",
     orbitTitle: "Connectez NOVA à votre contexte",

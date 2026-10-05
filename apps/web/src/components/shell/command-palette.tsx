@@ -52,7 +52,7 @@ const M = defineMessages({
   },
   fr: {
     palette: "Palette de commandes",
-    placeholder: "Demander à NOVA, lancer une Skill, ouvrir un projet…",
+    placeholder: "Demander à NOVA, lancer une compétence, ouvrir un projet…",
     actions: "Actions",
     ask: "Demander à NOVA",
     talk: "Parler avec NOVA",
@@ -68,7 +68,7 @@ const M = defineMessages({
     openProject: "Ouvrir un projet",
     artifacts: "Artefacts",
     conversations: "Conversations",
-    skills: "Skills",
+    skills: "Compétences",
     orbitContext: "Contexte ORBIT",
     empty: "Aucun résultat. Appuyez sur Entrée sur « Demander à NOVA ».",
   },
