@@ -32,7 +32,7 @@ from nova.domain.blocks import Block
 from nova.domain.context import ContextBundle
 from nova.domain.enums import BlockType, NovaPhase, SectionKind, StepStatus
 from nova.domain.outputs import ToolRequest, ToolResult
-from nova.domain.permissions import AutonomyPolicy
+from nova.domain.permissions import AutonomyPolicy, action_permission
 from nova.domain.skills import SkillStep
 from nova.domain.state import NovaState
 
@@ -326,8 +326,16 @@ async def execute_tools(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
         except ToolDenied as exc:
             results.append(ToolResult(tool=request.tool, status="denied", error=str(exc)))
             continue
+        action = "orbit.write" if tool.external_write else "orbit.read" if "orbit" in tool.name else None
+        permission = (
+            action_permission(action, state.autonomy, state.preferences.get("action_permissions")) if action else "always"
+        )
+        if permission == "never":
+            results.append(ToolResult(tool=request.tool, status="denied", error="Not allowed by your permissions"))
+            continue
         authorized.append((request, tool))
-        if tool.external_write and policy.approve_external_write():
+        # "Always" never goes beyond the organization policy: external writes may still need approval.
+        if tool.external_write and (permission == "ask" or policy.approve_external_write()):
             needs_approval.append(request)
 
     approved_by = None
@@ -510,7 +518,13 @@ async def generate_artifact(state: NovaState, runtime: Runtime[AgentDeps]) -> di
         artifact_id, version, proposed = existing.artifact_id, existing.version, False
         detail = "No changes were needed"
     else:
-        proposed = policy.approve_artifact_changes(editing_existing=existing is not None)
+        if existing is None:
+            proposed = False  # creating was cleared at planning (artifacts.create)
+        else:
+            permission = action_permission("artifacts.update", state.autonomy, state.preferences.get("action_permissions"))
+            if permission == "never":
+                raise NodeFailure("permission_denied", "Changing existing Artifacts is not allowed by your permissions.")
+            proposed = permission == "ask" or policy.approve_artifact_changes(editing_existing=True)
         artifact_id, version = await d.store.save_artifact(
             task_id=state.task_id,
             user_id=state.user_id,

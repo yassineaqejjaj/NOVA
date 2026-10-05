@@ -13,8 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.domain.enums import AutonomyMode, ExecutionOrigin, TaskStatus
 from nova.domain.permissions import Principal
-from nova.infra.models import Conversation, Message, Project, Task, UserPreferences
+from nova.infra.models import Conversation, LearnedSkill, Message, Project, Task, UserPreferences
 from nova.services.access import AccessDenied, project_role
+from nova.services.teach import expand as expand_learned
 from nova.services.users import get_user, preferences_dict
 
 SLASH = re.compile(r"(?<!\S)/([a-z][a-z0-9-]+)")
@@ -86,8 +87,18 @@ async def submit(
     prefs = await session.get(UserPreferences, user.id)
     preferences = preferences_dict(prefs, user)
     history = await _history(session, conversation.id)
+    intent = data.text
+    learned_refs: list[str] = []
+    first = data.text.strip().split(maxsplit=1)
+    if first and first[0].startswith("/") and first[0][1:] not in known_skills:
+        learned = await session.scalar(
+            select(LearnedSkill).where(LearnedSkill.user_id == user.id, LearnedSkill.slug == first[0][1:].lower())
+        )
+        if learned is not None:  # "/my-workflow …": a Skill NOVA learned from this user (Teach NOVA)
+            intent, learned_refs = expand_learned(learned, first[1] if len(first) > 1 else "")
+            learned.uses += 1
     skill_refs = list(
-        dict.fromkeys([s for s in data.skill_refs if s in known_skills] + extract_skill_refs(data.text, known_skills))
+        dict.fromkeys([s for s in data.skill_refs if s in known_skills] + learned_refs + extract_skill_refs(intent, known_skills))
     )
     autonomy = data.autonomy or AutonomyMode(preferences.get("default_autonomy") or "assist")
 
@@ -116,7 +127,7 @@ async def submit(
         "project_slug": project_slug,
         "origin": ExecutionOrigin.interactive.value,
         "autonomy": autonomy.value,
-        "intent": data.text,
+        "intent": intent,
         "history": history,
         "active_artifact_id": data.active_artifact_id,
         "artifact_refs": data.artifact_refs,

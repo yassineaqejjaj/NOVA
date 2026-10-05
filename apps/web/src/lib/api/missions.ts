@@ -92,6 +92,8 @@ export interface Confidence {
   dimensions: Partial<Record<"quality" | "grounding" | "completeness" | "consistency" | "safety", number>>;
   status: string | null;
   evaluated_by: ("validation" | "forge")[];
+  /** No project source to check the content against: confidence is capped at medium. */
+  ungrounded?: boolean;
 }
 
 export interface InboxAction {
@@ -237,4 +239,35 @@ export function useValidateDeliverable() {
 export function useDismiss() {
   const refresh = useRefresh();
   return useMutation({ mutationFn: (id: string) => api.post("/today/dismiss", { id }), onSuccess: refresh });
+}
+
+// --- Teach NOVA, learned Skills, impact ---------------------------------------------------------------
+
+export interface ObservedStep { at: string; kind: "request" | "edit" | "decision"; text: string; skills: string[] }
+export interface LearnedStep { title: string; instruction: string; skill_id: string | null }
+export interface LearnedDraft { name: string; slug: string; description: string; steps: LearnedStep[]; routine_suggestion: string; observed: ObservedStep[]; lang: "en" | "fr"; since: string | null }
+export interface LearnedSkill { id: string; slug: string; name: string; description: string; steps: LearnedStep[]; uses: number; lang: string; observed: ObservedStep[]; created_at: string }
+export interface Impact { days: number; tasks: number; by_origin: Record<"interactive" | "goal" | "routine", number>; artifacts: number; deliverables_validated: number; decisions: number; hours_saved_estimate: number; method: string }
+
+export const teachKeys = { teach: ["teach"] as const, learned: ["learned-skills"] as const, impact: ["impact"] as const };
+
+export const useTeach = () =>
+  useQuery({ queryKey: teachKeys.teach, queryFn: () => api.get<{ active: boolean; since: string | null; observed: ObservedStep[] }>("/teach"), refetchInterval: (q) => (q.state.data?.active ? 4_000 : 60_000) });
+export const useLearnedSkills = () => useQuery({ queryKey: teachKeys.learned, queryFn: () => api.get<LearnedSkill[]>("/learned-skills") });
+export const useImpact = () => useQuery({ queryKey: teachKeys.impact, queryFn: () => api.get<Impact>("/impact"), staleTime: 60_000 });
+
+export function useTeachActions() {
+  const client = useQueryClient();
+  const refresh = () => {
+    void client.invalidateQueries({ queryKey: teachKeys.teach });
+    void client.invalidateQueries({ queryKey: teachKeys.learned });
+  };
+  return {
+    start: useMutation({ mutationFn: () => api.post("/teach/start"), onSuccess: refresh }),
+    cancel: useMutation({ mutationFn: () => api.post("/teach/cancel"), onSuccess: refresh }),
+    finish: useMutation({ mutationFn: (body: { description: string; lang: "en" | "fr" }) => api.post<LearnedDraft>("/teach/finish", body), onSuccess: refresh }),
+    save: useMutation({ mutationFn: (draft: LearnedDraft) => api.post<LearnedSkill>("/learned-skills", draft), onSuccess: refresh }),
+    remove: useMutation({ mutationFn: (id: string) => api.delete(`/learned-skills/${id}`), onSuccess: refresh }),
+    run: useMutation({ mutationFn: (id: string) => api.post<{ conversation_id: string; task_id: string }>(`/learned-skills/${id}/run`, {}), onSuccess: refresh }),
+  };
 }

@@ -11,7 +11,7 @@ from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import NodeFailure, deps, node, now_iso, plan_block, progress, set_phase, upsert
 from nova.domain.enums import ExecutionOrigin, NovaPhase, StepStatus
 from nova.domain.outputs import ExecutionPlan, ExecutionStep, MissingInput, PlanOutput
-from nova.domain.permissions import AutonomyPolicy
+from nova.domain.permissions import AutonomyPolicy, action_permission
 from nova.domain.skills import SelectedSkill, SkillSpec
 from nova.domain.state import NovaState, StepOutput
 from nova.skills.router import SkillRouter
@@ -124,7 +124,13 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
     missing = [m for m in missing if m.key not in state.user_inputs][:3] if can_ask else []
 
     policy = AutonomyPolicy(mode=state.autonomy, allow_auto_external_writes=d.settings.policy_allow_auto_external_writes)
-    needs_confirmation = state.origin == ExecutionOrigin.interactive and policy.confirm_workflow(len(steps)) and not explicit
+    creates = any(d.skills.get(s.skill_id).outputs.mode == "create" for s in steps if s.skill_id)
+    create_permission = action_permission("artifacts.create", state.autonomy, state.preferences.get("action_permissions"))
+    if creates and create_permission == "never":
+        raise NodeFailure("permission_denied", "Creating Artifacts is not allowed by your permissions.")
+    needs_confirmation = state.origin == ExecutionOrigin.interactive and (
+        (policy.confirm_workflow(len(steps)) and not explicit) or (creates and create_permission == "ask")
+    )
     plan = ExecutionPlan(
         objective=plan_out.objective or c.goal,
         steps=steps,

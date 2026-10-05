@@ -20,7 +20,7 @@ from nova.domain.artifacts import (
 from nova.domain.context import ContextItem
 from nova.domain.enums import ProjectRole
 from nova.domain.permissions import Principal
-from nova.infra.db import utcnow
+from nova.infra.db import aware, utcnow
 from nova.infra.models import (
     Artifact,
     ArtifactComment,
@@ -29,6 +29,7 @@ from nova.infra.models import (
     IntegrationReference,
     ProjectMember,
     SkillExecution,
+    TaskStep,
     User,
 )
 from nova.services.access import AccessDenied, project_role, require_artifact
@@ -56,8 +57,8 @@ def summary(a: Artifact) -> dict[str, Any]:
         "owner_id": str(a.owner_id),
         "conversation_id": str(a.conversation_id) if a.conversation_id else None,
         "task_id": str(a.task_id) if a.task_id else None,
-        "created_at": a.created_at.isoformat(),
-        "updated_at": a.updated_at.isoformat(),
+        "created_at": aware(a.created_at).isoformat(),
+        "updated_at": aware(a.updated_at).isoformat(),
     }
 
 
@@ -118,6 +119,17 @@ async def get_artifact(
     artifact_type = get_artifact_registry().get(artifact.type)
     content = ArtifactContent.model_validate(row.content)
     sources = await _sources(session, principal, content.citations())
+    # NOVA confidence: the Validation agent's report of the step that produced it, and FORGE's score when known
+    report = await session.scalar(
+        select(TaskStep.report)
+        .where(TaskStep.artifact_id == artifact.id)
+        .order_by(TaskStep.finished_at.desc().nulls_last())
+        .limit(1)
+    )
+    score = (evaluation or {}).get("composite_score")
+    from nova.services.inbox import confidence_from_report
+
+    confidence = confidence_from_report(report, float(score) if isinstance(score, int | float) else None)
     return {
         **summary(artifact),
         "role": role.value,
@@ -130,6 +142,7 @@ async def get_artifact(
         "content": row.content,
         "definition": artifact_type.model_dump(mode="json"),
         "evaluation": evaluation,
+        "confidence": confidence,
     }
 
 
@@ -314,7 +327,7 @@ async def list_versions(session: AsyncSession, principal: Principal, artifact_id
             "changed_sections": v.changed_sections,
             "summary": v.summary,
             "task_id": str(v.task_id) if v.task_id else None,
-            "created_at": v.created_at.isoformat(),
+            "created_at": aware(v.created_at).isoformat(),
         }
         for v, name, skill_id, skill_version in rows
     ]
@@ -345,7 +358,7 @@ async def comments(session: AsyncSession, principal: Principal, artifact_id: str
             "author_name": name,
             "body": c.body,
             "resolved": c.resolved,
-            "created_at": c.created_at.isoformat(),
+            "created_at": aware(c.created_at).isoformat(),
         }
         for c, name in rows
     ]

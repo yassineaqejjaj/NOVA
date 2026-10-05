@@ -11,6 +11,7 @@ from nova.agent.nodes.common import deps, node, progress, set_phase, upsert
 from nova.domain.blocks import Block, warning_block
 from nova.domain.context import ContextBundle, ContextError, ContextItem, ContextQuery
 from nova.domain.enums import CLASSIFICATION_LABELS, BlockType, ExecutionOrigin, IntentKind, NovaPhase
+from nova.domain.permissions import action_permission
 from nova.domain.state import ContextIssue, NovaState
 from nova.domain.trust import detect_injection
 
@@ -130,6 +131,9 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
         return updates
 
     if state.context_mode == "none" or (c and not c.needs_context and c.kind == IntentKind.smalltalk):
+        return updates
+    if action_permission("orbit.read", state.autonomy, state.preferences.get("action_permissions")) == "never":
+        await progress(d, state, "context", "Retrieving context", "skipped", "Not allowed by your permissions")
         return updates
     await set_phase(d, state, NovaPhase.retrieving_context, "Retrieving context")
 

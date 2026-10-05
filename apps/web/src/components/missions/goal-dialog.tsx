@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { ApiError } from "@/lib/api/client";
-import { useProjects } from "@/lib/api/hooks";
+import { useMe, useProjects } from "@/lib/api/hooks";
 import { type GoalAutonomy, useCreateGoal } from "@/lib/api/missions";
 import { useLang, useT } from "@/lib/i18n";
 
@@ -19,12 +19,16 @@ export function GoalDialog({ open, onOpenChange, initialTitle = "" }: { open: bo
   const lang = useLang();
   const router = useRouter();
   const { data: projects } = useProjects();
+  const { data: me } = useMe();
   const create = useCreateGoal();
   const [title, setTitle] = useState(initialTitle);
   const [outcome, setOutcome] = useState("");
   const [due, setDue] = useState("");
   const [project, setProject] = useState("");
-  const [autonomy, setAutonomy] = useState<GoalAutonomy>("execute_with_approval");
+  const preferred = me?.preferences.default_autonomy;
+  const [autonomy, setAutonomy] = useState<GoalAutonomy>(
+    preferred && preferred !== "assist" ? (preferred as GoalAutonomy) : "execute_with_approval",
+  );
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {

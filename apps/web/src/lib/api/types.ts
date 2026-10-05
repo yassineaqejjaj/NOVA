@@ -2,7 +2,7 @@
 
 export type TaskStatus = "queued" | "scheduled" | "running" | "waiting_user" | "paused" | "completed" | "failed" | "cancelled";
 export type NovaPhase = "idle" | "retrieving_context" | "planning" | "executing" | "waiting_user" | "completed" | "failed";
-export type AutonomyMode = "suggest" | "assist" | "execute_with_approval" | "execute_automatically";
+export type AutonomyMode = "observe" | "suggest" | "assist" | "execute_with_approval" | "execute_automatically";
 export type BlockType =
   | "text" | "plan" | "workflow" | "question" | "checklist" | "task" | "artifact" | "table" | "decision"
   | "context_sources" | "tool_execution" | "progress" | "warning" | "error" | "citations";
@@ -163,6 +163,10 @@ export interface Today {
   inbox: import("./missions").Inbox;
   since: { at: string; count: number; decisions: number; worked_on: { task_id: string; title: string; origin: string; conversation_id: string | null; artifact_ids: string[]; at: string | null }[] };
   recommended: import("./missions").InboxItem[];
+  pulse: {
+    projects: { project: string; project_id: string | null; counts: Record<"anomaly" | "decision" | "validation" | "suggestion", number>; top: { id: string; kind: string; title: string; subtitle: string } | null; score: number; at_risk_goal?: { id: string; title: string; days: number; percent: number } }[];
+    sources: Record<"orbit" | "forge" | "jira" | "slack" | "analytics", boolean>;
+  };
   goals: import("./missions").Goal[];
 }
 
@@ -341,6 +345,8 @@ export interface ArtifactSummary {
 }
 
 export interface ArtifactDetail extends ArtifactSummary {
+  /** NOVA confidence: the Validation agent's report and FORGE's score when known. */
+  confidence?: import("./missions").Confidence | null;
   role: string;
   can_edit: boolean;
   viewing_version: number;

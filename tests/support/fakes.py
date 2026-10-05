@@ -59,6 +59,24 @@ class ScriptedLLM:
                 {"title": "Clarify the scope with Engineering", "kind": "human", "goal": "Scope agreed"},
             ],
         }
+        # Teach NOVA: the observed PRD request becomes a 2-step workflow
+        self.learned: Handler = lambda m: {
+            "name": "Sprint Story Quality Check",
+            "description": "Checks the stories of the next sprint and completes their acceptance criteria.",
+            "steps": [
+                {
+                    "title": "Review the new stories",
+                    "instruction": "List the stories planned for the next sprint",
+                    "skill_id": "backlog-refinement",
+                },
+                {
+                    "title": "Complete acceptance criteria",
+                    "instruction": "Write the missing acceptance criteria",
+                    "skill_id": "acceptance-criteria",
+                },
+            ],
+            "routine_suggestion": "Every Friday",
+        }
         # NOVA's Validation agent: approves by default
         self.review: Handler = lambda m: {"verdict": "pass", "criteria": [], "issues": [], "summary": "Meets the criteria."}
         self.step_citations = ["S1", "S99"]  # S99 does not exist → must be dropped
@@ -95,6 +113,8 @@ class ScriptedLLM:
             value = self.review(messages)
         elif name == "GoalPlanOutput":
             value = self.goal_plan(messages)
+        elif name == "LearnedSkillDraft":
+            value = self.learned(messages)
         else:
             assert json_schema is not None
             raw = fake(json_schema, citations=self.step_citations)

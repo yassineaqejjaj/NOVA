@@ -99,6 +99,7 @@ def preferences_dict(prefs: UserPreferences | None, user: User) -> dict[str, Any
         "language": prefs.language,
         "orb_color": prefs.orb_color or "coral",
         "profile": prefs.profile or "product",
+        "action_permissions": prefs.action_permissions or {},
         "onboarding_completed": prefs.onboarding_completed_at is not None,
     }
 

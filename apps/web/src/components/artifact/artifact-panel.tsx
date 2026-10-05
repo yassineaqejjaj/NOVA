@@ -17,6 +17,7 @@ import { Check, Download, FlaskConical, History, Loader2, Maximize2, X } from "l
 import Link from "next/link";
 import { useState } from "react";
 
+import { ConfidenceBadge } from "@/components/missions/ui";
 import { ClassificationBadge } from "@/components/shell/page";
 import { type SaveState, useArtifactEditor } from "@/hooks/use-artifact-editor";
 import { defineMessages, useLang, useT } from "@/lib/i18n";
@@ -118,6 +119,7 @@ export function ArtifactPanel({ artifactId, onClose, showOpenFull = true }: { ar
         <div className="flex min-w-0 flex-1 items-center gap-2 text-[11.5px] uppercase tracking-wider text-subtle">
           <span className="truncate">{typeName(artifact.definition, lang, artifact.type_name)}</span>
           <ClassificationBadge level={artifact.classification} />
+          {artifact.confidence ? <ConfidenceBadge confidence={artifact.confidence} /> : null}
         </div>
         <SaveIndicator state={save} version={baseVersion ?? artifact.version} onReload={reload} />
         {artifact.evaluation ? (

@@ -131,6 +131,26 @@ async def completions(request: Request) -> dict[str, Any]:
         value = review(user)
     elif name == "GoalPlanOutput":
         value = goal_plan(user)
+    elif name == "LearnedSkillDraft":
+        candidates = re.findall(r"^- ([a-z0-9-]+): ", _between(user, "CANDIDATE SKILLS:\n"), re.MULTILINE)
+        value = {
+            "name": "Sprint Story Quality Check",
+            "description": "Checks the stories of the next sprint and completes their acceptance criteria.",
+            "steps": [
+                {
+                    "title": "Open the new stories",
+                    "instruction": "List the stories created since the last sprint",
+                    "skill_id": None,
+                },
+                {
+                    "title": "Check acceptance criteria",
+                    "instruction": "Find the stories without acceptance criteria",
+                    "skill_id": candidates[0] if candidates else None,
+                },
+                {"title": "Comment the gaps", "instruction": "Write a comment listing what is missing", "skill_id": None},
+            ],
+            "routine_suggestion": "Every Friday at 16:00",
+        }
     elif schema:
         labels = re.findall(r'label="(S\d+)"', user)
         value = fake(schema, citations=labels[:1])

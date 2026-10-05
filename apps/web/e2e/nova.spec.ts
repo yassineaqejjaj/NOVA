@@ -37,7 +37,7 @@ test("first run: Meet your NOVA, then a conversation with a cited answer", async
   await expect(page.getByText("Nothing new since your last visit — I’m ready when you are.")).toBeVisible();
   await expect(page.getByPlaceholder(/Ask NOVA anything/)).toBeVisible();
   await expect(page.getByLabel("NOVA status")).toContainText("Ready");
-  await expect(page.getByText("ORBIT · Not linked")).toBeVisible();
+  await expect(page.getByText("ORBIT · Not linked", { exact: true })).toBeVisible();
   await expect(page.getByText("No evaluation yet")).toBeVisible();
   await page.getByRole("button", { name: "Prepare my next sprint" }).click();
   await expect(page.getByLabel("Ask NOVA")).toHaveValue(/^\/sprint-planning /);
@@ -357,6 +357,44 @@ test("NOVA as a team member: a goal planned and carried out, the Inbox, Mission 
     await expect(page.getByTestId("inbox-item").filter({ hasText: "Weekly Product Brief — result ready" })).toBeVisible({ timeout: 3_000 });
   }).toPass({ timeout: 60_000 });
   await expect(page.getByTestId("presence")).toBeVisible();
+});
+
+test("Trust and learning: Always / Ask / Never permissions, Teach NOVA, impact and NOVA confidence", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/settings");
+  const row = page.locator('tr[data-action="artifacts.update"]');
+  await expect(row).toContainText("follows the level");
+  await row.getByRole("radio", { name: "Never" }).click();
+  await expect(row.getByRole("radio", { name: "Never" })).toHaveAttribute("aria-checked", "true");
+  await expect(row).toContainText("Reset");
+  await expect(page.getByText("Jira — read, create and update stories")).toBeVisible();
+
+  await page.goto("/skills");
+  await page.getByRole("button", { name: "Teach NOVA" }).click();
+  await expect(page.getByTestId("teach-banner")).toContainText("NOVA is watching");
+  await page.goto("/");
+  await ask(page, "/prd Weekly sprint story quality check for the delivery team");
+  await expect(page.getByLabel("Artifact title")).toBeVisible();
+  await expect(page.getByTestId("teach-banner")).toContainText("1 step observed", { timeout: 15_000 });
+  await page.getByTestId("teach-banner").getByRole("button", { name: "Finish" }).click();
+  await expect(page.getByTestId("observed")).toContainText("Weekly sprint story quality check");
+  await page.getByLabel("Steps done outside NOVA (optional)").fill("Then I comment each incomplete story in Jira.");
+  await page.getByRole("button", { name: "Create the Skill" }).click();
+  await expect(page.getByTestId("learned-draft")).toContainText("NOVA detected a 3-step workflow");
+  await page.getByRole("button", { name: "Save the Skill" }).click();
+  await expect(page.getByText("run it with /sprint-story-quality-check")).toBeVisible();
+  await page.goto("/skills");
+  const learned = page.getByTestId("learned-skill").filter({ hasText: "Sprint Story Quality Check" });
+  await expect(learned).toContainText("/sprint-story-quality-check");
+  await learned.getByRole("button", { name: "Run" }).click();
+  await expect(page).toHaveURL(/\/c\//);
+
+  await page.goto("/");
+  await expect(page.getByTestId("impact")).toContainText("tasks done");
+  await expect(page.getByTestId("pulse")).toContainText("Product Pulse");
+  await page.goto("/artifacts");
+  await page.locator("main a[href^='/artifacts/']").first().click();
+  await expect(page.getByTestId("confidence").first()).toContainText("NOVA confidence");
 });
 
 test("Voice: talk to NOVA from the orb — transcript sent as an autonomous request, answer spoken and captioned", async ({ page }) => {

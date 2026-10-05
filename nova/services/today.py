@@ -443,6 +443,47 @@ async def today(session: AsyncSession, principal: Principal, accept_language: st
             .limit(6)
         )
     ).all()
+    # Product Pulse: what deserves attention, per project (anomalies, decisions, suggestions, goals at risk)
+    pulse: dict[str, dict[str, Any]] = {}
+    for item in inbox_items:
+        name = item.get("project_name")
+        if not name or item["kind"] == "result":
+            continue
+        entry = pulse.setdefault(
+            name,
+            {
+                "project": name,
+                "project_id": item.get("project_id"),
+                "counts": {"anomaly": 0, "decision": 0, "validation": 0, "suggestion": 0},
+                "top": None,
+                "score": 0,
+            },
+        )
+        entry["counts"][item["kind"]] += 1
+        entry["score"] += {"anomaly": 3, "decision": 2, "validation": 1, "suggestion": 1}[item["kind"]]
+        if entry["top"] is None or (
+            item["kind"] in ("anomaly", "decision") and entry["top"]["kind"] not in ("anomaly", "decision")
+        ):
+            entry["top"] = {"id": item["id"], "kind": item["kind"], "title": item["title"], "subtitle": item.get("subtitle", "")}
+    for g in goals:
+        if g.project_id and g.due_date:
+            view = goal_view(g)
+            days = (aware(g.due_date) - now).days
+            if days <= 7 and view["progress"]["percent"] < 60:
+                name = name_of(g.project_id) or ""
+                entry = pulse.setdefault(
+                    name,
+                    {
+                        "project": name,
+                        "project_id": str(g.project_id),
+                        "counts": {"anomaly": 0, "decision": 0, "validation": 0, "suggestion": 0},
+                        "top": None,
+                        "score": 0,
+                    },
+                )
+                entry["at_risk_goal"] = {"id": str(g.id), "title": g.title, "days": days, "percent": view["progress"]["percent"]}
+                entry["score"] += 3
+
     priority = {"decision": 0, "anomaly": 1, "validation": 2, "suggestion": 3, "result": 4}
     recommended = sorted(inbox_items, key=lambda i: (priority.get(i["kind"], 9), not i.get("urgent"), not i.get("risk")))[:3]
 
@@ -464,6 +505,16 @@ async def today(session: AsyncSession, principal: Principal, accept_language: st
         "inbox": {"counts": counts, "items": inbox_items[:60]},
         "since": {"at": since.isoformat(), "count": len(worked_on), "worked_on": worked_on[:8], "decisions": counts["decision"]},
         "recommended": recommended,
+        "pulse": {
+            "projects": sorted(pulse.values(), key=lambda p: -p["score"])[:4],
+            "sources": {
+                "orbit": identity.linked,
+                "forge": bool(settings.forge_api_key),
+                "jira": False,
+                "slack": False,
+                "analytics": False,
+            },
+        },
         "goals": [goal_view(g, project_name=name_of(g.project_id)) for g in goals],
         "continue": continue_items,
         "context": context,

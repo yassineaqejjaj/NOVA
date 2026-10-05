@@ -93,7 +93,9 @@ def confidence_from_report(report: dict[str, Any] | None, forge_score: float | N
             sel = [c for c in checks if c.get("key") in keys]
             return round(100 * sum(1 for c in sel if c.get("passed")) / len(sel)) if sel else None
 
-        grounding = ratio(("citation_required",))
+        # Without any project context the citation check passes vacuously: grounding is unknown, not perfect.
+        ungrounded = any(c.get("key") == "citation_required" and c.get("detail") == "no context provided" for c in checks)
+        grounding = None if ungrounded else ratio(("citation_required",))
         completeness = ratio(("filled", "sections_present"))
         safety = ratio(("no_pii", "max_length"))
         criteria = validation.get("criteria") or []
@@ -111,6 +113,9 @@ def confidence_from_report(report: dict[str, Any] | None, forge_score: float | N
     if not dims:
         return None
     score = round(sum(dims.values()) / len(dims))
+    ungrounded = bool(validation) and "grounding" not in dims
+    if ungrounded:
+        score = min(score, 79)  # no source to check the content against
     if validation and validation.get("status") == "warning":
         score = min(score, 69)
     level = "high" if score >= 85 else "medium" if score >= 70 else "low"
@@ -120,6 +125,7 @@ def confidence_from_report(report: dict[str, Any] | None, forge_score: float | N
         "dimensions": dims,
         "status": (validation or {}).get("status"),
         "evaluated_by": [*(["validation"] if validation else []), *(["forge"] if forge_score is not None else [])],
+        "ungrounded": ungrounded,
     }
 
 
@@ -145,7 +151,7 @@ async def collect(
             "project_id": str(goal.project_id) if goal.project_id else None,
             "project_name": project,
             "goal_id": str(goal.id),
-            "at": (goal.updated_at or goal.created_at).isoformat(),
+            "at": aware(goal.updated_at or goal.created_at).isoformat(),
         }
         href = f"/goals?goal={goal.id}"
         if goal.status == "proposed":
@@ -274,7 +280,7 @@ async def collect(
             "project_name": names.get(task.project_id) if task.project_id else None,
             "artifact_id": str(artifact.id),
             "task_id": str(task.id),
-            "at": (task.finished_at or task.created_at).isoformat(),
+            "at": aware(task.finished_at or task.created_at).isoformat(),
             "confidence": confidence,
         }
         if (report.get("validation") or {}).get("status") == "warning":
@@ -333,7 +339,7 @@ async def collect(
                 "project_name": names.get(task.project_id) if task.project_id else None,
                 "title": tr(lang, "routine_title", routine=routine.name),
                 "subtitle": tr(lang, "routine_sub", when=when),
-                "at": (task.finished_at or task.created_at).isoformat(),
+                "at": aware(task.finished_at or task.created_at).isoformat(),
                 "actions": [
                     {"kind": "review", "label": tr(lang, "view_result"), "href": f"/c/{task.conversation_id}"},
                     {"kind": "ignore", "label": tr(lang, "ignore")},

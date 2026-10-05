@@ -8,14 +8,14 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { ProfilePicker } from "@/components/agents/profile-picker";
+import { PermissionsCard } from "@/components/missions/permissions";
 import { OrbitLink } from "@/components/orbit-link";
 import { ORB_PALETTES, type OrbPalette, NovaOrb } from "@/components/shell/nova-orb";
 import { Page, PageHeader } from "@/components/shell/page";
 import { api } from "@/lib/api/client";
 import { keys, useMe } from "@/lib/api/hooks";
-import type { AutonomyMode, OrbState, Preferences } from "@/lib/api/types";
+import type { OrbState, Preferences } from "@/lib/api/types";
 import { agentOf, type AgentProfile } from "@/lib/agents";
-import { autonomyOptions } from "@/lib/autonomy";
 import { defineMessages, type Lang, LANGS, translate, useLang, useT } from "@/lib/i18n";
 import { useUi } from "@/stores/ui";
 
@@ -134,7 +134,15 @@ export default function SettingsPage() {
   }, [me]);
 
   const save = useMutation({
-    mutationFn: () => api.patch("/me/preferences", { ...prefs, onboarding_completed: undefined }),
+    // Only this card's fields: autonomy, permissions, language, orb and profile are saved where they are edited.
+    mutationFn: () =>
+      api.patch("/me/preferences", {
+        nova_name: prefs?.nova_name,
+        role: prefs?.role,
+        tone: prefs?.tone,
+        preferred_methods: prefs?.preferred_methods,
+        artifact_format: prefs?.artifact_format,
+      }),
     onSuccess: () => {
       toast(t("saved"));
       void client.invalidateQueries({ queryKey: keys.me });
@@ -170,6 +178,8 @@ export default function SettingsPage() {
         <p className="mt-0.5 text-[13px] text-muted">{t("profileHint")}</p>
         <div className="mt-4"><ProfilePicker value={agentOf(prefs.profile)} onChange={chooseProfile} /></div>
       </Card>
+
+      <PermissionsCard />
 
       <Card className="mt-6 p-5">
         <h2 className="text-[15px] font-semibold">{t("orb")}</h2>
@@ -245,7 +255,6 @@ export default function SettingsPage() {
           <div className="space-y-1.5"><Label htmlFor="tone">{t("tone")}</Label><Input id="tone" value={prefs.tone ?? ""} onChange={(e) => set({ tone: e.target.value })} placeholder={t("tonePlaceholder")} /></div>
           <div className="space-y-1.5"><Label htmlFor="methods">{t("methods")}</Label><Input id="methods" value={(prefs.preferred_methods ?? []).join(", ")} onChange={(e) => set({ preferred_methods: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="RICE, Jobs To Be Done" /></div>
           <div className="space-y-1.5"><Label>{t("format")}</Label><Select value={prefs.artifact_format ?? "structured"} onValueChange={(v) => set({ artifact_format: v })} options={[{ value: "structured", label: t("structured") }, { value: "concise", label: t("concise") }, { value: "detailed", label: t("detailed") }]} className="w-full" /></div>
-          <div className="space-y-1.5"><Label>{t("autonomy")}</Label><Select value={prefs.default_autonomy ?? "assist"} onValueChange={(v) => set({ default_autonomy: v as AutonomyMode })} options={autonomyOptions(lang)} className="w-full" /></div>
         </div>
         <div className="mt-5 flex justify-end"><Button variant="primary" size="sm" onClick={() => save.mutate()} disabled={save.isPending}>{t("save")}</Button></div>
       </Card>

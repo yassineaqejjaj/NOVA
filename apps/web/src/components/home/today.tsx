@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, cn } from "@nova/ui";
-import { ArrowRight, Check, Hand, Plus, Repeat, Target } from "lucide-react";
+import { Button, cn, Tooltip } from "@nova/ui";
+import { Activity, ArrowRight, Check, Hand, Plus, Repeat, Target } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -10,6 +10,7 @@ import { InboxItemCard, MISSION_ORB, MissionChip, ProgressBar } from "@/componen
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
 import { useVoiceAvailable } from "@/components/voice/voice-button";
 import { api } from "@/lib/api/client";
+import { useImpact } from "@/lib/api/missions";
 import type { Today } from "@/lib/api/types";
 import { defineMessages, useT } from "@/lib/i18n";
 import { useComposer, useUi } from "@/stores/ui";
@@ -30,6 +31,15 @@ const M = defineMessages({
     goalHint: "Tell NOVA what you want to achieve. It will figure out the work.",
     routine: "routine",
     talk: "Talk to NOVA",
+    pulse: "Product Pulse",
+    pulseHint: "NOVA watches your product and signals only what deserves an action.",
+    pulseQuiet: "No signal needs your attention.",
+    deserves: (v: { project: string }) => `${v.project} deserves your attention`,
+    signals: (v: { a: number; d: number; s: number }) => [v.a ? `${v.a} anomal${v.a > 1 ? "ies" : "y"}` : "", v.d ? `${v.d} decision${v.d > 1 ? "s" : ""}` : "", v.s ? `${v.s} suggestion${v.s > 1 ? "s" : ""}` : ""].filter(Boolean).join(" · "),
+    atRisk: (v: { goal: string; days: number; percent: number }) => `Goal “${v.goal}”: ${v.percent}% done, due in ${v.days} day${v.days === 1 ? "" : "s"}`,
+    watching: "Watching", soon: "Soon", notLinked: "not linked",
+    impact: "Impact · 30 days",
+    tasksDone: "tasks done", deliverables: "deliverables", validated: "validated by the Validation agent", decisionsDone: "decisions", hoursSaved: "hours saved (estimate)",
   },
   fr: {
     morning: "Bonjour", afternoon: "Bon après-midi", evening: "Bonsoir",
@@ -46,6 +56,15 @@ const M = defineMessages({
     goalHint: "Dites à NOVA ce que vous voulez atteindre. Il s’occupe du travail.",
     routine: "routine",
     talk: "Parler à NOVA",
+    pulse: "Product Pulse",
+    pulseHint: "NOVA surveille votre produit et ne signale que ce qui mérite une action.",
+    pulseQuiet: "Aucun signal ne demande votre attention.",
+    deserves: (v: { project: string }) => `${v.project} mérite votre attention`,
+    signals: (v: { a: number; d: number; s: number }) => [v.a ? `${v.a} anomalie${v.a > 1 ? "s" : ""}` : "", v.d ? `${v.d} décision${v.d > 1 ? "s" : ""}` : "", v.s ? `${v.s} suggestion${v.s > 1 ? "s" : ""}` : ""].filter(Boolean).join(" · "),
+    atRisk: (v: { goal: string; days: number; percent: number }) => `Goal « ${v.goal} » : ${v.percent} % réalisé, échéance dans ${v.days} jour${v.days > 1 ? "s" : ""}`,
+    watching: "Surveillé", soon: "Bientôt", notLinked: "non relié",
+    impact: "Impact · 30 jours",
+    tasksDone: "tâches réalisées", deliverables: "livrables", validated: "validés par l’agent Validation", decisionsDone: "décisions", hoursSaved: "heures gagnées (estimation)",
   },
 });
 
@@ -164,5 +183,69 @@ export function GoalsStrip({ today }: { today: Today }) {
       )}
       {open ? <GoalDialog open={open} onOpenChange={setOpen} /> : null}
     </section>
+  );
+}
+
+export function ProductPulse({ today }: { today: Today }) {
+  const t = useT(M);
+  const { projects, sources } = today.pulse;
+  return (
+    <section aria-labelledby="pulse-title" data-testid="pulse">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h2 id="pulse-title" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"><Activity className="size-4 text-accent" /> {t("pulse")}</h2>
+        <div className="flex flex-wrap gap-1.5 text-[11px]">
+          {(["orbit", "forge", "jira", "slack", "analytics"] as const).map((key) => {
+            const on = sources[key];
+            const available = key === "orbit" || key === "forge";
+            return (
+              <span key={key} className={cn("rounded-full px-2 py-0.5", on ? "bg-success/10 text-success" : available ? "bg-surface-2 text-subtle" : "border border-dashed border-border text-subtle")}>
+                {key === "orbit" ? "ORBIT" : key === "forge" ? "FORGE" : key[0]!.toUpperCase() + key.slice(1)} · {on ? t("watching") : available ? t("notLinked") : t("soon")}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+      <p className="mb-2 text-[12.5px] text-subtle">{t("pulseHint")}</p>
+      {projects.length ? (
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {projects.map((p) => (
+            <li key={p.project} className="rounded-[14px] border border-border bg-surface px-3.5 py-3">
+              <div className="text-[14px] font-medium">{t("deserves", { project: p.project })}</div>
+              <div className="mt-0.5 text-[12px] text-subtle">{t("signals", { a: p.counts.anomaly, d: p.counts.decision, s: p.counts.suggestion + p.counts.validation })}</div>
+              {p.at_risk_goal ? <div className="mt-1 text-[12.5px] text-warning">{t("atRisk", { goal: p.at_risk_goal.title, days: p.at_risk_goal.days, percent: p.at_risk_goal.percent })}</div> : null}
+              {p.top ? <Link href="/inbox" className="mt-1.5 block truncate text-[12.5px] text-accent hover:underline">→ {p.top.title}</Link> : null}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="text-[13px] text-subtle">{t("pulseQuiet")}</p>}
+    </section>
+  );
+}
+
+export function ImpactCard() {
+  const t = useT(M);
+  const { data } = useImpact();
+  if (!data) return null;
+  const rows: [number, string][] = [
+    [data.tasks, t("tasksDone")],
+    [data.artifacts, t("deliverables")],
+    [data.deliverables_validated, t("validated")],
+    [data.decisions, t("decisionsDone")],
+  ];
+  return (
+    <div className="rounded-[18px] bg-surface-2/60 px-4 py-3.5" data-testid="impact">
+      <div className="text-[11.5px] font-medium uppercase tracking-wider text-subtle">{t("impact")}</div>
+      <Tooltip content={data.method}>
+        <div className="mt-1 flex items-baseline gap-1.5">
+          <span className="text-[26px] font-semibold tabular-nums text-accent">≈ {data.hours_saved_estimate}</span>
+          <span className="text-[12.5px] text-muted">{t("hoursSaved")}</span>
+        </div>
+      </Tooltip>
+      <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
+        {rows.map(([n, label]) => (
+          <div key={label} className="flex items-baseline gap-1.5"><dt className="text-[14px] font-semibold tabular-nums text-text">{n}</dt><dd className="text-subtle">{label}</dd></div>
+        ))}
+      </dl>
+    </div>
   );
 }

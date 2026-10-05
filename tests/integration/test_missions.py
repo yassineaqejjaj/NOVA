@@ -10,7 +10,7 @@ from nova.infra import db
 from nova.services import routines as routine_service
 from nova_api.main import create_app
 
-from .test_api import _client, _project
+from .test_api import _ask, _client, _project
 
 
 @pytest_asyncio.fixture
@@ -72,6 +72,19 @@ async def test_goal_is_planned_carried_out_and_stops_for_the_team_decision(app, 
 
     today = (await client.get("/api/v1/today")).json()
     assert today["since"]["count"] >= 2 and today["since"]["worked_on"][0]["origin"] == "goal"
+    assert today["pulse"]["sources"] | {"orbit": None} == {
+        "orbit": None,
+        "forge": False,
+        "jira": False,
+        "slack": False,
+        "analytics": False,
+    }
+
+    impact = (await client.get("/api/v1/impact")).json()
+    assert impact["tasks"] >= 2 and impact["by_origin"]["goal"] >= 2 and impact["artifacts"] >= 2
+    assert impact["hours_saved_estimate"] >= 5 and impact["deliverables_validated"] >= 2 and impact["decisions"] >= 1
+    artifact = (await client.get(f"/api/v1/artifacts/{detail['milestones'][1]['artifact_ids'][0]}")).json()
+    assert artifact["confidence"]["level"] in ("high", "medium") and "validation" in artifact["confidence"]["evaluated_by"]
 
 
 async def test_goal_in_suggest_mode_waits_for_the_plan_then_each_step(app, llm):
@@ -149,3 +162,66 @@ async def test_presence_and_today_since_last_visit(app, llm):
     assert (await client.post("/api/v1/today/seen")).status_code == 204
     today = (await client.get("/api/v1/today")).json()
     assert today["since"]["count"] == 0 and "recommended" in today and today["inbox"]["counts"]["total"] >= 0
+
+
+async def test_action_permissions_always_ask_never(app, llm):
+    client = await _client(app)
+    matrix = (await client.get("/api/v1/me/permissions")).json()
+    assert [a["id"] for a in matrix["actions"]] == ["orbit.read", "artifacts.create", "artifacts.update", "orbit.write"]
+    assert matrix["actions"][2]["defaults"]["execute_with_approval"] == "ask"
+    assert (
+        await client.patch("/api/v1/me/preferences", json={"action_permissions": {"jira.delete": "always"}})
+    ).status_code == 422
+
+    # Never create: NOVA refuses before producing anything
+    await client.patch("/api/v1/me/preferences", json={"action_permissions": {"artifacts.create": "never"}})
+    result = await _ask(client, "Create a PRD for SSO")
+    task = (await client.get(f"/api/v1/tasks/{result['task_id']}")).json()
+    assert task["status"] == "failed" and "not allowed by your permissions" in task["error"]
+
+    # Ask before creating: even a single Skill waits for the user's go
+    await client.patch("/api/v1/me/preferences", json={"action_permissions": {"artifacts.create": "ask"}})
+    result = await _ask(client, "Create a PRD for SSO")
+    task = (await client.get(f"/api/v1/tasks/{result['task_id']}")).json()
+    assert task["status"] == "waiting_user" and task["waiting_for"]["kind"] == "confirm_workflow"
+
+    # Never read ORBIT: NOVA works without project context
+    await client.patch("/api/v1/me/preferences", json={"action_permissions": {"orbit.read": "never"}})
+    result = await _ask(client, "Create a PRD for SSO", project_id=await _project(client))
+    progress = next(b for b in result["reply"]["blocks"] if b["type"] == "progress")
+    context = next(line for line in progress["data"]["lines"] if line["key"] == "context")
+    assert context["status"] == "skipped" and context["detail"] == "Not allowed by your permissions"
+
+
+async def test_teach_nova_observes_generalises_and_reuses_a_workflow(app, llm):
+    client = await _client(app)
+    assert (await client.get("/api/v1/teach")).json() == {"active": False, "since": None, "observed": []}
+    assert (await client.post("/api/v1/teach/finish", json={})).json()["code"] == "nothing_observed"
+
+    await client.post("/api/v1/teach/start")
+    await _ask(client, "Create a PRD for the sprint stories")
+    status = (await client.get("/api/v1/teach")).json()
+    assert status["active"] and status["observed"][0]["kind"] == "request" and status["observed"][0]["skills"] == ["prd"]
+
+    draft = (
+        await client.post("/api/v1/teach/finish", json={"description": "Then I comment each incomplete story in Jira."})
+    ).json()
+    assert draft["name"] == "Sprint Story Quality Check" and draft["slug"] == "sprint-story-quality-check"
+    assert [s["skill_id"] for s in draft["steps"]] == ["backlog-refinement", "acceptance-criteria"]
+    assert (await client.get("/api/v1/teach")).json()["active"] is False
+    prompt = next(m for name, m in llm.calls if name == "LearnedSkillDraft")[1].content
+    assert "Create a PRD for the sprint stories" in prompt and "comment each incomplete story in Jira" in prompt
+
+    saved = (await client.post("/api/v1/learned-skills", json=draft)).json()
+    assert saved["slug"] == "sprint-story-quality-check" and len(saved["steps"]) == 2
+    assert [s["slug"] for s in (await client.get("/api/v1/learned-skills")).json()] == ["sprint-story-quality-check"]
+
+    # "/sprint-story-quality-check" in the composer runs the learned workflow with its Skills
+    ran = await _ask(client, "/sprint-story-quality-check for Sprint 21", autonomy="execute_automatically")
+    task = (await client.get(f"/api/v1/tasks/{ran['task_id']}")).json()
+    assert [s["skill_id"] for s in task["steps"]] == ["backlog-refinement", "acceptance-criteria"]
+    step_prompt = next(m for name, m in llm.calls[::-1] if name == "RawStepOutput")[1].content
+    assert "Follow this learned workflow" in step_prompt and "for Sprint 21" in step_prompt
+    again = (await client.post(f"/api/v1/learned-skills/{saved['id']}/run", json={})).json()
+    assert again["task_id"]
+    assert (await client.get("/api/v1/learned-skills")).json()[0]["uses"] == 2

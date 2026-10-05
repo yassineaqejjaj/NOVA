@@ -6,12 +6,14 @@ import uuid
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nova.config import get_settings
 from nova.domain.agents import AgentProfile
 from nova.domain.context import ContextError
 from nova.domain.enums import AutonomyMode
+from nova.domain.permissions import ACTION_DEFAULTS, ACTIONS
 from nova.infra.db import get_session, utcnow
 from nova.infra.models import User, UserPreferences
 from nova.services import providers
@@ -41,6 +43,16 @@ class PreferencesIn(BaseModel):
     language: Literal["en", "fr"] | None = None
     orb_color: OrbColor | None = None
     profile: AgentProfile | None = None
+    # Always / Ask / Never per action; the full map replaces the previous one (a missing action follows the level)
+    action_permissions: dict[str, Literal["always", "ask", "never"]] | None = None
+
+    @field_validator("action_permissions")
+    @classmethod
+    def _known_actions(cls, value: dict[str, str] | None) -> dict[str, str] | None:
+        unknown = set(value or {}) - set(ACTIONS)
+        if unknown:
+            raise ValueError(f"Unknown actions: {', '.join(sorted(unknown))}")
+        return value
 
 
 class OnboardingIn(PreferencesIn):
@@ -87,6 +99,20 @@ async def update_preferences(body: PreferencesIn, principal: CurrentPrincipal, s
     await _apply(prefs, body)
     await session.commit()
     return await _me(session, principal.user_id)
+
+
+@router.get("/me/permissions")
+async def permissions(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """The Always / Ask / Never matrix: defaults per autonomy level and the user's own choices."""
+    prefs = await session.get(UserPreferences, uuid.UUID(principal.user_id))
+    return {
+        "actions": [{"id": a, "defaults": {m.value: v for m, v in ACTION_DEFAULTS[a].items()}} for a in ACTIONS],
+        "values": (prefs.action_permissions if prefs else None) or {},
+        "default_autonomy": prefs.default_autonomy if prefs else "assist",
+        "external_writes_need_approval": not get_settings().policy_allow_auto_external_writes,
+        # Connectors NOVA will act on once available (shown, not usable yet)
+        "connectors": [{"id": c, "available": False} for c in ("jira", "slack", "analytics")],
+    }
 
 
 @router.post("/me/onboarding")

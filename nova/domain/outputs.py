@@ -68,6 +68,21 @@ class GoalPlanOutput(BaseModel):
     assumptions: list[str] = Field(default_factory=list, max_length=5)
 
 
+class LearnedStep(BaseModel):
+    title: str = Field(description="Short operational title, in the user's language")
+    instruction: str = Field(description="What to do at this step, generalised (no one-off names or dates)")
+    skill_id: str | None = Field(default=None, description="A skill id from CANDIDATE SKILLS when a Skill does this step")
+
+
+class LearnedSkillDraft(BaseModel):
+    """A reusable workflow NOVA generalised from what it observed the user do (Teach NOVA)."""
+
+    name: str = Field(description="Name of the workflow, 2 to 5 words, in the user's language")
+    description: str = Field(description="One sentence: what it achieves and when to use it")
+    steps: list[LearnedStep] = Field(min_length=2, max_length=12)
+    routine_suggestion: str = Field(default="", description="When it could run as a routine, if relevant (e.g. 'Every Friday')")
+
+
 class MissingInput(BaseModel):
     key: str
     question: str

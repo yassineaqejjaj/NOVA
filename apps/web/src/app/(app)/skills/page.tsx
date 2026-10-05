@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AgentAvatar } from "@/components/agents/sub-agents";
+import { LearnedSkills } from "@/components/missions/learned-skills";
+import { TeachButton } from "@/components/missions/teach";
 import { toolLabel } from "@/components/conversation/blocks.messages";
 import { Page, PageHeader } from "@/components/shell/page";
 import { useSkill, useSkills } from "@/lib/api/hooks";
@@ -165,7 +167,8 @@ export default function SkillsPage() {
     <div className="flex min-h-screen">
       <div className="min-w-0 flex-1">
         <Page wide>
-          <PageHeader title={t("title")} description={t("description")} />
+          <PageHeader title={t("title")} description={t("description")} actions={<TeachButton />} />
+          <LearnedSkills />
           <div className="relative mb-6 max-w-md">
             <Search className="absolute left-3 top-2.5 size-4 text-subtle" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search")} className="pl-9" />

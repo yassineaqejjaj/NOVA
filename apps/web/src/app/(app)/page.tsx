@@ -12,7 +12,7 @@ import {
   Suggestions,
   WorkingOn,
 } from "@/components/home/command-center";
-import { GoalsStrip, ProactiveHero, RecommendedToday } from "@/components/home/today";
+import { GoalsStrip, ImpactCard, ProactiveHero, ProductPulse, RecommendedToday } from "@/components/home/today";
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
 import { TopSearch } from "@/components/shell/sidebar";
 import { useArtifacts, useTasks, useToday } from "@/lib/api/hooks";
@@ -61,12 +61,14 @@ export default function HomePage() {
         <div className="space-y-10">
           {today ? <RecommendedToday today={today} /> : <Attention items={[]} loading={isLoading} />}
           {today ? <GoalsStrip today={today} /> : null}
+          {today ? <ProductPulse today={today} /> : null}
           <WorkingOn tasks={active ?? []} />
           <RecentResults artifacts={(artifacts ?? []).slice(0, 5)} />
         </div>
         <aside className="space-y-3 lg:sticky lg:top-6 lg:self-start" aria-label={t("capabilities")}>
           {today ? (
             <>
+              <ImpactCard />
               <ContextStatus context={today.context} />
               <QualityStatus quality={today.quality} />
             </>

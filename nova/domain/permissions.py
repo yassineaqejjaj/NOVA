@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Literal
 
 from nova.domain.enums import AutonomyMode, ProjectRole, role_at_least
 
@@ -95,3 +96,44 @@ class AutonomyPolicy:
     def approve_external_write(self) -> bool:
         """Any action modifying an external system requires approval unless the organization allows it."""
         return not (self.mode == AutonomyMode.execute_automatically and self.allow_auto_external_writes)
+
+
+# --- Action permissions (Always / Ask / Never) -----------------------------------------------------------
+
+ActionPermission = Literal["always", "ask", "never"]
+
+#: What NOVA may do on its own, per action. Unset actions follow the autonomy level (``ACTION_DEFAULTS``).
+ACTIONS: tuple[str, ...] = ("orbit.read", "artifacts.create", "artifacts.update", "orbit.write")
+
+ACTION_DEFAULTS: dict[str, dict[AutonomyMode, ActionPermission]] = {
+    "orbit.read": {m: "always" for m in AutonomyMode},
+    "artifacts.create": {
+        AutonomyMode.observe: "ask",
+        AutonomyMode.suggest: "ask",
+        AutonomyMode.assist: "always",
+        AutonomyMode.execute_with_approval: "always",
+        AutonomyMode.execute_automatically: "always",
+    },
+    "artifacts.update": {
+        AutonomyMode.observe: "ask",
+        AutonomyMode.suggest: "ask",
+        AutonomyMode.assist: "always",
+        AutonomyMode.execute_with_approval: "ask",
+        AutonomyMode.execute_automatically: "always",
+    },
+    "orbit.write": {
+        AutonomyMode.observe: "never",
+        AutonomyMode.suggest: "ask",
+        AutonomyMode.assist: "ask",
+        AutonomyMode.execute_with_approval: "ask",
+        AutonomyMode.execute_automatically: "always",
+    },
+}
+
+
+def action_permission(action: str, mode: AutonomyMode, overrides: dict[str, str] | None) -> ActionPermission:
+    """The user's explicit choice for ``action`` when set, else the default of the autonomy level."""
+    chosen = (overrides or {}).get(action)
+    if chosen in ("always", "ask", "never"):
+        return chosen  # type: ignore[return-value]
+    return ACTION_DEFAULTS.get(action, {}).get(mode, "ask")

@@ -46,6 +46,7 @@ export const M = defineMessages({
     // autonomy levels
     a_observe: "Observe", a_observe_hint: "NOVA analyses and recommends; nothing runs",
     a_suggest: "Suggest", a_suggest_hint: "NOVA proposes each step; you start it",
+    a_assist: "Assist", a_assist_hint: "Conversations: one Skill runs, workflows wait for your OK",
     a_execute_with_approval: "Execute with approval", a_execute_with_approval_hint: "NOVA runs the plan; changes to existing Artifacts wait for you",
     a_execute_automatically: "Autonomous", a_execute_automatically_hint: "NOVA runs the plan within the limits you set; it stops for decisions",
     // missions
@@ -63,6 +64,7 @@ export const M = defineMessages({
     confidence: "NOVA confidence", c_high: "High", c_medium: "Medium", c_low: "Low",
     d_quality: "Quality", d_grounding: "Grounding", d_completeness: "Completeness", d_consistency: "Consistency", d_safety: "Safety",
     evaluatedBy: (v: { by: string }) => `Evaluated by ${v.by}`, validationAgent: "the Validation agent",
+    ungrounded: "No project source cited: confidence is capped at medium.",
     // routines
     routinesTitle: "Routines",
     routinesDescription: "Work that shouldn’t need to be asked twice. NOVA runs it on schedule and puts the result in your Inbox.",
@@ -112,6 +114,7 @@ export const M = defineMessages({
     assumptions: "Hypothèses",
     a_observe: "Observer", a_observe_hint: "NOVA analyse et recommande ; rien ne s’exécute",
     a_suggest: "Proposer", a_suggest_hint: "NOVA propose chaque étape ; vous la lancez",
+    a_assist: "Assister", a_assist_hint: "Conversations : une Skill s’exécute, les workflows attendent votre accord",
     a_execute_with_approval: "Exécuter avec validation", a_execute_with_approval_hint: "NOVA déroule le plan ; les modifications d’Artefacts existants vous attendent",
     a_execute_automatically: "Autonome", a_execute_automatically_hint: "NOVA déroule le plan dans les limites fixées ; il s’arrête pour les décisions",
     missionsTitle: "Mission Control",
@@ -126,6 +129,7 @@ export const M = defineMessages({
     confidence: "Confiance NOVA", c_high: "Élevée", c_medium: "Moyenne", c_low: "Faible",
     d_quality: "Qualité", d_grounding: "Ancrage aux sources", d_completeness: "Complétude", d_consistency: "Cohérence", d_safety: "Sécurité",
     evaluatedBy: (v: { by: string }) => `Évalué par ${v.by}`, validationAgent: "l’agent Validation",
+    ungrounded: "Aucune source projet citée : la confiance est plafonnée au niveau moyen.",
     routinesTitle: "Routines",
     routinesDescription: "Le travail qui ne devrait pas être demandé deux fois. NOVA l’exécute selon le planning et dépose le résultat dans votre Inbox.",
     newRoutine: "Nouvelle routine", templates: "Partir d’un modèle", routineName: "Nom", instructions: "Ce que fait NOVA",

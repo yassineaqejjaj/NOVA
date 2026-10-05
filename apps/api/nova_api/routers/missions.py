@@ -445,3 +445,200 @@ async def team(principal: CurrentPrincipal, session: SessionDep) -> dict[str, An
         },
         "names": {p.value: AGENTS[p].name for p in AgentProfile},
     }
+
+
+# --- Teach NOVA -------------------------------------------------------------------------------------------
+
+
+class TeachFinishIn(BaseModel):
+    description: str = Field(default="", max_length=4000)  # steps done outside NOVA (Jira, Slack…)
+    lang: Literal["en", "fr"] | None = None
+
+
+class LearnedStepIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    instruction: str = Field(default="", max_length=1000)
+    skill_id: str | None = None
+
+
+class LearnedSkillIn(BaseModel):
+    name: str = Field(min_length=2, max_length=200)
+    slug: str | None = Field(default=None, max_length=80)
+    description: str = Field(default="", max_length=1000)
+    steps: list[LearnedStepIn] = Field(min_length=1, max_length=12)
+    observed: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    since: str | None = None
+    lang: Literal["en", "fr"] | None = None
+
+
+@router.post("/teach/start")
+async def teach_start(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    from nova.services import teach
+
+    result = await teach.start(session, uuid.UUID(principal.user_id))
+    await session.commit()
+    return result
+
+
+@router.get("/teach")
+async def teach_status(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    from nova.services import teach
+
+    return await teach.status(session, uuid.UUID(principal.user_id))
+
+
+@router.post("/teach/cancel", status_code=204)
+async def teach_cancel(principal: CurrentPrincipal, session: SessionDep) -> None:
+    from nova.services import teach
+
+    await teach.cancel(session, uuid.UUID(principal.user_id))
+    await session.commit()
+
+
+@router.post("/teach/finish")
+async def teach_finish(body: TeachFinishIn, request: Request, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    from nova.services import teach
+
+    lang = body.lang or await _lang(session, principal, request)
+    try:
+        draft = await teach.finish(session, uuid.UUID(principal.user_id), description=body.description, lang=lang)
+    except teach.TeachError as exc:
+        raise ApiError(422, exc.code, str(exc)) from exc
+    await session.commit()
+    return draft
+
+
+@router.get("/learned-skills")
+async def learned_skills(principal: CurrentPrincipal, session: SessionDep) -> list[dict[str, Any]]:
+    from nova.infra.models import LearnedSkill
+    from nova.services import teach
+
+    rows = (
+        await session.scalars(
+            select(LearnedSkill)
+            .where(LearnedSkill.user_id == uuid.UUID(principal.user_id))
+            .order_by(LearnedSkill.created_at.desc())
+        )
+    ).all()
+    return [teach.view(s) for s in rows]
+
+
+@router.post("/learned-skills", status_code=201)
+async def save_learned_skill(
+    body: LearnedSkillIn, request: Request, principal: CurrentPrincipal, session: SessionDep
+) -> dict[str, Any]:
+    from nova.services import teach
+
+    data = body.model_dump()
+    data["lang"] = body.lang or await _lang(session, principal, request)
+    try:
+        skill = await teach.save(session, uuid.UUID(principal.user_id), data)
+    except teach.TeachError as exc:
+        raise ApiError(422, exc.code, str(exc)) from exc
+    await session.commit()
+    return teach.view(skill)
+
+
+async def _owned_learned(session: AsyncSession, principal: Any, skill_id: str) -> Any:
+    from nova.infra.models import LearnedSkill
+
+    try:
+        skill = await session.get(LearnedSkill, uuid.UUID(skill_id))
+    except ValueError:
+        skill = None
+    if skill is None or str(skill.user_id) != principal.user_id:
+        raise ApiError(404, "not_found", "This Skill does not exist.")
+    return skill
+
+
+@router.delete("/learned-skills/{skill_id}", status_code=204)
+async def delete_learned_skill(skill_id: str, principal: CurrentPrincipal, session: SessionDep) -> None:
+    await session.delete(await _owned_learned(session, principal, skill_id))
+    await session.commit()
+
+
+class RunLearnedIn(BaseModel):
+    project_id: str | None = None
+    details: str = Field(default="", max_length=2000)
+
+
+@router.post("/learned-skills/{skill_id}/run", status_code=202)
+async def run_learned_skill(
+    skill_id: str, body: RunLearnedIn, principal: CurrentPrincipal, session: SessionDep
+) -> dict[str, Any]:
+    from nova.services.conversations import ComposerInput, create_conversation, submit
+    from nova.skills.registry import get_skill_registry
+
+    skill = await _owned_learned(session, principal, skill_id)
+    conversation = await create_conversation(session, principal, project_id=body.project_id, title=f"✦ {skill.name}")
+    _, _, task = await submit(
+        session,
+        principal,
+        conversation,
+        ComposerInput(text=f"/{skill.slug} {body.details}".strip(), project_id=body.project_id),
+        {s.id for s in get_skill_registry().all()},
+    )
+    await session.commit()
+    await dispatch(str(task.id), "start")
+    return {"conversation_id": str(conversation.id), "task_id": str(task.id)}
+
+
+#: Hours a product person typically spends on a deliverable of each Skill category — an order of magnitude to
+#: estimate the time NOVA saves (shown as an estimate, with this method).
+HOURS_BY_CATEGORY = {
+    "strategy": 4.0, "discovery": 3.0, "prioritization": 2.0, "definition": 3.0,
+    "delivery": 2.0, "analysis": 2.0, "communication": 1.0, "artifact": 1.0,
+}  # fmt: skip
+
+
+@router.get("/impact")
+async def impact(principal: CurrentPrincipal, session: SessionDep, days: int = 30) -> dict[str, Any]:
+    """What NOVA did for the user over ``days``: work executed, deliverables, decisions, routines, time saved (estimate)."""
+    from datetime import timedelta
+
+    from sqlalchemy import func
+
+    from nova.infra.models import ArtifactVersion, AuditEvent, TaskStep
+    from nova.skills.registry import get_skill_registry
+
+    uid = uuid.UUID(principal.user_id)
+    since = utcnow() - timedelta(days=max(1, min(days, 365)))
+    tasks = (
+        await session.scalars(select(Task).where(Task.user_id == uid, Task.status == "completed", Task.finished_at >= since))
+    ).all()
+    registry = get_skill_registry()
+    steps = (
+        await session.scalars(
+            select(TaskStep)
+            .join(Task, Task.id == TaskStep.task_id)
+            .where(Task.user_id == uid, TaskStep.status == "completed", Task.finished_at >= since)
+        )
+    ).all()
+    hours = sum(
+        HOURS_BY_CATEGORY.get(registry.get(s.skill_id).category.value, 1.0)
+        for s in steps
+        if s.skill_id and registry.has(s.skill_id) and s.skill_id != "artifact-edit"
+    )
+    artifacts = await session.scalar(
+        select(func.count(func.distinct(ArtifactVersion.artifact_id)))
+        .join(Task, Task.id == ArtifactVersion.task_id)
+        .where(Task.user_id == uid, ArtifactVersion.author_type == "nova", ArtifactVersion.created_at >= since)
+    )
+    decisions = await session.scalar(
+        select(func.count(AuditEvent.id)).where(
+            AuditEvent.actor_id == uid,
+            AuditEvent.created_at >= since,
+            AuditEvent.action.in_(("goal.done", "goal.approve", "goal.start", "artifact.status")),
+        )
+    )
+    validated = sum(1 for s in steps if ((s.report or {}).get("validation") or {}).get("status") in ("passed", "revised"))
+    return {
+        "days": days,
+        "tasks": len(tasks),
+        "by_origin": {o: sum(1 for t in tasks if t.origin == o) for o in ("interactive", "goal", "routine")},
+        "artifacts": artifacts or 0,
+        "deliverables_validated": validated,
+        "decisions": decisions or 0,
+        "hours_saved_estimate": round(hours, 1),
+        "method": "hours per Skill category (strategy 4 h, discovery 3 h, definition 3 h, prioritization 2 h, delivery 2 h, analysis 2 h, communication 1 h)",
+    }

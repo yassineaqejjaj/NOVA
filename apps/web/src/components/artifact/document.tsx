@@ -19,6 +19,7 @@ import { Check, ChevronRight, CircleAlert, Clock3, Download, ExternalLink, FileT
 import Link from "next/link";
 import { toast } from "sonner";
 
+import { ConfidenceBadge } from "@/components/missions/ui";
 import { ClassificationBadge } from "@/components/shell/page";
 import { type SaveState, useArtifactEditor } from "@/hooks/use-artifact-editor";
 import { useProjects } from "@/lib/api/hooks";
@@ -52,6 +53,7 @@ function SaveLine({ save, artifact }: { save: SaveState; artifact: ArtifactDetai
         {text} · v{artifact.version}
       </span>
       <ClassificationBadge level={artifact.classification} />
+          {artifact.confidence ? <ConfidenceBadge confidence={artifact.confidence} /> : null}
     </div>
   );
 }

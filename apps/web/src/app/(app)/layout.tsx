@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { TeachBanner } from "@/components/missions/teach";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { NovaMark } from "@/components/shell/nova-mark";
 import { OrbPreload } from "@/components/shell/nova-orb";
@@ -47,6 +48,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
       <MobileTabBar />
       <CommandPalette />
+      <TeachBanner />
       <OrbPreload />
       <GlobalVoiceSession />
     </div>

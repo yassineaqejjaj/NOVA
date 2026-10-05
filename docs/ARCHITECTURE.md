@@ -105,6 +105,21 @@ NOVA is a permanent member of the product team: the user entrusts it with **resu
   confidence from the Validation agent and FORGE), anomalies, suggestions and results. *Validate* makes the
   Artifact final. Today shows what NOVA did since the last visit (`/today/seen`) and its top 3 recommendations.
 
+* **Permissions** (Always / Ask / Never per action, `nova/domain/permissions.py`): reading ORBIT, creating an
+  Artifact, changing an existing Artifact, writing to ORBIT. Unset actions follow the autonomy level
+  (`ACTION_DEFAULTS`); company policy always wins (“Always” still asks for external writes when the organization
+  requires approval). Enforced in the context node, at planning (creation), in `generate_artifact` (changes) and in
+  `execute_tools` (ORBIT tools). Jira, Slack and Analytics are listed as upcoming connectors.
+* **Teach NOVA** (`nova/services/teach.py`): the user starts an observation, works in NOVA as usual and describes
+  the steps done elsewhere; NOVA generalises what it saw (requests, Skills used, edits, decisions) into a learned
+  Skill (`learned_skills`): existing Skills chained with the user's instructions. `/<slug>` in the composer (or a
+  routine, or the Skills page) runs it.
+* **NOVA confidence** on every deliverable: the Validation agent's checks and criteria (grounding, completeness,
+  consistency, safety) and FORGE's score when it evaluated the run; capped at *medium* without any project source.
+* **Product Pulse** on Today: signals per project (anomalies, decisions, suggestions, goals at risk) and the sources
+  watched (ORBIT, FORGE; Jira, Slack, Analytics upcoming). **Impact** (`/impact`): tasks, deliverables, validations,
+  decisions and an *estimate* of hours saved (hours per Skill category, method shown).
+
 ## 5b. NOVA Core: orchestration of the agents
 
 NOVA Core (the graph of §5) is the coordinator of the constellation NOVA / ORBIT / FORGE:

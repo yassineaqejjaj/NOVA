@@ -2,7 +2,7 @@
 
 import { Button, cn, Tooltip } from "@nova/ui";
 import { motion } from "framer-motion";
-import { AlertTriangle, Check, CircleDashed, Eye, FileText, Hand, Lightbulb, Loader2, Play, ShieldCheck, Sparkles, UserRound, XCircle, Zap } from "lucide-react";
+import { AlertTriangle, Check, CircleDashed, Eye, FileText, Hand, Lightbulb, Loader2, MessageSquare, Play, ShieldCheck, Sparkles, UserRound, XCircle, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,17 +28,19 @@ export const LEVELS: { value: GoalAutonomy; icon: typeof Eye }[] = [
   { value: "execute_automatically", icon: Zap },
 ];
 
-export function AutonomyLevels({ value, onChange }: { value: GoalAutonomy; onChange: (v: GoalAutonomy) => void }) {
+/** The autonomy levels (plus "Assist", the conversational default, when ``includeAssist``). */
+export function AutonomyLevels<V extends string = GoalAutonomy>({ value, onChange, includeAssist = false }: { value: V; onChange: (v: V) => void; includeAssist?: boolean }) {
   const t = useT(M);
+  const levels: { value: GoalAutonomy | "assist"; icon: typeof Eye }[] = includeAssist ? [LEVELS[0]!, LEVELS[1]!, { value: "assist", icon: MessageSquare }, LEVELS[2]!, LEVELS[3]!] : LEVELS;
   return (
     <div role="radiogroup" aria-label={t("autonomy")} className="grid gap-2 sm:grid-cols-2">
-      {LEVELS.map(({ value: level, icon: Icon }, i) => (
+      {levels.map(({ value: level, icon: Icon }, i) => (
         <button
           key={level}
           type="button"
           role="radio"
           aria-checked={value === level}
-          onClick={() => onChange(level)}
+          onClick={() => onChange(level as V)}
           className={cn("flex items-start gap-3 rounded-[12px] border px-3 py-2.5 text-left transition-colors", value === level ? "border-accent/50 bg-accent-soft" : "border-border hover:border-border-strong")}
         >
           <span className={cn("mt-0.5 grid size-7 shrink-0 place-items-center rounded-full", value === level ? "bg-accent text-white" : "bg-surface-2 text-muted")}>
@@ -142,6 +144,7 @@ export function ConfidenceBadge({ confidence, compact = false }: { confidence: C
       {Object.entries(confidence.dimensions).map(([k, v]) => (
         <div key={k} className="flex justify-between gap-6"><span>{t(`d_${k as "quality"}`)}</span><span className="tabular-nums">{v}</span></div>
       ))}
+      {confidence.ungrounded ? <div className="pt-1 text-warning">{t("ungrounded")}</div> : null}
       <div className="pt-1 opacity-75">{t("evaluatedBy", { by })}</div>
     </div>
   );
