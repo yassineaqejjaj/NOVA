@@ -49,6 +49,7 @@ export const M = defineMessages({
     sourcesTitle: "Sources cited in this Artifact",
     sourcesHint: "Recorded when NOVA wrote it — exactly what ORBIT served, never re-searched.",
     noSource: "No source cited.",
+    excerpt: "“{text}”",
   },
   fr: {
     draft: "Brouillon",
@@ -96,6 +97,7 @@ export const M = defineMessages({
     sourcesTitle: "Sources citées dans cet Artefact",
     sourcesHint: "Enregistrées au moment où NOVA l’a rédigé — exactement ce qu’ORBIT a fourni, sans nouvelle recherche.",
     noSource: "Aucune source citée.",
+    excerpt: "« {text} »",
   },
 });
 
@@ -116,6 +118,11 @@ const EVALUATION_STATUS_FR: Record<string, string> = {
   completed: "terminée",
   failed: "échouée",
 };
+
+/** Status of a FORGE evaluation (English keeps the raw API value). */
+export function evaluationStatusLabel(status: string, lang: Lang): string {
+  return lang === "fr" ? (EVALUATION_STATUS_FR[status] ?? status) : status;
+}
 
 const s = (n: number) => (n > 1 ? "s" : "");
 

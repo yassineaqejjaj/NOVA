@@ -44,6 +44,8 @@ class StepOutput(BaseModel):
     id_scope: list[str] = Field(default_factory=list)
     tool_results: list[ToolResult] = Field(default_factory=list)
     dropped_citations: int = 0
+    revisions: int = 0  # revisions requested by the Validation agent
+    validation: dict[str, Any] | None = None
     usage: TokenUsage = Field(default_factory=TokenUsage)
     duration_ms: float = 0.0
     done: bool = False

@@ -7,11 +7,13 @@ import { ExternalLink, Mic, MicOff, Square, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { systemLabel, systemMarkdown } from "@/components/conversation/blocks.messages";
 import { NovaOrb, type OrbState, orbStateFromPhase } from "@/components/shell/nova-orb";
 import { api, ApiError } from "@/lib/api/client";
-import { useSendIntent } from "@/lib/api/hooks";
+import { useArtifactTypes, useSendIntent, useSkills } from "@/lib/api/hooks";
 import type { Conversation, Message, TaskSummary } from "@/lib/api/types";
 import { defineMessages, useLang, useT } from "@/lib/i18n";
+import { questionText, typeName, useCatalogNames } from "@/lib/i18n/catalog";
 import { VoicePlayer, transcribe } from "@/lib/voice/speaker";
 import { VoiceRecorder } from "@/lib/voice/recorder";
 import { spokenReply, yesNo } from "@/lib/voice/spoken";
@@ -65,7 +67,7 @@ const M = defineMessages({
     nova: "NOVA",
     ack: "Je m’en occupe.",
     nothingHeard: "Je n’ai pas bien entendu. Pouvez-vous répéter ?",
-    created: (v: { title: string; type: string }) => `J’ai créé ${v.type ? `le document ${v.type} ` : ""}« ${v.title} ». Il est dans votre bibliothèque.`,
+    created: (v: { title: string; type: string }) => `J’ai créé ${v.type ? `le document ${v.type} ` : ""}« ${v.title} ». Il est dans votre Bibliothèque.`,
     updated: (v: { title: string }) => `J’ai mis à jour « ${v.title} ».`,
     more: "La suite est à l’écran.",
     confidential: "Cette réponse contient des informations confidentielles : je ne la lis pas à voix haute. Elle est affichée à l’écran.",
@@ -118,6 +120,9 @@ export function VoiceSession({
     enabled: open,
   });
   const send = useSendIntent();
+  const { data: skills } = useSkills();
+  const { data: types } = useArtifactTypes();
+  const names = useCatalogNames();
   const [phase, setPhase] = useState<Phase>("idle");
   const [orb, setOrb] = useState<OrbState>("idle");
   const [level, setLevel] = useState(0);
@@ -178,8 +183,9 @@ export function VoiceSession({
       if (task?.status === "waiting_user" && task.waiting_for) {
         const waiting = task.waiting_for;
         if (waiting.kind === "questions") {
-          pending.current = { kind: "questions", taskId: task.id, keys: waiting.questions.map((q) => q.key), questions: waiting.questions.map((q) => q.question) };
-          const question = waiting.questions[0]?.question ?? "";
+          const questions = waiting.questions.map((q) => questionText(skills, q, lang));
+          pending.current = { kind: "questions", taskId: task.id, keys: waiting.questions.map((q) => q.key), questions };
+          const question = questions[0] ?? "";
           say("nova", question);
           setOrb("clarification");
           await speak(question, gen);
@@ -193,11 +199,13 @@ export function VoiceSession({
       } else {
         pending.current = null;
         const spoken = spokenReply(message, {
-          created: (title, type) => t("created", { title, type }),
+          created: (title, type) => t("created", { title, type: typeName(types?.find((d) => d.name === type), lang, type) }),
           updated: (title) => t("updated", { title }),
           more: t("more"),
           confidential: t("confidential"),
           failed: t("failed"),
+          markdown: (markdown) => systemMarkdown(markdown, lang, names),
+          label: (label) => systemLabel(label, lang, names),
         });
         if (spoken.text) say("nova", spoken.text, spoken.confidential);
         await speak(spoken.text, gen);
@@ -208,7 +216,7 @@ export function VoiceSession({
         else setPhase("idle");
       }
     },
-    [client, follow, say, speak, t],
+    [client, follow, say, speak, t, skills, types, lang, names],
   );
 
   const handle = useCallback(

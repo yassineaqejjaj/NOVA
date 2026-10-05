@@ -54,7 +54,14 @@ class ExecutionStore(Protocol):
     # Plan / steps
     async def save_plan(self, task_id: str, plan: ExecutionPlan) -> str: ...
     async def update_step(
-        self, task_id: str, step_id: str, status: StepStatus, *, detail: str = "", artifact_id: str | None = None
+        self,
+        task_id: str,
+        step_id: str,
+        status: StepStatus,
+        *,
+        detail: str = "",
+        artifact_id: str | None = None,
+        report: dict[str, Any] | None = None,
     ) -> None: ...
 
     # Context references (what ORBIT served — not a copy of ORBIT)

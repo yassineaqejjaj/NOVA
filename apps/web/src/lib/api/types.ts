@@ -61,7 +61,7 @@ export interface TaskSummary {
 }
 
 export type WaitingFor =
-  | { kind: "questions"; questions: { key: string; question: string }[] }
+  | { kind: "questions"; questions: { key: string; question: string; skill_id?: string | null }[] }
   | { kind: "confirm_workflow"; workflow_id: string }
   | { kind: "approval"; approval_id: string };
 
@@ -254,13 +254,33 @@ export interface SkillSummary {
   artifact_type_name: string | null;
   steps: { id: string; title: string }[];
   triggers: string[];
-  /** Display translations: { fr: { name, summary, artifact_type_name } } */
-  translations?: Record<string, { name?: string; summary?: string; artifact_type_name?: string | null }>;
+  /** Display translations, e.g. { fr: { name, summary, artifact_type_name, purpose, steps, … } } (see SkillTranslation). */
+  translations?: Record<string, SkillTranslation>;
+}
+
+/** Display translation of a Skill (`skills/i18n/<lang>.yaml`); prompts keep the English definition. */
+export interface SkillTranslation {
+  name?: string;
+  summary?: string;
+  artifact_type_name?: string | null;
+  purpose?: string | null;
+  /** Methodology name. */
+  method?: string | null;
+  /** Same order and length as methodology.principles. */
+  principles?: string[] | null;
+  /** Skill step id → title. */
+  steps?: Record<string, string>;
+  /** Evaluation criterion key → question. */
+  criteria?: Record<string, string>;
+  /** Same order and length as evaluation.checks (descriptions). */
+  checks?: string[] | null;
+  /** Input name → description and question. */
+  inputs?: Record<string, { description?: string | null; question?: string | null }>;
 }
 
 export interface SkillDetail extends SkillSummary {
   purpose: string;
-  inputs: { name: string; description: string; required: boolean; ask: boolean }[];
+  inputs: { name: string; description: string; required: boolean; ask: boolean; question?: string | null }[];
   methodology: { name: string; principles: string[]; references: string[] };
   tools: string[];
   expected_context: { orbit_intent: string; token_budget: number; required: boolean; query_hint: string };

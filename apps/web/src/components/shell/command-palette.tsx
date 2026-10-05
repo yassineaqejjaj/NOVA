@@ -21,10 +21,11 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { conversationTitle } from "@/components/conversation/blocks.messages";
 import { useVoiceAvailable } from "@/components/voice/voice-button";
-import { useProjects, useSearch } from "@/lib/api/hooks";
+import { useArtifactTypes, useProjects, useSearch } from "@/lib/api/hooks";
 import { defineMessages, useLang, useT } from "@/lib/i18n";
-import { skillName } from "@/lib/i18n/catalog";
+import { skillName, typeName } from "@/lib/i18n/catalog";
 
 const M = defineMessages({
   en: {
@@ -47,6 +48,7 @@ const M = defineMessages({
     conversations: "Conversations",
     skills: "Skills",
     orbitContext: "ORBIT context",
+    empty: "Nothing matches. Press Enter on “Ask NOVA”.",
   },
   fr: {
     palette: "Palette de commandes",
@@ -56,18 +58,19 @@ const M = defineMessages({
     talk: "Parler avec NOVA",
     askQuery: "Demander à NOVA : « {query} »",
     createPrd: "Créer un PRD",
-    discovery: "Lancer une discovery",
+    discovery: "Lancer une phase de découverte",
     sprint: "Préparer le sprint",
     sprintPrompt: "/sprint-planning Prépare le prochain sprint",
     stories: "Créer des user stories",
     activeWork: "Voir le travail en cours",
-    searchArtifacts: "Rechercher des artefacts",
+    searchArtifacts: "Rechercher des Artefacts",
     searchContext: "Rechercher dans le contexte",
     openProject: "Ouvrir un projet",
     artifacts: "Artefacts",
     conversations: "Conversations",
     skills: "Skills",
     orbitContext: "Contexte ORBIT",
+    empty: "Aucun résultat. Appuyez sur Entrée sur « Demander à NOVA ».",
   },
 });
 import { useComposer, useUi } from "@/stores/ui";
@@ -106,6 +109,7 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const { data: projects } = useProjects();
   const { data: results } = useSearch(open ? query : "");
+  const { data: types } = useArtifactTypes();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -163,7 +167,7 @@ export function CommandPalette() {
                 <Kbd>esc</Kbd>
               </div>
               <Command.List className="max-h-[56vh] overflow-y-auto py-1.5">
-                <Command.Empty className="px-4 py-6 text-center text-sm text-subtle">Nothing matches. Press Enter on “Ask NOVA”.</Command.Empty>
+                <Command.Empty className="px-4 py-6 text-center text-sm text-subtle">{t("empty")}</Command.Empty>
                 <Group heading={t("actions")}>
                   <Item icon={Sparkles} label={query ? t("askQuery", { query }) : t("ask")} onSelect={() => compose(query)} />
                   {voiceAvailable ? <Item icon={Mic} label={t("talk")} onSelect={() => run(() => openVoice())} /> : null}
@@ -187,14 +191,14 @@ export function CommandPalette() {
                     {results.artifacts.length ? (
                       <Group heading={t("artifacts")}>
                         {results.artifacts.map((a) => (
-                          <Item key={a.id} icon={FileText} label={a.title} hint={a.type} onSelect={() => run(() => router.push(`/artifacts/${a.id}`))} />
+                          <Item key={a.id} icon={FileText} label={a.title} hint={typeName(types?.find((d) => d.type === a.type), lang, a.type)} onSelect={() => run(() => router.push(`/artifacts/${a.id}`))} />
                         ))}
                       </Group>
                     ) : null}
                     {results.conversations.length ? (
                       <Group heading={t("conversations")}>
                         {results.conversations.map((c) => (
-                          <Item key={c.id} icon={MessageSquare} label={c.title} onSelect={() => run(() => router.push(`/c/${c.id}`))} />
+                          <Item key={c.id} icon={MessageSquare} label={conversationTitle(c.title, lang)} onSelect={() => run(() => router.push(`/c/${c.id}`))} />
                         ))}
                       </Group>
                     ) : null}

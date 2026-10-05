@@ -67,6 +67,7 @@ async def test_home_command_center_is_computed_from_real_work(app, llm):
     asked = await _ask(client, "Create a PRD for scheduled CSV exports")
     task = (await client.get(f"/api/v1/tasks/{asked['task_id']}")).json()
     assert task["agents"] == ["product"] and task["steps"][0]["agent"] == "product" and task["steps"][0]["finished_at"]
+    assert task["steps"][0]["validation"]["status"] == "passed" and task["steps"][0]["goal"]
     home = (await client.get("/api/v1/today")).json()
     assert home["nova"]["state"] == "completed" and home["brief"]["results_ready"] == 1
     assert home["continue"][0]["title"]

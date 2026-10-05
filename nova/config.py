@@ -44,7 +44,20 @@ class Settings(BaseSettings):
     oidc_admin_role: str = "nova-admin"
     session_secret: str = DEV_SESSION_SECRET
     session_ttl_minutes: int = 720
+    remember_me_days: int = 30  # "Keep me signed in"
     cookie_secure: bool = False
+
+    # --- Accounts: sign-up with a company address, verified by an e-mailed code -------------------
+    signup_domains: str = "devoteam.com"  # comma-separated; empty disables sign-up
+    email_code_ttl_minutes: int = 15
+    email_code_max_attempts: int = 5
+    email_code_resend_seconds: int = 60
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""  # e.g. "NOVA <nova@devoteam.com>"
+    smtp_starttls: bool = True  # STARTTLS on smtp_port; port 465 uses implicit TLS
 
     # --- Secrets ----------------------------------------------------------------------------------
     secrets_key: str = DEV_SECRETS_KEY  # Fernet key material for ORBIT session tokens
@@ -101,6 +114,8 @@ class Settings(BaseSettings):
     execution_event_retention_days: int = 90
     max_workflow_steps: int = 8
     max_tool_iterations: int = 2
+    validation_review: bool = True  # the Validation agent grades each deliverable with the model (else checks only)
+    max_revisions: int = 1  # revisions NOVA may ask a specialist agent for after validation
 
     # --- Paths ----------------------------------------------------------------------------------
     skills_dir: Path = REPO_ROOT / "skills"
@@ -127,6 +142,23 @@ class Settings(BaseSettings):
     @property
     def broker_url(self) -> str:
         return self.celery_broker_url or self.valkey_url
+
+    @property
+    def signup_domain_list(self) -> list[str]:
+        return [d.strip().lower().lstrip("@") for d in self.signup_domains.split(",") if d.strip()]
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.smtp_host and self.smtp_from)
+
+    @property
+    def email_outbox(self) -> bool:
+        """Outside production, codes go to a local outbox (logs + dev endpoint) when no SMTP server is set."""
+        return not self.is_production and not self.smtp_configured
+
+    @property
+    def signup_enabled(self) -> bool:
+        return bool(self.signup_domain_list) and (self.smtp_configured or self.email_outbox)
 
     @property
     def oidc_backchannel(self) -> str:

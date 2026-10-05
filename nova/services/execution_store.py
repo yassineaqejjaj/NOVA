@@ -157,10 +157,12 @@ class SqlExecutionStore:
                             skill_id=step.skill_id,
                             skill_version=step.skill_version,
                             status=step.status.value,
+                            report={"goal": step.goal, "rationale": step.rationale},
                         )
                     )
                 else:
                     row.position, row.title = position, step.title
+                    row.report = {**(row.report or {}), "goal": step.goal, "rationale": step.rationale}
             task.progress_total = len(plan.steps)
             task.progress_done = sum(1 for s in plan.steps if s.status in (StepStatus.completed, StepStatus.skipped))
             await session.execute(
@@ -176,7 +178,14 @@ class SqlExecutionStore:
             return str(workflow.id)
 
     async def update_step(
-        self, task_id: str, step_id: str, status: StepStatus, *, detail: str = "", artifact_id: str | None = None
+        self,
+        task_id: str,
+        step_id: str,
+        status: StepStatus,
+        *,
+        detail: str = "",
+        artifact_id: str | None = None,
+        report: dict[str, Any] | None = None,
     ) -> None:
         async with session_scope() as session:
             tid = _uuid(task_id)
@@ -188,6 +197,8 @@ class SqlExecutionStore:
                 row.detail = detail
             if artifact_id:
                 row.artifact_id = _uuid(artifact_id)
+            if report:  # what the orchestrator recorded about the step: goal, validation, handoff
+                row.report = {**(row.report or {}), **report}
             if status == StepStatus.running and row.started_at is None:
                 row.started_at = utcnow()
             if status in (StepStatus.completed, StepStatus.failed, StepStatus.skipped):

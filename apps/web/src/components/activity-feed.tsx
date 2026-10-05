@@ -14,7 +14,7 @@ const M = defineMessages({
   en: {
     you: "You",
     openInForge: "Open in FORGE",
-    viewArtifact: "View artifact",
+    viewArtifact: "View Artifact",
     viewDecision: "View decision",
     viewWork: "View work",
     view: "View",
@@ -25,7 +25,7 @@ const M = defineMessages({
   fr: {
     you: "Vous",
     openInForge: "Ouvrir dans FORGE",
-    viewArtifact: "Voir l’artefact",
+    viewArtifact: "Voir l’Artefact",
     viewDecision: "Voir la décision",
     viewWork: "Voir le travail",
     view: "Voir",

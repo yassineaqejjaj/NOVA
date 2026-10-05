@@ -2,7 +2,7 @@
 
 START → understand_intent → retrieve_orbit_context → (plan_execution | plan_edit | answer_question |
 explain_provenance) → [request_user_input] → [confirm_workflow] → select_skills → execute_skill ⇄
-execute_tools → generate_artifact → [request_approval] → … → finalize → emit_forge_trace → END
+execute_tools → validate_step (Validation agent, one revision) → generate_artifact → [request_approval] → … → finalize → emit_forge_trace → END
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from langgraph.types import Checkpointer, RetryPolicy
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.answers import answer_question, explain_provenance
 from nova.agent.nodes.context import retrieve_orbit_context
-from nova.agent.nodes.execution import execute_skill, execute_tools, generate_artifact
+from nova.agent.nodes.execution import execute_skill, execute_tools, generate_artifact, validate_step
 from nova.agent.nodes.finalize import emit_forge_trace, finalize
 from nova.agent.nodes.intent import understand_intent
 from nova.agent.nodes.interaction import confirm_workflow, request_approval, request_user_input
@@ -80,7 +80,11 @@ def after_execute(state: NovaState) -> str:
     if state.pending_tool_requests:
         return "execute_tools"
     out = state.step_outputs.get(state.current_step or "")
-    return "generate_artifact" if out and out.done else "execute_skill"
+    return "validate_step" if out and out.done else "execute_skill"
+
+
+def after_validate(state: NovaState) -> str:
+    return "finalize" if _failed(state) else "generate_artifact"
 
 
 def after_tools(state: NovaState) -> str:
@@ -110,6 +114,7 @@ def build_graph(checkpointer: Checkpointer | None = None):
     graph.add_node("select_skills", select_skills)
     graph.add_node("execute_skill", execute_skill, retry_policy=MODEL_RETRY)
     graph.add_node("execute_tools", execute_tools)
+    graph.add_node("validate_step", validate_step, retry_policy=MODEL_RETRY)
     graph.add_node("generate_artifact", generate_artifact)
     graph.add_node("request_approval", request_approval)
     graph.add_node("answer_question", answer_question, retry_policy=MODEL_RETRY)
@@ -133,9 +138,8 @@ def build_graph(checkpointer: Checkpointer | None = None):
     graph.add_conditional_edges("request_user_input", after_questions, ["plan_execution", "finalize"])
     graph.add_conditional_edges("confirm_workflow", after_confirm, ["select_skills", "finalize"])
     graph.add_conditional_edges("select_skills", after_select, ["execute_skill", "finalize"])
-    graph.add_conditional_edges(
-        "execute_skill", after_execute, ["execute_tools", "generate_artifact", "execute_skill", "finalize"]
-    )
+    graph.add_conditional_edges("execute_skill", after_execute, ["execute_tools", "validate_step", "execute_skill", "finalize"])
+    graph.add_conditional_edges("validate_step", after_validate, ["generate_artifact", "finalize"])
     graph.add_conditional_edges("execute_tools", after_tools, ["execute_skill", "finalize"])
     graph.add_conditional_edges("generate_artifact", after_artifact, ["request_approval", "select_skills", "finalize"])
     graph.add_conditional_edges("request_approval", after_approval, ["select_skills", "finalize"])

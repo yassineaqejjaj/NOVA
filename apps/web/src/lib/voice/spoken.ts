@@ -31,7 +31,16 @@ function clip(text: string, more: string): string {
 
 export function spokenReply(
   message: Message | undefined,
-  copy: { created: (title: string, type: string) => string; updated: (title: string) => string; more: string; confidential: string; failed: string },
+  copy: {
+    created: (title: string, type: string) => string;
+    updated: (title: string) => string;
+    more: string;
+    confidential: string;
+    failed: string;
+    /** Localizes NOVA's own system text (English from the API): Markdown summaries and labels. */
+    markdown?: (markdown: string) => string;
+    label?: (label: string) => string;
+  },
 ): Spoken {
   if (!message) return { text: "", confidential: false };
   let classification = 0;
@@ -44,14 +53,14 @@ export function spokenReply(
       const title = String(data.title ?? "");
       parts.push(Number(data.version ?? 1) > 1 ? copy.updated(title) : copy.created(title, String(data.type_name ?? "")));
     }
-    if (block.type === "text" && typeof data.markdown === "string") parts.push(plainText(data.markdown));
-    if (block.type === "error") parts.push(String(data.title ?? copy.failed));
+    if (block.type === "text" && typeof data.markdown === "string") parts.push(plainText(copy.markdown ? copy.markdown(data.markdown) : data.markdown));
+    if (block.type === "error") parts.push(data.title ? (copy.label ?? String)(String(data.title)) : copy.failed);
   }
   if (classification >= 2) return { text: copy.confidential, confidential: true };
   return { text: clip(parts.filter(Boolean).join(" "), copy.more), confidential: false };
 }
 
-const YES = /\b(oui|ouais|ok|okay|d'accord|vas-y|go|valide|approuve|confirme|yes|yeah|sure|approve|confirm|continue)\b/i;
+const YES = /\b(oui|ouais|ok|okay|d['’]accord|vas-y|go|valide|approuve|confirme|yes|yeah|sure|approve|confirm|continue)\b/i;
 const NO = /\b(non|annule|stop|arrête|refuse|no|nope|cancel|reject)\b/i;
 
 export function yesNo(text: string): "yes" | "no" | null {

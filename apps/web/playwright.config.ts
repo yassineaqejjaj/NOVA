@@ -22,6 +22,8 @@ const api = {
   NOVA_VOICE_STT_PROVIDER: "selfhosted",
   NOVA_ELEVENLABS_API_KEY: "",
   NOVA_LLM_API_KEY: "",
+  NOVA_SMTP_HOST: "",
+  NOVA_SMTP_FROM: "",
   PYTHONPATH: ".:apps/api:services/worker",
 };
 

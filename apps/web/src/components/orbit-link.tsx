@@ -11,7 +11,7 @@ import { defineMessages, useT } from "@/lib/i18n";
 
 const M = defineMessages({
   en: {
-    connected: (v: { n: number }) => `ORBIT connected · ${v.n} project(s) available.`,
+    connected: (v: { n: number }) => `ORBIT connected · ${v.n} project${v.n === 1 ? "" : "s"} available.`,
     connectedAs: "Connected as {name}",
     disconnect: "Disconnect",
     email: "ORBIT email",

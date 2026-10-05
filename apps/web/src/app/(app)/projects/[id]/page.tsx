@@ -16,7 +16,7 @@ import { useArtifacts, useArtifactTypes, useProject, useSkill, useSkills, useTas
 import type { ChangeEvent, SkillSummary, TaskStep, WorkItem } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
 import { defineMessages, useLang, useT, type Lang } from "@/lib/i18n";
-import { skillName, typeName } from "@/lib/i18n/catalog";
+import { planStepTitle, skillName, typeName, useCatalogNames, useSystemLabel } from "@/lib/i18n/catalog";
 import { useComposer } from "@/stores/ui";
 
 const M = defineMessages({
@@ -62,7 +62,7 @@ const M = defineMessages({
   },
   fr: {
     completed: "Terminé",
-    waiting: "En attente de vous",
+    waiting: "En attente de votre retour",
     failed: "Échec",
     inProgress: "En cours",
     currentWork: "Travail en cours",
@@ -98,7 +98,7 @@ const M = defineMessages({
     sources: "Sources",
     noDocumentChanges: "Aucune modification récente de document.",
     openContext: "Ouvrir le contexte ORBIT",
-    askAbout: "Demandez à NOVA à propos de {name}…",
+    askAbout: "Posez une question à NOVA sur {name}…",
   },
 });
 
@@ -113,6 +113,9 @@ function Card({ children, className }: { children: React.ReactNode; className?: 
 }
 
 function Stepper({ steps }: { steps: TaskStep[] }) {
+  const lang = useLang();
+  const { data: skills } = useSkills();
+  const names = useCatalogNames();
   const currentIndex = steps.findIndex((s) => s.status !== "completed" && s.status !== "skipped");
   return (
     <ol className="flex items-start">
@@ -133,7 +136,7 @@ function Stepper({ steps }: { steps: TaskStep[] }) {
               </span>
               <span className={cn("h-0.5 flex-1", i === steps.length - 1 ? "invisible" : done ? "bg-accent/60" : "bg-border")} />
             </div>
-            <span className={cn("mt-2 line-clamp-2 px-1 text-[12px]", current ? "font-medium text-accent" : done ? "text-text" : "text-subtle")}>{step.title}</span>
+            <span className={cn("mt-2 line-clamp-2 px-1 text-[12px]", current ? "font-medium text-accent" : done ? "text-text" : "text-subtle")}>{planStepTitle(step, skills, lang, names)}</span>
           </li>
         );
       })}
@@ -149,6 +152,8 @@ function CurrentWorkflow({ task }: { task: WorkItem }) {
   const t = useT(M);
   const lang = useLang();
   const { data: skills } = useSkills();
+  const names = useCatalogNames();
+  const label = useSystemLabel();
   const state = task.status === "completed" ? t("completed") : task.status === "waiting_user" ? t("waiting") : task.status === "failed" ? t("failed") : t("inProgress");
   const title = task.skills[0] ? (skillLabel(skills, task.skills[0], lang) ?? task.skills[0]) : t("currentWork");
   return (
@@ -167,8 +172,8 @@ function CurrentWorkflow({ task }: { task: WorkItem }) {
         <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[16px] border border-border bg-background/60 p-4">
           <div className="min-w-0">
             <div className="text-[12px] text-subtle">{task.status === "completed" ? t("lastStage") : t("currentStage")}</div>
-            <div className="mt-0.5 text-[15px] font-semibold">{current.title}</div>
-            {current.detail ? <div className="mt-0.5 text-[12.5px] text-muted">{current.detail}</div> : null}
+            <div className="mt-0.5 text-[15px] font-semibold">{planStepTitle(current, skills, lang, names)}</div>
+            {current.detail ? <div className="mt-0.5 text-[12.5px] text-muted">{label(current.detail)}</div> : null}
             {task.progress_total ? <div className="mt-3 w-56 max-w-full">
               <div className="mb-1 text-[11.5px] text-subtle">
                 {t("steps", { done: task.progress_done, total: task.progress_total })}
@@ -197,6 +202,7 @@ function WhatsNext({ task, projectId }: { task: WorkItem | undefined; projectId:
   const t = useT(M);
   const lang = useLang();
   const { data: skills } = useSkills();
+  const names = useCatalogNames();
   const pending = (detail?.steps ?? []).filter((s) => s.status === "pending" || s.status === "running" || s.status === "waiting_user");
   const suggestions = (skill?.composes_with ?? []).slice(0, 4);
   const start = (text: string) => {
@@ -211,7 +217,7 @@ function WhatsNext({ task, projectId }: { task: WorkItem | undefined; projectId:
         {pending.map((s) => (
           <li key={s.id} className="flex items-center gap-2.5 text-[13.5px]">
             <span className="size-4 shrink-0 rounded-[5px] border border-border-strong" />
-            <span className="flex-1">{s.title}</span>
+            <span className="flex-1">{planStepTitle(s, skills, lang, names)}</span>
             <span className="text-[11.5px] text-subtle">{s.status === "waiting_user" ? t("needsYou") : t("queued")}</span>
           </li>
         ))}
@@ -280,6 +286,7 @@ export default function ProjectPage() {
   const { data: types } = useArtifactTypes();
   const t = useT(M);
   const lang = useLang();
+  const label = useSystemLabel();
   const setProject = useComposer((s) => s.setProject);
   useEffect(() => setProject(id), [id, setProject]);
   const context = useQuery({
@@ -331,7 +338,7 @@ export default function ProjectPage() {
         </header>
 
         {project.context_error ? (
-          <div className="mt-4"><ErrorNotice title={t("contextUnavailable")} message={project.context_error.message} /></div>
+          <div className="mt-4"><ErrorNotice title={t("contextUnavailable")} message={label(project.context_error.message)} /></div>
         ) : null}
 
         <Tabs defaultValue="overview" className="mt-6">

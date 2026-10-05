@@ -12,7 +12,7 @@ from nova.agent.nodes.common import NodeFailure, deps, node, now_iso, plan_block
 from nova.domain.enums import ExecutionOrigin, NovaPhase, StepStatus
 from nova.domain.outputs import ExecutionPlan, ExecutionStep, MissingInput, PlanOutput
 from nova.domain.permissions import AutonomyPolicy
-from nova.domain.skills import SelectedSkill
+from nova.domain.skills import SelectedSkill, SkillSpec
 from nova.domain.state import NovaState, StepOutput
 from nova.skills.router import SkillRouter
 
@@ -46,17 +46,26 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
     if not candidates:
         raise NodeFailure("no_skill", "NOVA has no Skill for this request yet.")
     can_ask = state.origin == ExecutionOrigin.interactive
+    lang = c.response_language
     max_steps = d.settings.max_workflow_steps
 
     explicit = [s for s in state.skill_refs if d.skills.has(s)]
     if explicit:  # "/prd" — the user chose; no model call needed
         plan_out = PlanOutput(
             objective=c.goal,
-            steps=[{"id": _slug(s, i + 1), "title": d.skills.get(s).name, "skill_id": s} for i, s in enumerate(explicit)],
+            steps=[
+                {
+                    "id": _slug(s, i + 1),
+                    "title": _shown(d.skills.get(s), lang, "name"),
+                    "skill_id": s,
+                    "rationale": f"Requested with /{s}",
+                }
+                for i, s in enumerate(explicit)
+            ],
         )
         usage = state.usage
         if can_ask:
-            plan_out.missing_inputs = _missing_required(state, [d.skills.get(s) for s in explicit])
+            plan_out.missing_inputs = _missing_required(state, [d.skills.get(s) for s in explicit], lang)
     else:
         result = await d.llm.structured_output(
             prompts.plan_messages(state, [cand.skill for cand in candidates], can_ask=can_ask), PlanOutput
@@ -75,6 +84,7 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
                 title=planned.title or skill.name,
                 skill_id=skill.id,
                 skill_version=skill.version,
+                goal=planned.goal or _shown(skill, lang, "summary"),
                 rationale=planned.rationale,
             )
         )
@@ -88,16 +98,25 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
             0,
             ExecutionStep(
                 id=_slug(required.name, 0),
-                title=required.name,
+                title=_shown(required, lang, "name"),
                 skill_id=required.id,
                 skill_version=required.version,
+                goal=_shown(required, lang, "summary"),
                 rationale="Produces the requested deliverable",
             ),
         )
         steps = steps[:max_steps]
     if not steps:
         best = candidates[0].skill
-        steps = [ExecutionStep(id=_slug(best.name, 1), title=best.name, skill_id=best.id, skill_version=best.version)]
+        steps = [
+            ExecutionStep(
+                id=_slug(best.name, 1),
+                title=_shown(best, lang, "name"),
+                skill_id=best.id,
+                skill_version=best.version,
+                goal=_shown(best, lang, "summary"),
+            )
+        ]
 
     chosen = [d.skills.get(s.skill_id) for s in steps if s.skill_id]
     declared = {(s.id, i.name) for s in chosen for i in s.inputs if i.required and i.ask}
@@ -149,12 +168,22 @@ def _required_skill(candidates: list, artifact_type: str | None):
     return None
 
 
-def _missing_required(state: NovaState, skills: list) -> list[MissingInput]:
+def _shown(skill: SkillSpec, lang: str, field: str) -> str:
+    """A Skill's display text in the user's language (names in plans, questions asked)."""
+    return str(skill.translations.get(lang[:2], {}).get(field) or getattr(skill, field))
+
+
+def _question(skill: SkillSpec, name: str, lang: str) -> str | None:
+    tr = (skill.translations.get(lang[:2], {}).get("inputs") or {}).get(name) or {}
+    return tr.get("question") or tr.get("description")
+
+
+def _missing_required(state: NovaState, skills: list, lang: str = "en") -> list[MissingInput]:
     """Explicit Skill invocations: ask required inputs only when the request is too short to contain them."""
     if len(state.intent.split()) > 6:
         return []
     return [
-        MissingInput(key=i.name, question=i.question or i.description, skill_id=s.id)
+        MissingInput(key=i.name, question=_question(s, i.name, lang) or i.question or i.description, skill_id=s.id)
         for s in skills
         for i in s.inputs
         if i.required and i.ask and i.name not in state.user_inputs

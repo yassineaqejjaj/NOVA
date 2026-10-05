@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from nova.domain.agents import AgentProfile
 from nova.domain.enums import SkillCategory
@@ -60,6 +60,51 @@ class SkillEvaluation(BaseModel):
     checks: list[EvaluationCheck] = Field(default_factory=list)
 
 
+class InputTranslation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    description: str | None = None
+    question: str | None = None
+
+
+class SkillTranslation(BaseModel):
+    """Display translation of a Skill (skills/i18n/<lang>.yaml). Keys must match the Skill exactly."""
+
+    model_config = ConfigDict(extra="forbid")
+    name: str
+    summary: str
+    purpose: str | None = None
+    method: str | None = None  # methodology name
+    principles: list[str] | None = None  # same order and length as methodology.principles
+    steps: dict[str, str] = Field(default_factory=dict)  # step id → title
+    criteria: dict[str, str] = Field(default_factory=dict)  # criterion key → question
+    checks: list[str] | None = None  # same order and length as evaluation.checks (descriptions)
+    inputs: dict[str, InputTranslation] = Field(default_factory=dict)
+
+    def problems(self, spec: SkillSpec) -> list[str]:
+        found = []
+        if unknown := set(self.steps) - {s.id for s in spec.steps}:
+            found.append(f"unknown steps {sorted(unknown)}")
+        if unknown := set(self.criteria) - {str(c.get("key")) for c in spec.evaluation.criteria}:
+            found.append(f"unknown criteria {sorted(unknown)}")
+        if unknown := set(self.inputs) - {i.name for i in spec.inputs}:
+            found.append(f"unknown inputs {sorted(unknown)}")
+        if self.principles is not None and len(self.principles) != len(spec.methodology.principles):
+            found.append("principles must match methodology.principles one to one")
+        if self.checks is not None and len(self.checks) != len(spec.evaluation.checks):
+            found.append("checks must match evaluation.checks one to one")
+        return found
+
+    def missing(self, spec: SkillSpec) -> list[str]:
+        """What a complete translation still lacks (shown by the completeness test)."""
+        gaps = [f for f in ("purpose", "method", "principles") if getattr(self, f) is None]
+        gaps += [f"steps.{s.id}" for s in spec.steps if s.id not in self.steps]
+        gaps += [f"criteria.{c.get('key')}" for c in spec.evaluation.criteria if c.get("key") not in self.criteria]
+        gaps += [f"inputs.{i.name}" for i in spec.inputs if i.name not in self.inputs]
+        if spec.evaluation.checks and self.checks is None:
+            gaps.append("checks")
+        return gaps
+
+
 class SkillSpec(BaseModel):
     id: str = Field(pattern=r"^[a-z][a-z0-9-]*$")
     name: str
@@ -77,8 +122,8 @@ class SkillSpec(BaseModel):
     composes_with: list[str] = Field(default_factory=list)
     system: bool = False  # internal Skill (not proposed by routing, e.g. artifact-edit)
     agent: AgentProfile = AgentProfile.product  # the specialist agent that carries out this Skill
-    # Display translations from skills/i18n/<lang>.yaml: {"fr": {"name": …, "summary": …}}
-    translations: dict[str, dict[str, str]] = Field(default_factory=dict)
+    # Display translations from skills/i18n/<lang>.yaml (see SkillTranslation); prompts keep the English definition.
+    translations: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
     # Loaded from sibling files (not in skill.yaml)
     instructions: str = ""

@@ -20,7 +20,7 @@ from nova.domain.outputs import TokenUsage
 
 ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1"
 ANTHROPIC_VERSION = "2023-06-01"
-DEFAULT_MODEL = "claude-sonnet-5-5"
+DEFAULT_MODEL = "claude-haiku-4-5"
 STRUCTURED_TOOL = "submit_result"
 RETRYABLE_ANTHROPIC = RETRYABLE_STATUS | {529}  # 529: overloaded
 

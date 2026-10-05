@@ -45,6 +45,8 @@ class ScriptedLLM:
             objective="Write the PRD", steps=[{"id": "1-prd", "title": "Write the PRD", "skill_id": "prd"}]
         )
         self.answer: Handler = lambda m: AnswerOutput(answer="Answer based on [S1].", citations=["S1"])
+        # NOVA's Validation agent: approves by default
+        self.review: Handler = lambda m: {"verdict": "pass", "criteria": [], "issues": [], "summary": "Meets the criteria."}
         self.step_citations = ["S1", "S99"]  # S99 does not exist → must be dropped
         self.step_override: Callable[[dict, list[LLMMessage]], dict] | None = None
         self.fail_times = 0
@@ -75,6 +77,8 @@ class ScriptedLLM:
             value = self.plan(messages)
         elif name == "AnswerOutput":
             value = self.answer(messages)
+        elif name == "ValidationReview":
+            value = self.review(messages)
         else:
             assert json_schema is not None
             raw = fake(json_schema, citations=self.step_citations)

@@ -5,10 +5,11 @@ import { useMutation } from "@tanstack/react-query";
 import { Orbit, Search } from "lucide-react";
 import { useState } from "react";
 
+import { systemLabel } from "@/components/conversation/blocks.messages";
 import { ClassificationBadge, ErrorNotice } from "@/components/shell/page";
 import { api, ApiError } from "@/lib/api/client";
 import type { ContextSource } from "@/lib/api/types";
-import { defineMessages, useT } from "@/lib/i18n";
+import { defineMessages, useLang, useT } from "@/lib/i18n";
 import type { ComposerContextRef } from "@/stores/ui";
 
 const M = defineMessages({
@@ -19,7 +20,7 @@ const M = defineMessages({
     find: "Find",
     error: "ORBIT could not provide context",
     retrieving: "Retrieving context…",
-    found: "{n} sources found",
+    found: (v: { n: number }) => `${v.n} source${v.n === 1 ? "" : "s"} found`,
     use: "Use this context",
   },
   fr: {
@@ -54,6 +55,7 @@ export function ContextPicker({
   onPin: (ref: ComposerContextRef) => void;
 }) {
   const t = useT(M);
+  const lang = useLang();
   const [query, setQuery] = useState("");
   const retrieve = useMutation({
     mutationFn: () => api.post<RetrieveResult>("/context/retrieve", { project_id: projectId, query }),
@@ -80,7 +82,7 @@ export function ContextPicker({
         {retrieve.data ? (
           <div className="mt-4">
             <div className="mb-2 text-[12px] text-subtle">
-              {t("found", { n: retrieve.data.items.length })}{retrieve.data.warnings.length ? ` · ${retrieve.data.warnings.join(" ")}` : ""}
+              {t("found", { n: retrieve.data.items.length })}{retrieve.data.warnings.length ? ` · ${retrieve.data.warnings.map((w) => systemLabel(w, lang)).join(" ")}` : ""}
             </div>
             <ul className="max-h-[42vh] space-y-1.5 overflow-y-auto">
               {retrieve.data.items.map((item) => (

@@ -16,8 +16,17 @@ from nova.agent.nodes.context import relabel, scan
 from nova.agent.nodes.interaction import new_approval
 from nova.agent.nodes.planning import EDIT_SKILL
 from nova.agent.tools.registry import ToolContext, ToolDenied
+from nova.agent.validation import (
+    CheckResult,
+    StepValidation,
+    ValidationReview,
+    revision_feedback,
+    run_checks,
+    sections_to_revise,
+)
 from nova.artifacts.registry import NormalizationReport
 from nova.artifacts.render import render_section
+from nova.domain.agents import AGENTS
 from nova.domain.artifacts import ArtifactReference, Citation, apply_section_updates, empty_content
 from nova.domain.blocks import Block
 from nova.domain.context import ContextBundle
@@ -50,7 +59,14 @@ def _previous_outputs(state: NovaState, d: AgentDeps, current: str) -> list[str]
         if step_id == current or not out.sections:
             continue
         artifact_type = d.artifacts.get(out.artifact_type)
-        lines = [f"### {artifact_type.name} (from step '{step_id}')"]
+        sender = AGENTS[d.skills.get(out.skill_id).agent].name
+        lines = [f"### {artifact_type.name} — delivered by NOVA's {sender} (step '{step_id}')"]
+        step = state.plan.step(step_id) if state.plan else None
+        if step and step.handoff and step.handoff.get("note"):
+            lines.append(f"HANDOFF NOTE: {step.handoff['note']}")
+        issues = (out.validation or {}).get("issues") or []
+        if issues:
+            lines.append("REVIEW NOTES: " + "; ".join(f"{i['section']}: {i['problem']}" for i in issues))
         for key, section in out.sections.items():
             title = artifact_type.section(key).title if artifact_type.section(key) else key  # type: ignore[union-attr]
             lines += [f"#### {title}", *render_section(section)]
@@ -163,6 +179,133 @@ async def execute_skill(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
         "usage": usage,
         "model": result.model,
     }
+
+
+@node("validate_step")
+async def validate_step(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[str, Any]:
+    """NOVA's Validation agent verifies the deliverable; NOVA sends it back to the specialist once if it must change."""
+    d = deps(runtime)
+    step_id = state.current_step or ""
+    out = state.step_outputs[step_id].model_copy(deep=True)
+    skill = d.skills.get(out.skill_id)
+    artifact_type = d.artifacts.get(out.artifact_type)
+    is_edit = skill.id == EDIT_SKILL
+    fills = out.edit_sections if is_edit else [k for st in skill.steps for k in st.fills]
+    existing = await d.store.get_artifact(out.target_artifact_id, state.user_id) if out.target_artifact_id else None
+    existing_sections = existing.content.sections if existing else None
+    plan_step = state.plan.step(step_id) if state.plan else None
+    usage, model = state.usage, state.model
+    key = f"{step_id}:validate"
+
+    def checks() -> list[CheckResult]:
+        return run_checks(
+            skill,
+            artifact_type,
+            out.sections,
+            fills=[k for k in fills if not is_edit or k in out.sections],
+            existing=existing_sections,
+            context_count=len(state.context_items),
+        )
+
+    await progress(d, state, key, "Verifying the deliverable", "running")
+    results = checks()
+    review: ValidationReview | None = None
+    if d.settings.validation_review and not is_edit and out.sections:
+        reviewed = await d.llm.structured_output(
+            prompts.review_messages(
+                state,
+                skill,
+                artifact_type,
+                out.sections,
+                step_goal=plan_step.goal if plan_step else "",
+                failed_checks=[f"{c.label} ({c.detail})" for c in results if not c.passed],
+            ),
+            ValidationReview,
+        )
+        review, usage, model = reviewed.value, usage.add(reviewed.usage), reviewed.model
+        known = {str(c.get("key")) for c in skill.evaluation.criteria}
+        review.criteria = [c for c in review.criteria if c.key in known]
+        review.issues = [i for i in review.issues if i.section in out.sections]
+        if review.verdict == "revise" and not review.issues:
+            review.verdict = "pass"  # nothing actionable
+    failed = [c for c in results if not c.passed]
+    needs_revision = bool(failed) or (review is not None and review.verdict == "revise")
+    targets = sections_to_revise(results, review, fills)
+    status: str = "passed"
+
+    if needs_revision and targets and not is_edit and out.revisions < d.settings.max_revisions:
+        await progress(d, state, key, "Verifying the deliverable", "completed", "Revision requested")
+        revise_key = f"{step_id}:revise"
+        await progress(d, state, revise_key, "Revising after review", "running")
+        sub = SkillStep(id="revise", title="Revising after review", instruction=revision_feedback(results, review), fills=targets)
+        schema = d.artifacts.output_schema(artifact_type, targets, with_tools=False)
+        schema["properties"]["sections"]["required"] = []
+        revised = await d.llm.structured_output(
+            prompts.skill_step_messages(
+                state,
+                skill,
+                sub,
+                artifact_type,
+                fills=targets,
+                produced=out.sections,
+                existing=None,
+                previous_outputs=_previous_outputs(state, d, step_id),
+                tool_results=[],
+                tools_allowed=[],
+                edit_instruction=revision_feedback(results, review),
+            ),
+            RawStepOutput,
+            json_schema=schema,
+        )
+        usage, model = usage.add(revised.usage), revised.model
+        out.usage = out.usage.add(revised.usage)
+        out.duration_ms += revised.latency_ms
+        id_scope = set(out.id_scope)
+        sections = d.artifacts.normalize_sections(
+            artifact_type,
+            revised.value.sections,
+            allowed_keys=targets,
+            citation_index=citation_index(state),
+            existing=None,
+            report=NormalizationReport(),
+            id_scope=id_scope,
+        )
+        out.sections = {**out.sections, **{k: v for k, v in sections.items() if not v.is_empty()}}
+        out.id_scope = sorted(id_scope)
+        out.revisions += 1
+        await progress(d, state, revise_key, "Revising after review", "completed", _count(out.sections, targets))
+        results = checks()
+        status = "revised" if all(c.passed for c in results) else "warning"
+    elif needs_revision:
+        status = "warning"
+
+    validation = StepValidation(
+        status=status,  # type: ignore[arg-type]
+        checks=results,
+        criteria=review.criteria if review else [],
+        issues=review.issues if review else [],
+        summary=review.summary if review else "",
+        reviewed=review is not None,
+        revisions=out.revisions,
+    )
+    out.validation = validation.model_dump(mode="json")
+    done = f"{validation.passed_checks}/{len(results)} checks"
+    detail = {
+        "passed": f"Approved · {done}",
+        "revised": f"Approved after revision · {done}",
+        "warning": f"Delivered with reservations · {done}",
+    }[status]
+    final_key, final_label = (
+        (f"{step_id}:recheck", "Checking the revision") if out.revisions else (key, "Verifying the deliverable")
+    )
+    await progress(d, state, final_key, final_label, "failed" if status == "warning" else "completed", detail)
+    plan = state.plan.model_copy(deep=True) if state.plan else None
+    if plan and (ps := plan.step(step_id)):
+        ps.validation = out.validation
+        new_state = state.model_copy(update={"plan": plan})
+        await upsert(d, new_state, plan_block(new_state, d))
+    await d.store.update_step(state.task_id, step_id, StepStatus.running, report={"validation": out.validation})
+    return {"step_outputs": {**state.step_outputs, step_id: out}, "plan": plan, "usage": usage, "model": model}
 
 
 @node("execute_tools")
@@ -288,12 +431,18 @@ _SLASH = re.compile(r"(?:^|\s)/[a-z][a-z0-9-]+\s*")
 
 _LEAD = re.compile(
     r"^(?:please\s+)?(?:help me\s+)?(?:to\s+)?(?:create|write|draft|prepare|generate|build|make|produce|define|plan|turn|answer)\b\s*"
-    r"(?:(?:a|an|the|our|my)\s+)?",
+    r"(?:(?:a|an|the|our|my)\s+)?"
+    # French requests: « Rédige un PRD pour… », « Aide-moi à préparer le sprint… »
+    r"|^(?:s’il te plaît,?\s+|stp,?\s+)?(?:aide-moi à\s+|peux-tu\s+)?(?:rédige[rz]?|crée[rz]?|écri[rs]e?|prépare[rz]?|génère[rz]?|"
+    r"construi[rs]e?|définis|définir|planifie[rz]?|transforme[rz]?|fais|faire|produis|élabore[rz]?)\b\s*"
+    r"(?:(?:un|une|le|la|les|l’|l'|mon|ma|mes|notre|nos)\s*)?",
     re.IGNORECASE,
 )
 _DELIVERABLE = re.compile(
     r"^(?:prd|prfaq|backlog|sprint plan|release plan|roadmap|user stories|stories|product requirements document|"
-    r"decision record|vision|strategy|okrs?|persona|journey|experiment|brief|update|summary)\b\s*(?:for|of|about|on)?\s*",
+    r"decision record|vision|strategy|okrs?|persona|journey|experiment|brief|update|summary)\b\s*(?:for|of|about|on|pour|de|du|des|sur|concernant)?\s*"
+    r"|^(?:plan de sprint|plan de release|fiche de décision|stratégie|parcours|expérimentation|synthèse|charte de projet|"
+    r"conception technique|brief de design|plan de test|rapport d’avancement)\b\s*(?:pour|de|du|des|sur|concernant)?\s*",
     re.IGNORECASE,
 )
 
@@ -304,11 +453,30 @@ def _title(state: NovaState, type_name: str) -> str:
     subject = _DELIVERABLE.sub("", _LEAD.sub("", objective)).strip(" ,:-–")
     subject = re.sub(r"^(?:the\s+)?user'?s?\s+question\s+(?:about|on)\s+(?:the\s+)?", "", subject, flags=re.IGNORECASE)
     subject = re.sub(r"\s+into\s+(?:a|an|the)?\s*\w+(?:\s+\w+)?$", "", subject, flags=re.IGNORECASE)
-    subject = re.sub(r"^(?:a|an|the)\s+", "", subject, flags=re.IGNORECASE)
+    subject = re.sub(r"^(?:a|an|the|un|une|le|la|les|l’|l')\s*", "", subject, flags=re.IGNORECASE)
     subject = re.split(r",\s*(?:so that|in order to|to ensure)\b", subject, maxsplit=1)[0].strip()
     if not subject or len(subject) > 70:
         return type_name
     return f"{subject[0].upper()}{subject[1:]} – {type_name}"
+
+
+def _handoff(plan: Any, step_id: str, d: AgentDeps, title: str, out: Any) -> dict[str, Any] | None:
+    """Inter-agent communication: what the agent that just delivered tells the next one (shown and sent to it)."""
+    ids = [s.id for s in plan.steps]
+    nxt = next((s for s in plan.steps[ids.index(step_id) + 1 :] if s.status == StepStatus.pending), None)
+    if nxt is None or not nxt.skill_id or not d.skills.has(nxt.skill_id):
+        return None
+    sender = d.skills.get(out.skill_id).agent
+    validation = out.validation or {}
+    note = " ".join(out.summaries)[:400]
+    return {
+        "from": sender.value,
+        "to": d.skills.get(nxt.skill_id).agent.value,
+        "to_step": nxt.id,
+        "title": title,
+        "note": note,
+        "validation": validation.get("status"),
+    }
 
 
 @node("generate_artifact")
@@ -318,7 +486,16 @@ async def generate_artifact(state: NovaState, runtime: Runtime[AgentDeps]) -> di
     out = state.step_outputs[step_id].model_copy(deep=True)
     artifact_type = d.artifacts.get(out.artifact_type)
     existing = await d.store.get_artifact(out.target_artifact_id, state.user_id) if out.target_artifact_id else None
-    base = existing.content if existing else empty_content(artifact_type, _title(state, artifact_type.name))
+    base = (
+        existing.content
+        if existing
+        else empty_content(
+            artifact_type,
+            _title(
+                state, artifact_type.localized_name(state.classification.response_language[:2] if state.classification else "en")
+            ),
+        )
+    )
     content, changed = apply_section_updates(base, out.sections, artifact_type)
     context_classification = max((i.classification for i in state.context_items), default=0)
     classification = max(context_classification, existing.classification if existing else 0)
@@ -361,11 +538,22 @@ async def generate_artifact(state: NovaState, runtime: Runtime[AgentDeps]) -> di
         model=state.model,
         duration_ms=out.duration_ms,
     )
+    handoff = None
     if plan:
         for s in plan.steps:
             if s.id == step_id:
                 s.status, s.artifact_id, s.detail, s.finished_at = StepStatus.completed, artifact_id, detail, now_iso()
-    await d.store.update_step(state.task_id, step_id, StepStatus.completed, detail=detail, artifact_id=artifact_id)
+        handoff = _handoff(plan, step_id, d, content.title, out)
+        if handoff and (ps := plan.step(step_id)):
+            ps.handoff = handoff
+    await d.store.update_step(
+        state.task_id,
+        step_id,
+        StepStatus.completed,
+        detail=detail,
+        artifact_id=artifact_id,
+        report={"handoff": handoff} if handoff else None,
+    )
 
     reference = ArtifactReference(
         artifact_id=artifact_id,

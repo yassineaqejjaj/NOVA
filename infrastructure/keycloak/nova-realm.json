@@ -1,6 +1,6 @@
 {
   "realm": "nova",
-  "displayName": "ORION \u00b7 NOVA",
+  "displayName": "ORION · NOVA",
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": false,
@@ -30,8 +30,8 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "${NOVA_OIDC_CLIENT_SECRET}",
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
       "redirectUris": [
         "${NOVA_PUBLIC_URL}/api/v1/auth/callback"
       ],
@@ -92,6 +92,18 @@
         "nova-user",
         "nova-admin"
       ]
+    },
+    {
+      "username": "service-account-nova-web",
+      "enabled": true,
+      "serviceAccountClientId": "nova-web",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
     }
   ]
 }

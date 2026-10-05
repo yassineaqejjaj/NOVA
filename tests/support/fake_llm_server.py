@@ -76,6 +76,19 @@ def answer(user: str) -> dict[str, Any]:
     return {"answer": "No recorded source supports this element; it was proposed from your request.", "citations": []}
 
 
+def review(user: str) -> dict[str, Any]:
+    """NOVA's Validation agent: approves, except when the user asked for a "strict review" (one revision, E2E)."""
+    sections = re.findall(r"^- ([a-z_]+): ", _between(user, "SECTIONS (keys):\n", "\n\n"), re.MULTILINE)
+    if "strict review" in user.lower() and sections:
+        issue = {
+            "section": sections[0],
+            "problem": "Too vague for the team to act on.",
+            "fix": "Make it specific and measurable.",
+        }
+        return {"verdict": "revise", "criteria": [], "issues": [issue], "summary": "One section must be more specific."}
+    return {"verdict": "pass", "criteria": [], "issues": [], "summary": "The deliverable meets the Skill's criteria."}
+
+
 def _revise(value: Any) -> Any:
     if isinstance(value, dict):
         return {k: (f"{v} (revised)" if k in ("title", "text") and isinstance(v, str) else _revise(v)) for k, v in value.items()}
@@ -98,6 +111,8 @@ async def completions(request: Request) -> dict[str, Any]:
         value = plan(user)
     elif name == "AnswerOutput":
         value = answer(user)
+    elif name == "ValidationReview":
+        value = review(user)
     elif schema:
         labels = re.findall(r'label="(S\d+)"', user)
         value = fake(schema, citations=labels[:1])

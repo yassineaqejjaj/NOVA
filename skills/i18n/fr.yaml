@@ -1,260 +1,1800 @@
 # French display translations for skills (UI labels only).
-# Prompts keep the English definitions from ../<skill>/skill.yaml. Keys must match skill ids exactly.
+# Prompts keep the English definitions from ../<skill>/skill.yaml. Keys must match skill ids exactly;
+# fields: name, summary, purpose, method, principles (one per methodology principle), steps (step id → title),
+# criteria (criterion key → question), checks (one per evaluation check), inputs (name → description, question).
 
 acceptance-criteria:
   name: "Critères d’acceptation"
   summary: "Rédiger ou renforcer les critères d’acceptation Given/When/Then des user stories existantes, en conservant leurs identifiants."
-
-artifact-edit:
-  name: "Modification d’artefact"
-  summary: "Mettre à jour les sections sélectionnées d’un artefact existant selon votre demande."
-
-backlog-refinement:
-  name: "Affinage du backlog"
-  summary: "Affiner les éléments du backlog : clarifier les user stories, préciser les critères d’acceptation, proposer des découpages et faire remonter les questions pour l’équipe."
-
-decision-record:
-  name: "Fiche de décision"
-  summary: "Documenter une décision produit ou technique : le contexte, les options envisagées, la décision et ses conséquences."
-
-definition-of-done:
-  name: "Definition of Done"
-  summary: "Rédiger la Definition of Done de l’équipe : le niveau de qualité que chaque incrément doit atteindre pour être considéré comme terminé."
-
-definition-of-ready:
-  name: "Definition of Ready"
-  summary: "Rédiger la Definition of Ready de l’équipe : les conditions qu’un élément du backlog doit remplir avant d’entrer dans un sprint."
-
-dependency-analysis:
-  name: "Analyse des dépendances"
-  summary: "Cartographier les dépendances d’un plan, identifier le chemin critique et définir les actions pour les débloquer."
-
-epic-definition:
-  name: "Définition d’epic"
-  summary: "Définir un epic comme un incrément de valeur livrable, avec son périmètre, ses user stories candidates, ses indicateurs de succès, ses dépendances et ses risques."
-
-executive-summary:
-  name: "Synthèse exécutive"
-  summary: "Condenser un sujet, un document ou un projet en une synthèse prête pour la décision, destinée à la direction."
-
-experiment-analysis:
-  name: "Analyse d’expérimentation"
-  summary: "Analyser les résultats d’une expérimentation au regard de l’hypothèse et de la règle de décision fixées à l’avance, et en tirer une décision."
-
-experiment-definition:
-  name: "Définition d’expérimentation"
-  summary: "Concevoir une expérimentation qui teste une hypothèse, avec méthode, indicateurs, seuil de succès et règle de décision fixés à l’avance."
-
-feedback-synthesis:
-  name: "Synthèse des retours utilisateurs"
-  summary: "Synthétiser les retours utilisateurs en thèmes, avec fréquence et gravité, verbatims représentatifs et opportunités produit."
-
-functional-requirements:
-  name: "Exigences fonctionnelles"
-  summary: "Spécifier ce que le système doit faire sous forme d’exigences fonctionnelles priorisées et testables, avec contraintes, hypothèses et questions ouvertes."
-
-hypothesis-generation:
-  name: "Formulation d’hypothèses"
-  summary: "Transformer idées et présupposés en hypothèses réfutables, avec un signal de succès clair et mesurable."
-
-impact-effort-prioritization:
-  name: "Priorisation impact / effort"
-  summary: "Placer les éléments sur une matrice impact/effort pour repérer les quick wins, les paris majeurs, les tâches d’appoint et les gouffres à ressources."
-
-initiative-definition:
-  name: "Définition d’initiative"
-  summary: "Cadrer une initiative : le problème traité, les objectifs servis, les indicateurs de succès, les jalons, les dépendances et les risques."
-
-interview-guide:
-  name: "Guide d’entretien"
-  summary: "Rédiger une trame d’entretien de discovery avec mise en confiance, questions ouvertes fondées sur des récits, relances et conclusion."
-
-jobs-to-be-done:
-  name: "Jobs To Be Done"
-  summary: "Identifier les jobs pour lesquels les clients « recrutent » le produit, leurs résultats attendus, leurs moments de difficulté et les alternatives actuelles."
-
-kano-analysis:
-  name: "Analyse de Kano"
-  summary: "Classer les fonctionnalités selon leur effet sur la satisfaction client : obligatoires, de performance, attractives, indifférentes ou inverses."
-
-moscow-prioritization:
-  name: "Priorisation MoSCoW"
-  summary: "Classer exigences ou fonctionnalités en Must, Should, Could et Won’t have pour une release ou une période donnée."
-
-non-functional-requirements:
-  name: "Exigences non fonctionnelles"
-  summary: "Définir des exigences de qualité mesurables (performance, sécurité, confidentialité, accessibilité, fiabilité) pour une fonctionnalité ou un système."
-
-north-star-metric:
-  name: "North Star Metric"
-  summary: "Identifier l’indicateur unique qui reflète le mieux la valeur perçue par les clients, avec ses indicateurs d’entrée et ses garde-fous."
-
-okr-definition:
-  name: "Définition des OKR"
-  summary: "Définir un ensemble ciblé d’OKR pour une équipe et une période, avec des résultats clés ambitieux et mesurables."
-
-opportunity-solution-tree:
-  name: "Arbre opportunités-solutions"
-  summary: "Relier un résultat visé aux opportunités client, aux solutions candidates et aux expérimentations qui les testent."
-
-persona:
-  name: "Persona"
-  summary: "Construire un persona fondé sur des données probantes, décrivant les objectifs, frustrations, comportements et besoins d’un segment d’utilisateurs."
-
-prd:
-  name: "Document d’exigences produit (PRD)"
-  summary: "Transformer une idée ou une initiative en un PRD complet et structuré, sur lequel l’équipe technique peut s’appuyer pour développer."
-
-prfaq:
-  name: "PR/FAQ (Working Backwards)"
-  summary: "Rédiger un communiqué de presse et une FAQ à la manière d’Amazon, décrivant le produit du point de vue du client avant de le construire."
-
-problem-framing:
-  name: "Cadrage du problème"
-  summary: "Poser clairement un problème (qui est concerné, données probantes, impact et causes supposées) avant de discuter des solutions."
-
-product-metrics:
-  name: "Plan d’indicateurs produit"
-  summary: "Définir les indicateurs qui montrent si un produit ou une fonctionnalité réussit, et l’instrumentation nécessaire pour les mesurer."
-
-product-principles:
-  name: "Principes produit"
-  summary: "Rédiger un petit ensemble de principes produit affirmés qui guident les décisions lorsque l’équipe fait face à des arbitrages."
-
-product-strategy:
-  name: "Stratégie produit"
-  summary: "Définir comment le produit atteindra sa vision : le diagnostic, les paris stratégiques, les arbitrages et la mesure des progrès."
-
-product-update:
-  name: "Point d’avancement produit"
-  summary: "Rédiger un point d’avancement concis : statut en une phrase, faits marquants, indicateurs clés, risques et points de blocage, demandes et prochaines étapes."
-
-product-vision:
-  name: "Vision produit"
-  summary: "Formuler où va le produit, pour qui et pourquoi c’est important, dans une vision autour de laquelle l’équipe peut se rassembler."
-
-release-notes:
-  name: "Release notes"
-  summary: "Rédiger des release notes destinées aux utilisateurs, qui expliquent ce qui a changé et pourquoi c’est important pour eux."
-
-release-planning:
-  name: "Planification de release"
-  summary: "Planifier une release : objectif, périmètre par epic, jalons, dépendances, risques, déploiement et checklist go/no-go."
-
-rice-prioritization:
-  name: "Priorisation RICE"
-  summary: "Classer initiatives, epics ou fonctionnalités avec RICE : Reach × Impact × Confidence ÷ Effort."
-
-risk-analysis:
-  name: "Analyse des risques"
-  summary: "Identifier les risques produit et de livraison, évaluer leur probabilité et leur impact, et planifier les mesures d’atténuation avec des responsables."
-
-root-cause-analysis:
-  name: "Analyse des causes racines"
-  summary: "Comprendre pourquoi un problème ou un incident est survenu, trouver les causes racines et définir des actions correctives et préventives."
-
-sprint-planning:
-  name: "Sprint planning"
-  summary: "Préparer une proposition de sprint à partir de l’objectif de sprint, du backlog, du travail non terminé et de la capacité."
-
-sprint-preparation:
-  name: "Préparation du sprint"
-  summary: "Vérifier que les éléments en tête du backlog sont prêts avant le sprint planning : les affiner, proposer des découpages, soulever les questions et contrôler la Definition of Ready."
-
-stakeholder-brief:
-  name: "Note aux parties prenantes"
-  summary: "Adapter ce que chaque partie prenante doit savoir d’un projet ou d’un changement, avec messages clés, demandes et calendrier de communication."
-
-story-mapping:
-  name: "Story mapping"
-  summary: "Construire une story map : une colonne vertébrale d’activités utilisateur, les user stories associées et les tranches de release."
-
-user-journey:
-  name: "Parcours utilisateur"
-  summary: "Cartographier le parcours de bout en bout d’un utilisateur pour un scénario, avec actions, pensées, émotions, points de friction et opportunités."
-
-user-research-plan:
-  name: "Plan de recherche utilisateur"
-  summary: "Planifier une étude : ce qu’il faut apprendre, la bonne méthode, les participants à recruter, le calendrier et les livrables."
-
-user-story-generation:
-  name: "Rédaction de user stories"
-  summary: "Rédiger des user stories INVEST avec des critères d’acceptation Given/When/Then, regroupées par epic."
-
-vision-to-backlog:
-  name: "De la vision au backlog"
-  summary: "Transformer une vision produit en objectifs, initiatives, epics et user stories avec critères d’acceptation."
-
-vision-to-objectives:
-  name: "De la vision aux objectifs"
-  summary: "Traduire une vision produit en objectifs orientés résultats, résultats clés mesurables et initiatives censées les faire progresser."
-
-wsjf-prioritization:
-  name: "Priorisation WSJF"
-  summary: "Séquencer fonctionnalités ou epics selon le Weighted Shortest Job First : coût du retard divisé par la taille du travail."
-
-# --- Project, Design and Engineering agents ---
-
-technical-design:
-  name: "Conception technique"
-  summary: "Rédiger un document de conception / RFC : architecture proposée, alternatives, exigences non fonctionnelles et déploiement."
-
-architecture-decision-record:
-  name: "Décision d’architecture (ADR)"
-  summary: "Consigner une décision d’architecture : contexte, options envisagées, décision et conséquences."
+  purpose: "Rendre chaque story claire et testable avant le début du développement. Des exemples concrets et partagés alignent produit, design, développement et QA sur ce que « terminé » signifie."
+  method: "Specification by Example (Given/When/Then)"
+  principles:
+  - "Les critères décrivent un comportement observable, pas l’implémentation"
+  - "Couvrir le parcours principal, les variantes de règles métier, les cas limites et les erreurs"
+  - "Un comportement par critère, avec des valeurs d’exemple concrètes"
+  - "Conserver inchangés l’identifiant, le titre et l’intention de chaque story"
+  steps:
+    criteria: "Rédaction des critères Given/When/Then"
+  criteria:
+    quality.testability: "Chaque critère décrit-il un comportement unique, observable et testable ?"
+    quality.coverage: "Les critères couvrent-ils le parcours principal, les variantes de règles, les cas limites et les erreurs ?"
+    quality.preservation: "Les stories existantes et leurs identifiants sont-ils conservés à l’identique, hormis leurs critères ?"
+  checks:
+  - "La section des stories est présente"
+  inputs:
+    stories:
+      description: "Les stories à compléter, si elles ne figurent pas dans l’artefact courant ou le contexte"
+    rules:
+      description: "Les règles métier ou contraintes que les critères doivent respecter"
 
 api-design:
   name: "Conception d’API"
   summary: "Spécifier une API : endpoints avec requêtes et réponses, authentification, erreurs et versionnement."
+  purpose: "S’accorder entre équipes sur un contrat clair et cohérent avant l’implémentation, pour limiter les reprises à l’intégration."
+  method: "Conception d’API orientée ressources"
+  principles:
+  - "Orientation ressources et nommage cohérent"
+  - "Erreurs et codes de statut explicites"
+  - "Autorisations au moindre privilège"
+  - "Évolution rétrocompatible"
+  steps:
+    summary: "Définition du contrat"
+    endpoints: "Spécification des endpoints"
+    policies: "Sécurisation et versionnement"
+  criteria:
+    quality.consistency: "Le nommage et les conventions sont-ils cohérents d’un endpoint à l’autre ?"
+    quality.security: "Les autorisations sont-elles précisées pour chaque endpoint ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    capability:
+      description: "Ce que l’API doit permettre aux clients de faire"
+      question: "Que doivent pouvoir faire les clients avec cette API ?"
 
-test-strategy:
-  name: "Stratégie de test"
-  summary: "Planifier les tests d’une fonctionnalité : stratégie, cas de test priorisés, environnements et critères de sortie."
+architecture-decision-record:
+  name: "Décision d’architecture (ADR)"
+  summary: "Consigner une décision d’architecture : contexte, options envisagées, décision et conséquences."
+  purpose: "Garder une trace durable et consultable des raisons qui expliquent l’architecture actuelle, afin d’éclairer les évolutions futures."
+  method: "ADR (Michael Nygard)"
+  principles:
+  - "Une décision par fiche"
+  - "Le contexte expose les forces en présence, pas la solution"
+  - "Les conséquences incluent les conséquences négatives"
+  steps:
+    context: "Description du contexte"
+    options: "Comparaison des options"
+    decide: "Consignation de la décision"
+  criteria:
+    quality.context: "Le contexte explique-t-il les forces en présence sans présupposer la réponse ?"
+    quality.consequences: "Les conséquences négatives sont-elles reconnues ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    decision_topic:
+      description: "La question d’architecture à trancher"
+      question: "Quelle question d’architecture cette décision doit-elle trancher ?"
 
-incident-postmortem:
-  name: "Post-mortem d’incident"
-  summary: "Rédiger un post-mortem sans recherche de coupable : impact, chronologie, causes racines et actions correctives."
+artifact-edit:
+  name: "Modification d’artefact"
+  summary: "Mettre à jour les sections sélectionnées d’un artefact existant selon votre demande."
+  purpose: "Permettre de modifier une partie d’un Artefact en conversant (« réécris les indicateurs de succès ») sans régénérer tout le document."
+  method: "Modification minimale et ciblée"
+  principles:
+  - "Ne modifier que ce qui a été demandé"
+  - "Conserver les identifiants des éléments existants pour que l’historique et les commentaires restent rattachés"
+  - "Préserver les citations encore valables"
+  steps:
+    edit: "Mise à jour des sections demandées"
+  criteria:
+    quality.instruction_following: "La modification demandée a-t-elle été appliquée exactement, et rien d’autre ?"
+  inputs:
+    instruction:
+      description: "Ce qu’il faut modifier"
 
-effort-estimation:
-  name: "Estimation de charge"
-  summary: "Découper et estimer le travail avec des estimations à trois points, hypothèses, risques et niveau de confiance."
+backlog-refinement:
+  name: "Affinage du backlog"
+  summary: "Affiner les éléments du backlog : clarifier les user stories, préciser les critères d’acceptation, proposer des découpages et faire remonter les questions pour l’équipe."
+  purpose: "Faire en sorte que le haut du backlog soit compris, suffisamment petit et estimable, pour une planification rapide et une livraison prévisible. L’affinage transforme des éléments flous en\
+    \ stories sur lesquelles l’équipe peut s’engager."
+  method: "Affinage vers INVEST et la Definition of Ready"
+  principles:
+  - "Procéder par le haut : affiner d’abord les éléments les plus susceptibles d’être planifiés"
+  - "Une story affinée est testable et assez petite pour être terminée en quelques jours"
+  - "Découper par étape du parcours, règle métier ou variation de données, jamais par couche technique"
+  - "Les questions sont explicites et ont un responsable, au lieu de rester implicites"
+  steps:
+    review: "Revue des éléments du backlog"
+    refine: "Affinage des stories"
+    splits: "Proposition de découpages"
+    readiness: "Questions et vérification de la Definition of Ready"
+  criteria:
+    quality.grounding: "Les stories affinées proviennent-elles du backlog réel présent dans le contexte, avec leurs identifiants conservés ?"
+    quality.story_quality: "Les stories affinées sont-elles claires, petites et testables ?"
+    quality.splits: "Les découpages proposés sont-ils des tranches verticales fondées sur des modèles de découpage pertinents ?"
+  checks:
+  - "Les sections essentielles de l’affinage sont présentes"
+  - "Les stories citent le backlog dont elles proviennent"
+  inputs:
+    items:
+      description: "Les stories ou epics à affiner, s’ils ne figurent pas dans le contexte"
+    focus:
+      description: "L’epic, le thème ou l’objectif de sprint sur lequel concentrer l’affinage"
+
+decision-record:
+  name: "Fiche de décision"
+  summary: "Documenter une décision produit ou technique : le contexte, les options envisagées, la décision et ses conséquences."
+  purpose: "Garder une trace durable des raisons d’une décision, pour que l’équipe ne la remette pas sans cesse en question et que les nouveaux venus comprennent les arbitrages. Une fiche de décision\
+    \ est courte, factuelle et rédigée au moment où la décision est prise."
+  method: "Fiche de décision (ADR)"
+  principles:
+  - "Une fiche par décision, rédigée en langage simple"
+  - "Décrire les forces en présence avant les options"
+  - "Comparer au moins deux options réelles avec leurs avantages et inconvénients"
+  - "Consigner les conséquences, positives et négatives, et ce qui justifierait de revenir sur la décision"
+  steps:
+    context: "Description du contexte"
+    options: "Comparaison des options"
+    decision: "Consignation de la décision"
+    consequences: "Conséquences et suites à donner"
+  criteria:
+    quality.faithfulness: "Le statut et la responsabilité de la décision sont-ils fidèles au contexte, sans rien inventer ?"
+    quality.options: "Au moins deux options réelles sont-elles comparées avec leurs avantages et inconvénients ?"
+    quality.consequences: "Les conséquences positives et négatives sont-elles consignées ?"
+  checks:
+  - "Les sections essentielles de la fiche de décision sont présentes"
+  - "Le contexte cite ses sources lorsqu’un contexte a été fourni"
+  - "La fiche reste courte"
+  inputs:
+    decision:
+      description: "La décision à consigner"
+      question: "Quelle décision dois-je consigner : qu’est-ce qui a été décidé (ou reste à décider), et pourquoi maintenant ?"
+    options:
+      description: "Les options envisagées, si elles sont connues"
+    decided_by:
+      description: "Qui décide (rôle ou instance)"
+
+definition-of-done:
+  name: "Definition of Done"
+  summary: "Rédiger la Definition of Done de l’équipe : le niveau de qualité que chaque incrément doit atteindre pour être considéré comme terminé."
+  purpose: "Donner au mot « terminé » le même sens pour tous, afin que les incréments soient réellement livrables et que la dette qualité ne s’accumule pas en silence."
+  method: "Definition of Done orientée incrément livrable"
+  principles:
+  - "Un élément est terminé lorsqu’il est livrable, pas seulement codé"
+  - "Les critères couvrent le code, les tests, la documentation, la qualité non fonctionnelle et l’acceptation produit"
+  - "Chaque critère est vérifiable par n’importe quel membre de l’équipe"
+  - "Renforcer la définition au fil du temps ; ne jamais l’assouplir pour tenir une échéance"
+  steps:
+    done: "Rédaction des critères de terminé"
+  criteria:
+    quality.verifiability: "Chaque critère est-il vérifiable par n’importe quel membre de l’équipe ?"
+    quality.releasability: "Respecter la définition rend-il un incrément livrable ?"
+    quality.fit: "Les critères reflètent-ils les standards de l’équipe et les problèmes récurrents présents dans le contexte ?"
+  checks:
+  - "La section Definition of Done est présente"
+  inputs:
+    team_context:
+      description: "L’équipe, son processus de mise en production et ses problèmes de qualité récurrents"
+    quality_standards:
+      description: "Les standards connus (revue de code, couverture de tests, accessibilité, sécurité)"
+
+definition-of-ready:
+  name: "Definition of Ready"
+  summary: "Rédiger la Definition of Ready de l’équipe : les conditions qu’un élément du backlog doit remplir avant d’entrer dans un sprint."
+  purpose: "Donner à l’équipe un filtre commun et léger qui tient hors du sprint le travail flou ou bloqué. Une bonne Definition of Ready est courte, partagée et adaptée à l’équipe, pas une checklist\
+    \ bureaucratique."
+  method: "Definition of Ready allégée"
+  principles:
+  - "Les critères sont binaires et vérifiables pendant l’affinage"
+  - "Rester court (6 à 10 critères) et centré sur les problèmes récurrents de l’équipe"
+  - "La Definition of Ready guide la discussion ; ce n’est pas un point de passage qui bloque un travail à forte valeur"
+  - "La revoir régulièrement en rétrospective"
+  steps:
+    purpose: "Clarification de l’objectif"
+    ready: "Rédaction des critères de prêt"
+  criteria:
+    quality.checkability: "Chaque critère est-il binaire et vérifiable pendant l’affinage ?"
+    quality.fit: "Les critères répondent-ils aux problèmes récurrents de l’équipe plutôt qu’à une liste générique ?"
+    quality.lightness: "La liste est-elle assez courte pour être utilisée en pratique ?"
+  checks:
+  - "L’objectif et les critères de prêt sont présents"
+  inputs:
+    team_context:
+      description: "L’équipe, ses façons de travailler et ses problèmes récurrents (par exemple des stories bloquées en cours de sprint)"
+
+dependency-analysis:
+  name: "Analyse des dépendances"
+  summary: "Cartographier les dépendances d’un plan, identifier le chemin critique et définir les actions pour les débloquer."
+  purpose: "Mettre au jour ce dont l’équipe dépend (autres équipes, systèmes, fournisseurs, décisions ou données) avant que cela ne bloque la livraison. Connaître le chemin critique montre où les retards\
+    \ coûtent le plus cher."
+  method: "Cartographie des dépendances et chemin critique"
+  principles:
+  - "Nommer les deux parties de chaque dépendance ainsi qu’un responsable"
+  - "Classer les dépendances par type : équipe, système, fournisseur, décision, données"
+  - "Le chemin critique est la plus longue chaîne de travaux dépendants ; le protéger en priorité"
+  - "Chaque dépendance ouverte reçoit une action, une échéance ou une escalade"
+  steps:
+    inventory: "Inventaire des dépendances"
+    critical_path: "Identification du chemin critique"
+    mitigation: "Évaluation des risques et actions"
+  criteria:
+    quality.completeness: "Les dépendances significatives sont-elles identifiées avec leur type, leur fournisseur et leur statut ?"
+    quality.critical_path: "Le chemin critique est-il identifié et expliqué ?"
+    quality.actionability: "Chaque dépendance ouverte a-t-elle une action ou une escalade ?"
+  checks:
+  - "Les sections essentielles de l’analyse des dépendances sont présentes"
+  - "Les dépendances citent le contexte"
+  inputs:
+    scope:
+      description: "Le plan, la release, l’epic ou le sprint à analyser, s’il ne ressort pas clairement du contexte"
 
 design-brief:
   name: "Brief de design"
   summary: "Cadrer un travail de design : problème, utilisateurs, objectifs, contraintes, principes, livrables et mesures de succès."
-
-usability-test-plan:
-  name: "Plan de test utilisateur"
-  summary: "Planifier un test d’utilisabilité : questions de recherche, participants, tâches, indicateurs, script et logistique."
-
-ux-writing:
-  name: "UX writing"
-  summary: "Rédiger les textes d’interface : libellés, messages, états vides et d’erreur, avec voix, ton et terminologie."
+  purpose: "Donner aux designers et aux parties prenantes un point de départ commun, pour que le travail de design résolve le bon problème."
+  method: "Brief de design"
+  principles:
+  - "Le problème avant la solution"
+  - "Nommer les utilisateurs et leur contexte d’usage"
+  - "Les contraintes incluent l’accessibilité et la marque"
+  - "Le succès est mesurable"
+  steps:
+    problem: "Cadrage du problème"
+    goals: "Objectifs et contraintes"
+    plan: "Définition des livrables"
+  criteria:
+    quality.problem: "Le problème est-il formulé du point de vue de l’utilisateur ?"
+    quality.measurable: "Les mesures de succès sont-elles mesurables ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    subject:
+      description: "Ce qui doit être conçu"
+      question: "Que faut-il concevoir, et pour qui ?"
 
 design-review:
   name: "Revue de design"
   summary: "Revoir un design avec les heuristiques d’utilisabilité et des contrôles d’accessibilité, et recommander des changements priorisés."
+  purpose: "Repérer tôt les problèmes d’utilisabilité et d’accessibilité, quand ils sont encore peu coûteux à corriger."
+  method: "Évaluation heuristique + WCAG 2.2 AA"
+  principles:
+  - "Appliquer les 10 heuristiques de Nielsen"
+  - "Vérifier la conformité WCAG 2.2 AA (contraste, focus, libellés, clavier)"
+  - "Évaluer la gravité"
+  - "Recommander, pas seulement critiquer"
+  steps:
+    summary: "Évaluation du design"
+    issues: "Identification des problèmes"
+    recs: "Recommandations de changements"
+  criteria:
+    quality.evidence: "Chaque problème est-il localisé et justifié ?"
+    quality.a11y: "L’accessibilité est-elle vérifiée ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    design:
+      description: "Le design, les écrans ou le parcours à revoir"
+      question: "Quel design ou quel parcours faut-il revoir ?"
+
+effort-estimation:
+  name: "Estimation de charge"
+  summary: "Découper et estimer le travail avec des estimations à trois points, hypothèses, risques et niveau de confiance."
+  purpose: "Donner aux parties prenantes une fourchette honnête plutôt qu’un chiffre unique, avec les hypothèses qui la sous-tendent."
+  method: "Estimation à trois points (PERT)"
+  principles:
+  - "Estimer des fourchettes (optimiste, probable, pessimiste)"
+  - "Découper le travail jusqu’à ce que les éléments soient estimables"
+  - "Expliciter les hypothèses"
+  - "Indiquer honnêtement le niveau de confiance"
+  steps:
+    summary: "Cadrage de l’estimation"
+    breakdown: "Découpage du travail"
+    total: "Total et niveau de confiance"
+  criteria:
+    quality.ranges: "Les estimations sont-elles des fourchettes assorties d’hypothèses explicites ?"
+    quality.breakdown: "Le travail est-il suffisamment découpé pour être estimable ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    work:
+      description: "Le travail à estimer"
+      question: "Quel travail faut-il estimer (fonctionnalité, epic, projet) ?"
+
+epic-definition:
+  name: "Définition d’epic"
+  summary: "Définir un epic comme un incrément de valeur livrable, avec son périmètre, ses user stories candidates, ses indicateurs de succès, ses dépendances et ses risques."
+  purpose: "Donner à l’équipe une unité de valeur claire et délimitée à planifier et à livrer. Un epic bien défini indique pourquoi il compte, où il s’arrête et comment son succès sera mesuré, avant d’être\
+    \ découpé en stories."
+  method: "Epic découpé par la valeur"
+  principles:
+  - "Un epic apporte une valeur visible par l’utilisateur et peut être livré seul"
+  - "Les limites du périmètre, inclus et exclu, sont explicites"
+  - "Les stories candidates sont des tranches verticales conformes à INVEST"
+  - "Le succès se mesure aux résultats obtenus, pas à l’achèvement"
+  steps:
+    framing: "Cadrage de l’epic"
+    scope: "Délimitation du périmètre"
+    stories: "Rédaction des stories candidates"
+    delivery: "Évaluation des indicateurs, dépendances et risques"
+  criteria:
+    quality.value: "L’epic énonce-t-il une valeur utilisateur claire et un résultat mesurable ?"
+    quality.boundaries: "Les limites du périmètre inclus et exclu sont-elles explicites ?"
+    quality.story_quality: "Les stories candidates sont-elles des tranches verticales rattachées à l’epic ?"
+  checks:
+  - "Les sections essentielles de l’epic sont présentes"
+  - "L’epic s’appuie sur un contexte cité lorsqu’un contexte a été fourni"
+  inputs:
+    epic:
+      description: "Ce que l’epic doit livrer"
+      question: "Que doit livrer l’epic, et pour quels utilisateurs ?"
+    initiative:
+      description: "L’initiative ou l’objectif parent, s’il est connu"
+
+executive-summary:
+  name: "Synthèse exécutive"
+  summary: "Condenser un sujet, un document ou un projet en une synthèse prête pour la décision, destinée à la direction."
+  purpose: "Donner à la direction, sur une seule page, ce dont elle a besoin pour comprendre la situation et décider. La synthèse commence par la réponse, l’étaye par quelques points clés et indique les\
+    \ décisions attendues."
+  method: "Principe de la pyramide (réponse d’abord, SCQA)"
+  principles:
+  - "Commencer par la réponse ou la recommandation, puis l’étayer"
+  - "Trois à cinq points clés, regroupés et sans recoupement"
+  - "Chiffrer lorsque les éléments le permettent et éviter le jargon"
+  - "Expliciter les décisions attendues, avec options et échéance"
+  steps:
+    synthesis: "Synthèse de la situation"
+    key_points: "Sélection des points clés"
+    decisions: "Cadrage des décisions et des risques"
+    recommendation: "Rédaction de la recommandation"
+  criteria:
+    quality.answer_first: "La synthèse commence-t-elle par la réponse et l’étaye-t-elle par quelques points clés ?"
+    quality.decision_ready: "Les décisions attendues sont-elles explicites, avec options et conséquences ?"
+    quality.grounding: "Les points clés s’appuient-ils sur un contexte cité ?"
+  checks:
+  - "Les sections essentielles de la synthèse exécutive sont présentes"
+  - "Les points clés citent le contexte"
+  - "La synthèse tient sur une page"
+  inputs:
+    topic:
+      description: "Le sujet, le document ou le projet à synthétiser"
+    audience:
+      description: "L’audience de direction (par exemple comité exécutif, conseil d’administration)"
+    decision:
+      description: "La décision attendue de l’audience, le cas échéant"
+
+experiment-analysis:
+  name: "Analyse d’expérimentation"
+  summary: "Analyser les résultats d’une expérimentation au regard de l’hypothèse et de la règle de décision fixées à l’avance, et en tirer une décision."
+  purpose: "Tirer des conclusions honnêtes d’une expérimentation : ce qui s’est passé, le degré de confiance possible et ce que l’on décide. Comparer les résultats à l’hypothèse et à la règle de décision\
+    \ initiales évite les justifications a posteriori."
+  method: "Restitution d’expérimentation pré-enregistrée"
+  principles:
+  - "Comparer les résultats à l’hypothèse et à la règle de décision fixées avant le test"
+  - "Indiquer la taille d’effet avec son incertitude (intervalle de confiance ou significativité) et les tailles d’échantillon"
+  - "Vérifier la validité : déséquilibre de répartition des échantillons, effets de nouveauté, problèmes d’instrumentation, consultation prématurée des résultats"
+  - "Distinguer ce qui a été observé de son interprétation"
+  steps:
+    setup: "Rappel du dispositif"
+    results: "Présentation des résultats"
+    validity: "Vérification de la validité"
+    insights: "Enseignements"
+    decision: "Décision et prochaines étapes"
+  criteria:
+    quality.grounding: "Tous les chiffres présentés proviennent-ils des résultats cités, sans rien inventer ?"
+    quality.rigor: "L’incertitude, les menaces sur la validité et la règle de décision fixée à l’avance sont-elles traitées ?"
+    quality.decision: "L’analyse aboutit-elle à une décision claire et à des prochaines étapes ?"
+  checks:
+  - "Les sections essentielles de l’analyse d’expérimentation sont présentes"
+  - "Les résultats citent leur source de données"
+  inputs:
+    experiment:
+      description: "L’expérimentation à analyser, si elle ne figure pas dans le contexte"
+    results:
+      description: "Les données de résultats, si elles ne figurent pas dans le contexte"
+
+experiment-definition:
+  name: "Définition d’expérimentation"
+  summary: "Concevoir une expérimentation qui teste une hypothèse, avec méthode, indicateurs, seuil de succès et règle de décision fixés à l’avance."
+  purpose: "Fiabiliser l’apprentissage et garder des décisions honnêtes en fixant, avant le lancement, ce qui est testé, comment, et quel résultat change le plan. On évite ainsi les expérimentations qui\
+    \ ne peuvent pas échouer ou dont les résultats sont réinterprétés après coup."
+  method: "Expérimentation produit pré-enregistrée"
+  principles:
+  - "Tester l’hypothèse la plus risquée avec l’expérimentation la moins coûteuse capable de produire un signal fiable"
+  - "Fixer l’indicateur principal, les garde-fous, le seuil et la durée avant de commencer"
+  - "Décider à l’avance ce que chaque résultat possible implique pour la roadmap"
+  - "Respecter les utilisateurs : consentement éclairé, aucun dark pattern, exposition réversible"
+  steps:
+    hypothesis: "Reformulation de l’hypothèse"
+    design: "Conception de l’expérimentation"
+    metrics: "Définition des indicateurs et des risques"
+    decision_rule: "Définition de la règle de décision"
+  criteria:
+    quality.rigor: "L’indicateur, le seuil, la durée et la règle de décision sont-ils fixés avant le lancement ?"
+    quality.method_fit: "La méthode est-elle proportionnée à l’hypothèse et au trafic disponible ?"
+    quality.ethics: "Les risques pour les utilisateurs et les garde-fous sont-ils traités ?"
+  checks:
+  - "Les sections essentielles de l’expérimentation sont présentes"
+  - "L’hypothèse ou les valeurs de référence citent le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    hypothesis:
+      description: "L’hypothèse ou le présupposé à tester"
+      question: "Quelle hypothèse ou quel présupposé l’expérimentation doit-elle tester ?"
+    constraints:
+      description: "Les limites de trafic, de temps, de budget ou techniques"
+
+feedback-synthesis:
+  name: "Synthèse des retours utilisateurs"
+  summary: "Synthétiser les retours utilisateurs en thèmes, avec fréquence et gravité, verbatims représentatifs et opportunités produit."
+  purpose: "Transformer des retours dispersés (entretiens, tickets, avis, enquêtes) en quelques thèmes étayés sur lesquels l’équipe peut agir. La synthèse distingue les tendances récurrentes des anecdotes\
+    \ les plus bruyantes."
+  method: "Analyse thématique (cartographie par affinités)"
+  principles:
+  - "Coder les retours en thèmes de manière ascendante avant d’interpréter"
+  - "Indiquer la fréquence d’apparition d’un thème, ainsi que les sources et segments concernés"
+  - "Garder des verbatims fidèles au sens et anonymisés"
+  - "Reformuler les thèmes en opportunités (besoins), pas en demandes de fonctionnalités"
+  steps:
+    corpus: "Revue du corpus de retours"
+    themes: "Regroupement en thèmes"
+    quotes: "Sélection des verbatims représentatifs"
+    opportunities: "Opportunités et prochaines étapes"
+  criteria:
+    quality.evidence: "Chaque thème s’appuie-t-il sur des retours cités, avec une fréquence honnête ?"
+    quality.insightfulness: "Les thèmes révèlent-ils des besoins sous-jacents plutôt que de reformuler des demandes ?"
+    quality.actionability: "Les opportunités et les prochaines étapes sont-elles concrètes ?"
+  checks:
+  - "Les sections essentielles de la synthèse sont présentes"
+  - "Les thèmes citent les retours dont ils proviennent"
+  - "Les verbatims et les thèmes ne contiennent aucune donnée personnelle"
+  inputs:
+    sources:
+      description: "Les sources de retours ou la période à synthétiser"
+    question:
+      description: "Une question précise à laquelle la synthèse doit répondre"
+
+functional-requirements:
+  name: "Exigences fonctionnelles"
+  summary: "Spécifier ce que le système doit faire sous forme d’exigences fonctionnelles priorisées et testables, avec contraintes, hypothèses et questions ouvertes."
+  purpose: "Fournir au développement et à la QA une liste sans ambiguïté des comportements attendus, traçable jusqu’aux besoins utilisateurs et aux décisions. Expliciter contraintes, hypothèses et questions\
+    \ évite le périmètre caché et les mauvaises surprises tardives."
+  method: "Exigences fonctionnelles testables"
+  principles:
+  - "Chaque exigence décrit un seul comportement observable (« Le système doit… »)"
+  - "Les exigences décrivent le quoi, pas le comment"
+  - "Chaque exigence est priorisée (MoSCoW) et assortie d’un critère d’acceptation"
+  - "Les exigences sont rattachées aux besoins utilisateurs, aux stories ou aux décisions"
+  steps:
+    context: "Synthèse du contexte"
+    functional: "Rédaction des exigences fonctionnelles"
+    bounds: "Contraintes, hypothèses et questions"
+  criteria:
+    quality.testability: "Chaque exigence est-elle un comportement unique et vérifiable, avec un critère d’acceptation ?"
+    quality.traceability: "Les exigences sont-elles rattachées à des besoins, stories ou décisions cités ?"
+    quality.unambiguity: "La formulation est-elle exempte de termes vagues et de détails d’implémentation ?"
+  checks:
+  - "Les sections essentielles des exigences fonctionnelles sont présentes"
+  - "Les exigences citent leur source lorsqu’un contexte a été fourni"
+  inputs:
+    feature:
+      description: "La fonctionnalité ou le périmètre à spécifier, s’il ne figure pas dans le contexte"
+    users:
+      description: "Les rôles utilisateurs concernés"
+    constraints:
+      description: "Les contraintes connues (technologie, réglementation, intégrations, échéance)"
+
+hypothesis-generation:
+  name: "Formulation d’hypothèses"
+  summary: "Transformer idées et présupposés en hypothèses réfutables, avec un signal de succès clair et mesurable."
+  purpose: "Rendre explicites et testables les convictions qui sous-tendent une idée produit, pour que l’équipe apprenne avant de construire. Chaque hypothèse énonce ce que l’on croit, l’effet attendu\
+    \ et la façon de le vérifier."
+  method: "Développement guidé par les hypothèses"
+  principles:
+  - "Chaque hypothèse est réfutable : un résultat attendu et un signal mesurable"
+  - "Cartographier les présupposés et tester d’abord les plus risqués (forte importance, peu de preuves)"
+  - "Couvrir la désirabilité, la viabilité, la faisabilité et l’utilisabilité"
+  - "Une hypothèse, un signal principal"
+  steps:
+    assumptions: "Identification des présupposés"
+    hypotheses: "Rédaction d’hypothèses testables"
+  criteria:
+    quality.falsifiability: "Chaque hypothèse est-elle réfutable, avec un signal mesurable et un seuil ?"
+    quality.risk_focus: "Les présupposés les plus risqués sont-ils traités en priorité ?"
+    quality.coverage: "Les présupposés couvrent-ils la désirabilité, la viabilité, la faisabilité et l’utilisabilité ?"
+  checks:
+  - "Le contexte, les hypothèses et les présupposés sont présents"
+  - "Les éléments existants sont cités lorsqu’un contexte a été fourni"
+  inputs:
+    idea:
+      description: "L’idée, la solution ou l’initiative à examiner"
+    outcome:
+      description: "Le résultat que l’idée doit influencer"
+
+impact-effort-prioritization:
+  name: "Priorisation impact / effort"
+  summary: "Placer les éléments sur une matrice impact/effort pour repérer les quick wins, les paris majeurs, les tâches d’appoint et les gouffres à ressources."
+  purpose: "Faire un premier tri rapide d’une longue liste d’idées lorsqu’on ne dispose pas d’estimations précises. La matrice fait ressortir les quick wins et le travail coûteux à faible valeur à abandonner."
+  method: "Matrice impact / effort (2×2)"
+  principles:
+  - "Évaluer l’impact au regard d’un seul objectif explicite"
+  - "Noter l’impact et l’effort sur la même échelle de 1 à 5, relativement aux autres éléments"
+  - "Les quick wins d’abord ; les paris majeurs demandent une validation ; les tâches d’appoint quand la capacité le permet ; les gouffres à ressources sont abandonnés"
+  - "Considérer la matrice comme un premier tri, pas comme un classement définitif"
+  steps:
+    method: "Choix de l’objectif et de l’échelle"
+    placing: "Placement des éléments sur la matrice"
+    assumptions: "Hypothèses de notation"
+    recommendation: "Recommandation des prochaines actions"
+  criteria:
+    quality.method_rigor: "Les quadrants sont-ils cohérents avec les notes d’impact et d’effort ?"
+    quality.grounding: "Les évaluations sont-elles justifiées par des éléments cités ou des hypothèses explicites ?"
+    quality.actionability: "La recommandation indique-t-elle quoi faire maintenant, quoi approfondir et quoi abandonner ?"
+  checks:
+  - "La méthode, les éléments classés et la recommandation sont présents"
+  - "Les estimations citent le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    items:
+      description: "Les idées ou éléments à placer sur la matrice, s’ils ne figurent pas dans le contexte"
+    objective:
+      description: "L’objectif au regard duquel l’impact est évalué"
+
+incident-postmortem:
+  name: "Post-mortem d’incident"
+  summary: "Rédiger un post-mortem sans recherche de coupable : impact, chronologie, causes racines et actions correctives."
+  purpose: "Tirer les leçons des incidents sans chercher de coupable et éviter qu’ils se reproduisent grâce à des actions concrètes et portées par un responsable."
+  method: "Post-mortem sans recherche de coupable (SRE)"
+  principles:
+  - "Sans recherche de coupable : se concentrer sur les systèmes et les processus, pas sur les personnes"
+  - "Distinguer détection, atténuation et résolution"
+  - "Chaque action est concrète, portée par un responsable et suivie"
+  steps:
+    impact: "Évaluation de l’impact"
+    timeline: "Reconstitution de la chronologie"
+    causes: "Identification des causes racines"
+    actions: "Planification des actions correctives"
+  criteria:
+    quality.blameless: "La revue est-elle exempte de recherche de coupable ?"
+    quality.actions: "Les actions sont-elles concrètes et portées par un responsable ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    incident:
+      description: "L’incident à analyser"
+      question: "Quel incident faut-il analyser (ce qui s’est passé, et quand) ?"
+
+initiative-definition:
+  name: "Définition d’initiative"
+  summary: "Cadrer une initiative : le problème traité, les objectifs servis, les indicateurs de succès, les jalons, les dépendances et les risques."
+  purpose: "Expliciter un pari avant d’y engager des ressources. Une initiative bien définie dit pourquoi elle compte, comment son succès sera mesuré et de quoi elle dépend, afin de pouvoir la prioriser\
+    \ et la suivre en toute transparence."
+  method: "Brief d’initiative orienté résultats"
+  principles:
+  - "Chaque initiative sert un objectif explicite et énonce l’impact attendu"
+  - "Le périmètre est décrit en capacités et en limites, pas en tâches"
+  - "Les jalons sont des points de passage de valeur ou d’apprentissage, pas seulement des dates"
+  - "Les dépendances et les risques sont mis en évidence avant tout engagement"
+  steps:
+    framing: "Cadrage du problème"
+    outcomes: "Lien avec les objectifs et indicateurs de succès"
+    scope: "Définition du périmètre"
+    plan: "Planification des jalons, dépendances et risques"
+  criteria:
+    quality.outcome_link: "L’initiative est-elle clairement reliée à des objectifs, avec des indicateurs de succès mesurables ?"
+    quality.scope_clarity: "Le périmètre est-il borné et décrit en capacités ?"
+    quality.risk_awareness: "Les dépendances et les risques sont-ils identifiés, avec des mesures d’atténuation ?"
+  checks:
+  - "Les sections essentielles de l’initiative sont présentes"
+  - "L’initiative s’appuie sur le contexte cité lorsqu’un contexte a été fourni"
+  inputs:
+    initiative:
+      description: "L’initiative à définir"
+      question: "Quelle initiative dois-je définir : de quoi s’agit-il et quel résultat doit-elle faire évoluer ?"
+    objective:
+      description: "L’objectif ou l’OKR qu’elle sert, s’il est connu"
+    constraints:
+      description: "Contraintes connues (échéance, budget, équipe, technologie)"
+
+interview-guide:
+  name: "Guide d’entretien"
+  summary: "Rédiger une trame d’entretien de discovery avec mise en confiance, questions ouvertes fondées sur des récits, relances et conclusion."
+  purpose: "Aider les intervieweurs à recueillir de vrais récits de comportements passés plutôt que des opinions et des réponses hypothétiques. Un bon guide rend les sessions comparables tout en laissant\
+    \ la place de suivre ce que disent les participants."
+  method: "Entretien de discovery fondé sur des récits"
+  principles:
+  - "Interroger sur des comportements passés précis, pas sur des opinions ou des intentions futures"
+  - "Poser des questions ouvertes et non orientées, et laisser travailler le silence"
+  - "Suivre le récit du participant avec des relances avant de passer à la suite"
+  - "Ne jamais présenter la solution pendant un entretien de discovery"
+  steps:
+    opening: "Introduction et mise en confiance"
+    core: "Rédaction des questions principales"
+    probes: "Ajout des relances"
+    closing: "Conclusion et consignes pour l’intervieweur"
+  criteria:
+    quality.non_leading: "Les questions sont-elles ouvertes, non orientées et centrées sur les comportements passés ?"
+    quality.coverage: "Les questions principales couvrent-elles les questions de recherche ou les hypothèses ?"
+    quality.ethics: "L’introduction couvre-t-elle l’objectif, le consentement et l’usage des données ?"
+  checks:
+  - "Les sections essentielles du guide d’entretien sont présentes"
+  - "Aucune donnée personnelle dans le guide"
+  inputs:
+    research_goal:
+      description: "Ce que les entretiens doivent permettre d’apprendre"
+      question: "Que voulez-vous apprendre de ces entretiens, et qui allez-vous interroger ?"
+    participant_profile:
+      description: "Les personnes interrogées (rôle, segment, comportement)"
+    duration:
+      description: "Durée de la session (par ex. 45 minutes)"
+
+jobs-to-be-done:
+  name: "Jobs To Be Done"
+  summary: "Identifier les jobs pour lesquels les clients « recrutent » le produit, leurs résultats attendus, leurs moments de difficulté et les alternatives actuelles."
+  purpose: "Comprendre pourquoi les clients adoptent ou abandonnent une solution en se concentrant sur le progrès qu’ils cherchent à accomplir dans une situation donnée. Les jobs et les résultats attendus\
+    \ offrent une base stable pour l’innovation et la priorisation, ce que ne permettent pas les listes de fonctionnalités."
+  method: "Jobs To Be Done (job stories et outcome-driven innovation)"
+  principles:
+  - "Un job est le progrès qu’un client recherche dans une circonstance précise, indépendamment de toute solution"
+  - "Couvrir les dimensions fonctionnelle, émotionnelle et sociale"
+  - "Les résultats attendus sont les critères mesurables avec lesquels les clients jugent si le job est bien accompli"
+  - "Les moments de difficulté et les alternatives actuelles révèlent où se positionner face à la concurrence"
+  steps:
+    context: "Mise en contexte"
+    jobs: "Identification des jobs"
+    outcomes: "Définition des résultats attendus"
+    struggles: "Cartographie des difficultés et des alternatives"
+  criteria:
+    quality.solution_agnostic: "Les jobs sont-ils exprimés comme un progrès dans une situation, indépendamment de toute solution ?"
+    quality.evidence: "Les jobs et les difficultés s’appuient-ils sur des recherches citées ?"
+    quality.outcomes: "Les résultats attendus sont-ils mesurables et reliés aux jobs ?"
+  checks:
+  - "Les sections essentielles du JTBD sont présentes"
+  - "Les jobs citent des recherches lorsqu’un contexte a été fourni"
+  inputs:
+    segment:
+      description: "Segment de clientèle ou persona à analyser"
+    domain:
+      description: "L’activité ou le marché à analyser"
+
+kano-analysis:
+  name: "Analyse de Kano"
+  summary: "Classer les fonctionnalités selon leur effet sur la satisfaction client : obligatoires, de performance, attractives, indifférentes ou inverses."
+  purpose: "Comprendre quelles fonctionnalités les clients considèrent comme acquises, lesquelles augmentent la satisfaction proportionnellement et lesquelles les enchantent, afin que l’équipe investisse\
+    \ dans le bon équilibre. Kano évite de surinvestir dans les fondamentaux tout en négligeant ce qui différencie."
+  method: "Modèle de Kano"
+  principles:
+  - "Obligatoire : attendue ; son absence crée de l’insatisfaction, sa présence apporte peu"
+  - "Performance : la satisfaction croît avec la qualité de sa réalisation"
+  - "Attractive : source d’enchantement inattendue, dont l’absence ne crée aucune insatisfaction"
+  - "Les fonctionnalités indifférentes et inverses ne justifient aucun investissement, voire un investissement négatif"
+  - "Les catégories évoluent avec le temps : l’attractive d’aujourd’hui devient l’obligatoire de demain"
+  steps:
+    evidence: "Revue des données disponibles"
+    classify: "Classement des fonctionnalités selon Kano"
+    assumptions: "Consignation des hypothèses de classement"
+    recommendation: "Recommandation de la répartition des investissements"
+  criteria:
+    quality.method_rigor: "Les catégories de Kano sont-elles correctement appliquées, avec des coefficients calculés lorsque les données existent ?"
+    quality.grounding: "Les classements s’appuient-ils sur des recherches citées ou sont-ils signalés comme hypothèses ?"
+    quality.actionability: "La recommandation traduit-elle les catégories en une répartition des investissements ?"
+  checks:
+  - "La méthode, les éléments classés et la recommandation sont présents"
+  - "Les estimations citent le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    features:
+      description: "Les fonctionnalités à classer, si elles ne sont pas dans le contexte"
+    survey_data:
+      description: "Résultats d’enquête Kano (réponses fonctionnelles / dysfonctionnelles), s’ils sont disponibles"
+
+moscow-prioritization:
+  name: "Priorisation MoSCoW"
+  summary: "Classer exigences ou fonctionnalités en Must, Should, Could et Won’t have pour une release ou une période donnée."
+  purpose: "S’accorder sur ce dont une release a absolument besoin et sur ce qui peut varier, afin de négocier le périmètre sans mettre l’échéance en danger. MoSCoW impose une liste explicite de ce qui\
+    \ ne sera « pas fait cette fois »."
+  method: "MoSCoW (DSDM)"
+  principles:
+  - "Must have : sans cela, la release n’est pas viable, pas légale, pas sûre ou sans intérêt"
+  - "Should have : important, mais un contournement existe ; Could have : souhaitable si le temps le permet"
+  - "Won’t have this time : explicitement hors de la période, pas rejeté définitivement"
+  - "Garder les Must have bien en deçà de l’effort total (environ 60 %) pour conserver une marge"
+  steps:
+    timebox: "Définition de la période et des critères"
+    classify: "Classement des éléments selon MoSCoW"
+    assumptions: "Consignation des hypothèses de classement"
+    balance: "Vérification de l’équilibre du périmètre"
+  criteria:
+    quality.honest_musts: "Les Must have sont-ils limités à ce qui rend la release viable ?"
+    quality.grounding: "Les classements sont-ils justifiés par des objectifs, contraintes ou décisions cités ?"
+    quality.actionability: "La recommandation propose-t-elle un périmètre sur lequel s’engager, avec une marge ?"
+  checks:
+  - "La méthode, les éléments classés et la recommandation sont présents"
+  - "Les estimations citent le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    items:
+      description: "Les exigences, fonctionnalités ou stories à classer, si elles ne sont pas dans le contexte"
+    timebox:
+      description: "La release ou la période à laquelle s’applique le classement"
+
+non-functional-requirements:
+  name: "Exigences non fonctionnelles"
+  summary: "Définir des exigences de qualité mesurables (performance, sécurité, confidentialité, accessibilité, fiabilité) pour une fonctionnalité ou un système."
+  purpose: "Rendre les attributs de qualité explicites et mesurables avant que les choix de conception et de livraison ne les figent. Les qualités vagues (« rapide », « sécurisé ») deviennent des cibles\
+    \ testables, exploitables par l’architecture et la QA."
+  method: "Scénarios d’attributs de qualité mesurables"
+  principles:
+  - "Chaque exigence est mesurable : indicateur, seuil et condition (par ex. p95 < 300 ms à 200 requêtes/s)"
+  - "Couvrir les caractéristiques de qualité pertinentes pour le produit, pas toutes par défaut"
+  - "Déduire les cibles des SLA, politiques et normes présentes dans le contexte ; signaler celles qui sont proposées"
+  - "Préciser comment chaque exigence sera vérifiée"
+  steps:
+    quality: "Spécification des exigences de qualité"
+  criteria:
+    quality.measurability: "Chaque exigence est-elle mesurable, avec un seuil et des conditions ?"
+    quality.relevance: "Les catégories de qualité retenues sont-elles pertinentes pour le périmètre ?"
+    quality.verifiability: "Chaque exigence précise-t-elle comment elle sera vérifiée ?"
+  checks:
+  - "La section des exigences non fonctionnelles est présente"
+  inputs:
+    scope:
+      description: "La fonctionnalité ou le système concerné par les exigences, s’il n’est pas dans le contexte"
+    quality_targets:
+      description: "SLA, normes ou objectifs de qualité connus"
+
+north-star-metric:
+  name: "North Star Metric"
+  summary: "Identifier l’indicateur unique qui reflète le mieux la valeur perçue par les clients, avec ses indicateurs d’entrée et ses garde-fous."
+  purpose: "Donner à toute l’équipe un indicateur unique qui reflète la valeur délivrée aux clients et conduit à des résultats business durables. Les indicateurs d’entrée le rendent actionnable par les\
+    \ équipes ; les garde-fous évitent de l’optimiser au détriment des utilisateurs ou du business."
+  method: "North Star Framework"
+  principles:
+  - "La North Star exprime la valeur délivrée aux clients et mène au chiffre d’affaires, sans être le chiffre d’affaires"
+  - "Elle est mesurable, comprise par tous et sensible au travail de l’équipe"
+  - "La décomposer en 3 à 5 indicateurs d’entrée que les équipes peuvent influencer directement"
+  - "L’associer à des indicateurs garde-fous qui ne doivent pas se dégrader"
+  steps:
+    value_moment: "Identification du moment de valeur"
+    north_star: "Définition de la North Star Metric"
+    inputs: "Décomposition en indicateurs d’entrée"
+    guardrails: "Définition des garde-fous et des risques de mesure"
+  criteria:
+    quality.value_focus: "La North Star reflète-t-elle la valeur délivrée aux clients plutôt qu’un indicateur de vanité ou le chiffre d’affaires ?"
+    quality.actionability: "Les indicateurs d’entrée décomposent-ils la North Star en leviers que les équipes peuvent actionner ?"
+    quality.precision: "Les définitions des indicateurs sont-elles précises et les garde-fous pertinents ?"
+  checks:
+  - "La North Star, les indicateurs d’entrée et les garde-fous sont présents"
+  - "Le moment de valeur s’appuie sur le contexte cité lorsqu’un contexte a été fourni"
+  inputs:
+    product:
+      description: "Le produit ou le périmètre produit, s’il n’est pas évident d’après le contexte"
+    business_model:
+      description: "Comment le produit crée et capte de la valeur, si c’est connu"
+
+okr-definition:
+  name: "Définition des OKR"
+  summary: "Définir un ensemble ciblé d’OKR pour une équipe et une période, avec des résultats clés ambitieux et mesurables."
+  purpose: "Aider une équipe à s’engager sur quelques résultats pour la période et à s’accorder sur la manière de mesurer le succès. De bons OKR concentrent l’effort, rendent les progrès visibles et distinguent\
+    \ les résultats du travail prévu pour les atteindre."
+  method: "Objectives and Key Results (OKR)"
+  principles:
+  - "Trois objectifs au plus par équipe et par période, chacun qualitatif et inspirant"
+  - "Les résultats clés sont des résultats mesurables, pas des tâches ni des livrables"
+  - "Fixer des cibles ambitieuses et préciser si chaque résultat clé est un engagement ou une aspiration"
+  - "S’aligner sur les objectifs de niveau supérieur et consigner cet alignement"
+  steps:
+    alignment: "Revue des priorités et des résultats précédents"
+    objectives: "Rédaction des objectifs"
+    key_results: "Rédaction des résultats clés"
+    initiatives: "Liste des initiatives et des hypothèses"
+  criteria:
+    quality.outcome_focus: "Les résultats clés sont-ils des résultats mesurables plutôt que des tâches ou des livrables ?"
+    quality.focus: "Les objectifs sont-ils peu nombreux et clairement alignés sur les priorités de niveau supérieur ?"
+    quality.grounding: "Les valeurs de référence et les alignements s’appuient-ils sur le contexte cité, sans rien inventer ?"
+  checks:
+  - "Les objectifs et les résultats clés sont présents"
+  - "L’alignement ou les valeurs de référence citent le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    period:
+      description: "La période des OKR (par ex. le prochain trimestre)"
+    team:
+      description: "L’équipe ou le périmètre concerné par les OKR"
+    priorities:
+      description: "Les priorités de l’entreprise ou du produit sur lesquelles les OKR doivent s’aligner"
+
+opportunity-solution-tree:
+  name: "Arbre opportunités-solutions"
+  summary: "Relier un résultat visé aux opportunités client, aux solutions candidates et aux expérimentations qui les testent."
+  purpose: "Structurer la discovery autour d’un résultat unique pour que l’équipe compare des options au lieu de s’engager sur la première idée. L’arbre montre quelle opportunité chaque solution adresse\
+    \ et quelles hypothèses doivent être testées."
+  method: "Opportunity Solution Tree (Continuous Discovery)"
+  principles:
+  - "Partir d’un résultat produit unique et mesurable que l’équipe peut influencer"
+  - "Les opportunités sont des besoins, irritants ou envies des clients issus de la recherche, pas des solutions déguisées"
+  - "Comparer au moins trois solutions pour l’opportunité ciblée"
+  - "Tester les hypothèses les plus risquées derrière les solutions par de petites expérimentations"
+  steps:
+    outcome: "Définition du résultat visé"
+    tree: "Construction de l’arbre des opportunités"
+    assumptions: "Identification des hypothèses les plus risquées"
+  criteria:
+    quality.structure: "L’arbre est-il bien construit (résultat → opportunités → solutions → expérimentations) ?"
+    quality.opportunity_framing: "Les opportunités sont-elles des besoins clients fondés sur la recherche plutôt que des solutions ?"
+    quality.divergence: "Plusieurs solutions distinctes sont-elles comparées pour l’opportunité ciblée ?"
+  checks:
+  - "Le résultat, l’arbre et les hypothèses sont présents"
+  - "Les opportunités citent des recherches lorsqu’un contexte a été fourni"
+  inputs:
+    outcome:
+      description: "Le résultat produit à faire évoluer, idéalement un indicateur"
+    research:
+      description: "Les enseignements de recherche dont tirer les opportunités, s’ils ne sont pas dans le contexte"
+
+persona:
+  name: "Persona"
+  summary: "Construire un persona fondé sur des données probantes, décrivant les objectifs, frustrations, comportements et besoins d’un segment d’utilisateurs."
+  purpose: "Donner à l’équipe une image partagée et fondée sur la recherche des personnes pour qui elle conçoit. Les personas fondés sur des données aident à prioriser et à concevoir ; les personas inventés\
+    \ induisent en erreur, c’est pourquoi chaque attribut doit pouvoir être rattaché à la recherche."
+  method: "Persona comportemental fondé sur des données probantes"
+  principles:
+  - "Segmenter par objectifs et comportements, pas par données démographiques"
+  - "Chaque attribut se rattache à une donnée de recherche ; ceux qui ne sont pas validés sont signalés"
+  - "Décrire les besoins et les frustrations avec les mots de l’utilisateur"
+  - "Un persona par ensemble d’objectifs distinct"
+  steps:
+    profile: "Profil du segment"
+    goals: "Recueil des objectifs et des besoins"
+    pains: "Recueil des frustrations et des comportements"
+    evidence: "Documentation des verbatims et des sources"
+  criteria:
+    quality.evidence: "Chaque attribut est-il rattaché à une recherche citée ou signalé comme hypothèse ?"
+    quality.usefulness: "Le persona aiderait-il une équipe à prendre des décisions de conception et de priorisation ?"
+    quality.behavioural: "Le persona est-il défini par ses objectifs et ses comportements plutôt que par des données démographiques ?"
+  checks:
+  - "Les sections essentielles du persona sont présentes"
+  - "Les attributs citent des recherches lorsqu’un contexte a été fourni"
+  - "Aucune donnée personnelle identifiante"
+  inputs:
+    segment:
+      description: "Le segment d’utilisateurs à décrire"
+    research:
+      description: "Les notes ou sources de recherche à utiliser, si elles ne sont pas dans le contexte"
+
+prd:
+  name: "Document d’exigences produit (PRD)"
+  summary: "Transformer une idée ou une initiative en un PRD complet et structuré, sur lequel l’équipe technique peut s’appuyer pour développer."
+  purpose: "Expliciter le problème, les utilisateurs, les résultats attendus et le périmètre avant de construire, afin que le design et l’équipe technique partagent une source de vérité unique et que\
+    \ les arbitrages soient visibles."
+  method: "PRD orienté résultats"
+  principles:
+  - "Partir du problème et des utilisateurs, pas de la solution"
+  - "Chaque objectif est mesurable ; chaque exigence se rattache à un besoin utilisateur ou à une décision"
+  - "Expliciter les limites du périmètre et les non-objectifs"
+  - "Mettre en évidence hypothèses, risques et questions ouvertes au lieu de masquer l’incertitude"
+  steps:
+    framing: "Cadrage du problème et des utilisateurs"
+    outcomes: "Définition des objectifs et du périmètre"
+    requirements: "Rédaction des parcours et des exigences"
+    delivery: "Évaluation des dépendances, des risques et des indicateurs"
+    breakdown: "Découpage en epics et en stories"
+    open_items: "Liste des questions ouvertes et des décisions"
+  criteria:
+    quality.completeness: "Le PRD couvre-t-il le problème, les utilisateurs, les objectifs, le périmètre, les exigences, les indicateurs et les risques ?"
+    quality.traceability: "Les exigences se rattachent-elles à des besoins utilisateurs, des décisions ou du contexte cité ?"
+    quality.testability: "Les objectifs sont-ils mesurables et les critères d’acceptation testables ?"
+  checks:
+  - "Les sections essentielles du PRD sont présentes"
+  - "Au moins une affirmation s’appuie sur le contexte cité lorsqu’un contexte a été fourni"
+  - "Aucune donnée personnelle dans le PRD"
+  inputs:
+    idea:
+      description: "L’idée, la fonctionnalité ou l’initiative à spécifier"
+      question: "Quelle est l’idée, en quelques phrases : à qui s’adresse-t-elle et qu’est-ce qui doit changer pour ces personnes ?"
+    target_users:
+      description: "À qui s’adresse le produit, si c’est déjà connu"
+    constraints:
+      description: "Contraintes connues (échéance, budget, technologie, réglementation)"
+
+prfaq:
+  name: "PR/FAQ (Working Backwards)"
+  summary: "Rédiger un communiqué de presse et une FAQ à la manière d’Amazon, décrivant le produit du point de vue du client avant de le construire."
+  purpose: "Partir du client et remonter : si l’annonce de lancement n’est pas convaincante, le produit ne mérite pas encore d’être construit. La FAQ oblige à répondre en amont aux questions difficiles\
+    \ sur la faisabilité, le modèle économique et les risques."
+  method: "PR/FAQ Working Backwards"
+  principles:
+  - "Partir du client et de son problème, pas de la technologie"
+  - "Rédiger le communiqué de presse comme si le lancement avait lieu aujourd’hui, en langage simple et sans jargon"
+  - "La FAQ externe répond aux questions des clients ; la FAQ interne traite de la faisabilité, du modèle économique et des risques"
+  - "Si le bénéfice n’est pas convaincant sur le papier, itérer ou arrêter"
+  steps:
+    headline: "Rédaction du titre"
+    press_release: "Rédaction du communiqué de presse"
+    faqs: "Réponses aux FAQ clients et internes"
+  criteria:
+    quality.customer_focus: "Le communiqué de presse est-il rédigé du point de vue du client, avec un bénéfice précis et convaincant ?"
+    quality.hard_questions: "Les FAQ internes traitent-elles honnêtement de la faisabilité, du modèle économique et des risques ?"
+    quality.clarity: "Le langage est-il simple et sans jargon ?"
+  checks:
+  - "Les sections essentielles du PR/FAQ sont présentes"
+  - "Les réponses de la FAQ citent le contexte lorsqu’un contexte a été fourni"
+  - "Aucune donnée personnelle, y compris dans la citation client"
+  inputs:
+    idea:
+      description: "Le produit ou la fonctionnalité à décrire"
+      question: "Quel est le produit ou la fonctionnalité, et quel problème client résout-il ?"
+    target_customer:
+      description: "Le client auquel s’adresse le produit"
+    launch_horizon:
+      description: "Horizon de lancement visé, s’il est connu"
+
+problem-framing:
+  name: "Cadrage du problème"
+  summary: "Poser clairement un problème (qui est concerné, données probantes, impact et causes supposées) avant de discuter des solutions."
+  purpose: "Éviter que l’équipe ne se précipite sur des solutions en s’accordant d’abord sur le problème qui mérite d’être résolu. Un problème bien cadré distingue les faits des hypothèses et définit\
+    \ à quoi ressemblerait le succès."
+  method: "Cadrage centré sur le problème"
+  principles:
+  - "Décrire le problème sans sous-entendre de solution"
+  - "Distinguer les faits observés des hypothèses"
+  - "Quantifier l’impact et le coût de l’inaction lorsque les données le permettent"
+  - "Définir le succès comme un changement observable pour les utilisateurs concernés"
+  steps:
+    statement: "Énoncé du problème"
+    evidence: "Collecte des données et de l’impact"
+    causes: "Exploration des causes supposées"
+    unknowns: "Liste des hypothèses, des questions et des critères de succès"
+  criteria:
+    quality.solution_free: "Le problème est-il énoncé sans présupposer de solution ?"
+    quality.evidence: "Le problème est-il étayé par des données citées, distinctes des hypothèses ?"
+    quality.success_definition: "Le succès est-il décrit comme un changement observable pour les utilisateurs concernés ?"
+  checks:
+  - "Les sections essentielles du cadrage du problème sont présentes"
+  - "Les données citent le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    problem:
+      description: "Le problème ou la situation à cadrer"
+      question: "Quel problème ou quelle situation voulez-vous cadrer : que se passe-t-il, et pour qui ?"
+    evidence:
+      description: "Données, retours ou observations connus sur le problème"
+
+product-metrics:
+  name: "Plan d’indicateurs produit"
+  summary: "Définir les indicateurs qui montrent si un produit ou une fonctionnalité réussit, et l’instrumentation nécessaire pour les mesurer."
+  purpose: "Décider en amont comment le succès sera mesuré pour que l’équipe puisse apprendre après le lancement. Un plan d’indicateurs relie les objectifs à des indicateurs précis, des événements et\
+    \ des sources de données, et anticipe les problèmes de qualité des données."
+  method: "Objectifs → Signaux → Indicateurs (HEART)"
+  principles:
+  - "Partir des objectifs, puis des signaux qui traduisent le succès, puis des indicateurs"
+  - "Combiner indicateurs de résultat, indicateurs d’entrée avancés et garde-fous"
+  - "Définir précisément chaque indicateur : formule, population, fenêtre de temps, source de données"
+  - "Instrumenter avant le lancement pour disposer d’une valeur de référence"
+  steps:
+    goals: "Clarification des objectifs et des signaux"
+    metrics: "Définition des indicateurs"
+    instrumentation: "Planification de l’instrumentation"
+    risks: "Évaluation des risques liés aux données"
+  criteria:
+    quality.goal_link: "Les indicateurs découlent-ils d’objectifs et de signaux explicites ?"
+    quality.precision: "Les définitions des indicateurs sont-elles précises (formule, population, fenêtre, source) ?"
+    quality.instrumentability: "Les événements sont-ils assez concrets pour être implémentés, et les risques liés aux données sont-ils traités ?"
+  checks:
+  - "Les sections essentielles du plan d’indicateurs sont présentes"
+  - "Les objectifs citent ceux du contexte lorsqu’un contexte a été fourni"
+  - "Aucune donnée personnelle dans les événements ou les exemples"
+  inputs:
+    scope:
+      description: "Le produit ou la fonctionnalité à mesurer, s’il n’est pas dans le contexte"
+    objective:
+      description: "L’objectif ou le résultat que les indicateurs doivent refléter"
+
+product-principles:
+  name: "Principes produit"
+  summary: "Rédiger un petit ensemble de principes produit affirmés qui guident les décisions lorsque l’équipe fait face à des arbitrages."
+  purpose: "Formaliser ce qui, selon l’équipe, fait la qualité du produit, afin que les décisions restent cohérentes sans escalade. De bons principes sont affirmés, propres à ce produit et confrontables\
+    \ à des décisions réelles."
+  method: "Principes affirmés, prêts pour la décision"
+  principles:
+  - "Un principe privilégie une bonne chose au détriment d’une autre bonne chose"
+  - "Les principes sont propres à ce produit et à ses utilisateurs, pas des vertus génériques"
+  - "Chaque principe doit pouvoir trancher une décision réelle"
+  - "Garder un ensemble restreint (4 à 7) pour qu’il soit mémorisable"
+  steps:
+    purpose: "Clarification de la raison d’être"
+    principles: "Rédaction des principes"
+    examples: "Mise à l’épreuve des principes sur des décisions"
+  criteria:
+    quality.opinionated: "Chaque principe exprime-t-il un véritable arbitrage plutôt qu’une banalité ?"
+    quality.specificity: "Les principes sont-ils propres à ce produit et à ses utilisateurs ?"
+    quality.decision_power: "Les exemples de décisions montrent-ils les principes tranchant de vrais débats ?"
+  checks:
+  - "La raison d’être, les principes et les exemples sont présents"
+  - "Les principes s’appuient sur le contexte cité lorsqu’un contexte a été fourni"
+  - "Les principes restent assez courts pour être mémorisés"
+  inputs:
+    product:
+      description: "Le produit ou le périmètre produit, s’il n’est pas évident d’après le contexte"
+    tensions:
+      description: "Les débats ou arbitrages récurrents sur lesquels l’équipe bute"
+
+product-strategy:
+  name: "Stratégie produit"
+  summary: "Définir comment le produit atteindra sa vision : le diagnostic, les paris stratégiques, les arbitrages et la mesure des progrès."
+  purpose: "Transformer la vision en un petit nombre de choix ciblés que l’équipe peut exécuter et réviser. Une bonne stratégie dit ce que nous ferons, ce que nous ne ferons pas et comment nous saurons\
+    \ que cela fonctionne."
+  method: "Diagnostic → politique directrice → actions cohérentes"
+  principles:
+  - "Commencer par un diagnostic honnête de la situation et du défi critique"
+  - "La stratégie, c’est choisir : quelques paris ciblés et des arbitrages explicites"
+  - "Chaque pari indique l’objectif qu’il sert et pourquoi nous pensons qu’il fonctionnera"
+  - "Mesurer les progrès avec des indicateurs avancés, pas seulement des résultats a posteriori"
+  steps:
+    diagnosis: "Diagnostic du marché et du défi"
+    objectives: "Définition des objectifs stratégiques"
+    bets: "Choix des paris stratégiques"
+    trade_offs: "Explicitation des arbitrages"
+    measures: "Définition des indicateurs de progrès et des risques"
+  criteria:
+    quality.coherence: "Les paris découlent-ils du diagnostic et servent-ils les objectifs énoncés ?"
+    quality.focus: "La stratégie fait-elle des choix et des arbitrages explicites plutôt que de tout lister ?"
+    quality.measurability: "Les progrès peuvent-ils être mesurés avec les indicateurs proposés ?"
+  checks:
+  - "Les sections essentielles de la stratégie sont présentes"
+  - "Le diagnostic s’appuie sur le contexte cité lorsqu’un contexte a été fourni"
+  inputs:
+    vision:
+      description: "La vision produit sur laquelle s’appuyer (généralement présente dans le contexte)"
+    horizon:
+      description: "Horizon de la stratégie (par ex. les 12 à 18 prochains mois)"
+    constraints:
+      description: "Contraintes connues (budget, taille de l’équipe, réglementation, technologie)"
+
+product-update:
+  name: "Point d’avancement produit"
+  summary: "Rédiger un point d’avancement concis : statut en une phrase, faits marquants, indicateurs clés, risques et points de blocage, demandes et prochaines étapes."
+  purpose: "Tenir les parties prenantes informées par un point d’avancement régulier et honnête, lisible en deux minutes. Commencer par les résultats et formuler des demandes explicites transforme le\
+    \ reporting en alignement."
+  method: "Point d’avancement centré sur les résultats"
+  principles:
+  - "Commencer par l’information la plus importante en une ligne (l’essentiel d’abord)"
+  - "Rendre compte des résultats et des indicateurs au regard des objectifs, pas de l’activité"
+  - "Être franc sur les risques et les retards : pas de surprises"
+  - "Terminer par des demandes explicites et les prochaines étapes"
+  steps:
+    headline: "Rédaction du statut principal"
+    highlights: "Sélection des faits marquants et des indicateurs"
+    risks: "Signalement des risques et des demandes"
+    next: "Présentation des prochaines étapes"
+  criteria:
+    quality.grounding: "Les avancées et les indicateurs proviennent-ils du contexte cité, sans rien inventer ?"
+    quality.candor: "Le statut, les risques et les retards sont-ils présentés honnêtement ?"
+    quality.brevity: "Le point d’avancement se lit-il en deux minutes environ, avec des demandes claires ?"
+  checks:
+  - "Les sections essentielles du point d’avancement sont présentes"
+  - "Les informations d’avancement citent le contexte"
+  - "Le point d’avancement reste lisible en deux minutes environ"
+  inputs:
+    period:
+      description: "La période couverte (par ex. les deux dernières semaines)"
+    audience:
+      description: "Les lecteurs du point d’avancement (équipe, direction, clients)"
+
+product-vision:
+  name: "Vision produit"
+  summary: "Formuler où va le produit, pour qui et pourquoi c’est important, dans une vision autour de laquelle l’équipe peut se rassembler."
+  purpose: "Donner à l’équipe et aux parties prenantes une image partagée et durable du futur que crée le produit. Une vision claire facilite la stratégie, la priorisation et les arbitrages, car chaque\
+    \ pari peut être confronté à elle."
+  method: "La vision comme destination, pas comme plan"
+  principles:
+  - "Décrire le futur que vivront les clients, pas les fonctionnalités qui y mènent"
+  - "Être inspirant et concret : une vision incapable de trancher un débat est trop vague"
+  - "Ancrer la vision dans un vrai problème client et une opportunité durable"
+  - "Dire ce que le produit ne deviendra pas aussi clairement que ce qu’il deviendra"
+  steps:
+    opportunity: "Cadrage du problème et de l’opportunité"
+    statement: "Rédaction de l’énoncé de vision"
+    outcomes: "Définition des résultats à long terme et des facteurs de différenciation"
+    boundaries: "Définition des principes directeurs et des non-objectifs"
+  criteria:
+    quality.clarity: "L’énoncé de vision est-il concis, concret et mémorable ?"
+    quality.customer_focus: "La vision est-elle ancrée dans un vrai problème d’utilisateurs cibles clairement identifiés ?"
+    quality.decision_power: "Les principes, facteurs de différenciation et non-objectifs aident-ils à trancher de vrais arbitrages ?"
+  checks:
+  - "Les sections essentielles de la vision sont présentes"
+  - "La vision s’appuie sur le contexte cité lorsqu’un contexte a été fourni"
+  - "La vision reste assez courte pour être partagée et mémorisée"
+  inputs:
+    product:
+      description: "Le produit ou le périmètre produit concerné par la vision, s’il n’est pas évident d’après le contexte"
+    horizon:
+      description: "Horizon de la vision (par ex. 3 ans)"
+    ambition:
+      description: "Ce que l’équipe ou la direction espère voir le produit devenir, dans ses propres mots"
 
 project-charter:
   name: "Charte de projet"
   summary: "Lancer un projet : raison d’être, objectifs, périmètre, parties prenantes, jalons, risques, critères de succès et gouvernance."
-
-status-report:
-  name: "Rapport d’avancement"
-  summary: "Rendre compte de l’avancement : santé globale, jalons, risques et problèmes, décisions attendues et prochaines étapes."
-
-raid-log:
-  name: "Registre RAID"
-  summary: "Construire un registre RAID : risques, hypothèses, problèmes et dépendances, avec responsables et statut."
+  purpose: "Donner à un projet un mandat clair et des limites partagées avant son démarrage."
+  method: "Charte de projet (PMBOK)"
+  principles:
+  - "Une raison d’être claire et unique"
+  - "Un périmètre et un hors-périmètre explicites"
+  - "Des rôles et des droits de décision nommés"
+  - "Des critères de succès mesurables"
+  steps:
+    purpose: "Définition de la raison d’être"
+    scope: "Définition des limites"
+    people: "Cartographie des parties prenantes et des jalons"
+    govern: "Sécurisation du projet"
+  criteria:
+    quality.scope: "Le périmètre et le hors-périmètre sont-ils explicites ?"
+    quality.success: "Les critères de succès sont-ils mesurables ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    project:
+      description: "Le projet à lancer"
+      question: "Quel projet la charte doit-elle couvrir, et quel est son objectif ?"
 
 project-plan:
   name: "Plan de projet"
   summary: "Planifier un projet : chantiers, jalons, dépendances, équipe et ressources, risques."
+  purpose: "Transformer des objectifs en un plan exécutable que chacun peut suivre et mettre à jour."
+  method: "Plan de projet par jalons"
+  principles:
+  - "Un travail organisé en chantiers"
+  - "Des jalons qui sont des résultats vérifiables"
+  - "Des dépendances critiques visibles"
+  - "Des marges pour les risques connus"
+  steps:
+    streams: "Structuration du travail"
+    milestones: "Définition des jalons"
+    resources: "Planification des ressources et des risques"
+  criteria:
+    quality.milestones: "Les jalons sont-ils des résultats vérifiables ?"
+    quality.dependencies: "Les dépendances critiques sont-elles visibles ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    project:
+      description: "Le projet à planifier"
+      question: "Quel projet faut-il planifier, et quelle est sa cible ?"
 
 raci-matrix:
   name: "Matrice RACI"
   summary: "Clarifier les rôles : qui est Responsable, Approbateur, Consulté et Informé pour chaque activité clé."
+  purpose: "Lever toute ambiguïté sur la responsabilité et les droits de décision entre les équipes."
+  method: "RACI"
+  principles:
+  - "Exactement un Approbateur par activité"
+  - "Au moins un Responsable"
+  - "Consulter peu, informer largement"
+  - "Des rôles, pas des noms, sauf s’ils sont nommés dans le contexte"
+  steps:
+    matrix: "Attribution des responsabilités"
+    notes: "Mise en évidence des manques"
+  criteria:
+    quality.single_accountable: "Y a-t-il exactement un Approbateur par activité ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    scope:
+      description: "Le projet ou le processus"
+
+raid-log:
+  name: "Registre RAID"
+  summary: "Construire un registre RAID : risques, hypothèses, problèmes et dépendances, avec responsables et statut."
+  purpose: "Réunir en un seul endroit tout ce qui peut faire dérailler le projet, avec un responsable pour chaque point et une revue régulière."
+  method: "Registre RAID"
+  principles:
+  - "Les risques peuvent survenir ; les problèmes sont déjà là"
+  - "Chaque entrée a un responsable et un statut"
+  - "Les hypothèses sont validées ou abandonnées"
+  - "Les dépendances ont une échéance quand elle est connue"
+  steps:
+    risks: "Recensement des risques et hypothèses"
+    issues: "Recensement des problèmes et dépendances"
+  criteria:
+    quality.ownership: "Chaque entrée a-t-elle un responsable et un statut ?"
+    quality.distinction: "Les risques et les problèmes sont-ils correctement distingués ?"
+  checks:
+  - "Les sections principales sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    project:
+      description: "Le projet ou la release"
+
+release-notes:
+  name: "Release notes"
+  summary: "Rédiger des release notes destinées aux utilisateurs, qui expliquent ce qui a changé et pourquoi c’est important pour eux."
+  purpose: "Aider les utilisateurs à découvrir et adopter les nouveautés, tout en réduisant les sollicitations du support. De bonnes release notes parlent de bénéfices, dans un langage simple, et non\
+    \ en titres de tickets."
+  method: "Release notes centrées sur les bénéfices"
+  principles:
+  - "Écrire pour les utilisateurs : ce qu’ils peuvent désormais faire et pourquoi c’est important"
+  - "Langage simple, sans jargon interne ni numéros de ticket dans les titres"
+  - "Regrouper les changements en Nouveautés, Améliorations et Corrections ; commencer par le changement le plus utile"
+  - "Être transparent sur les problèmes connus et les solutions de contournement"
+  steps:
+    summary: "Synthèse de la release"
+    changes: "Description des nouveautés et améliorations"
+    fixes: "Liste des corrections et problèmes connus"
+  criteria:
+    quality.user_language: "Les changements sont-ils décrits comme des bénéfices utilisateur, dans un langage simple ?"
+    quality.accuracy: "Les notes ne contiennent-elles que des changements livrés, présents dans le contexte cité ?"
+    quality.transparency: "Les problèmes connus et les solutions de contournement sont-ils indiqués ?"
+  checks:
+  - "Les sections Synthèse, Nouveautés et Corrections sont présentes"
+  - "Les changements citent le contenu de la release présent dans le contexte"
+  - "Aucune donnée personnelle ni nom de client"
+  inputs:
+    release:
+      description: "Nom ou version de la release"
+    audience:
+      description: "Les lecteurs des notes (utilisateurs finaux, administrateurs, développeurs)"
+
+release-planning:
+  name: "Planification de release"
+  summary: "Planifier une release : objectif, périmètre par epic, jalons, dépendances, risques, déploiement et checklist go/no-go."
+  purpose: "Aligner l’équipe et les parties prenantes sur ce qui est livré, quand et comment, en rendant les risques visibles. Un plan de release fondé sur le périmètre et la capacité, plutôt que sur\
+    \ des souhaits, rend les arbitrages explicites dès le départ."
+  method: "Planification de release guidée par l’objectif"
+  principles:
+  - "Chaque release a un objectif clair et un résultat visible pour l’utilisateur"
+  - "Le périmètre est planifié au niveau des epics, avec une priorité MoSCoW, pour pouvoir s’ajuster à la date"
+  - "Les jalons sont des points de contrôle de valeur intégrée et démontrable"
+  - "Le déploiement est progressif et réversible, avec des critères go/no-go explicites"
+  steps:
+    goal: "Définition de l’objectif de release"
+    scope: "Cadrage du périmètre des epics"
+    milestones: "Définition des jalons et dépendances"
+    rollout: "Évaluation des risques et du déploiement"
+    go_no_go: "Rédaction de la checklist go/no-go"
+  criteria:
+    quality.realism: "Le périmètre est-il cohérent avec la capacité et les dates présentes dans le contexte ?"
+    quality.grounding: "Les epics, dates et dépendances proviennent-ils du contexte cité, sans rien inventer ?"
+    quality.rollout_safety: "Le déploiement est-il progressif et réversible, avec des critères go/no-go clairs ?"
+  checks:
+  - "Les sections principales du plan de release sont présentes"
+  - "Le périmètre cite le backlog ou la roadmap présents dans le contexte"
+  inputs:
+    release:
+      description: "Nom ou version de la release"
+    target_date:
+      description: "Date ou fenêtre cible, si elle est fixée"
+    capacity:
+      description: "Capacité ou vélocité de l’équipe, si elle est connue"
 
 retrospective:
   name: "Rétrospective"
   summary: "Animer une rétrospective : ce qui a bien fonctionné, ce qui est à améliorer et les quelques actions retenues."
+  purpose: "Améliorer le fonctionnement de l’équipe, un changement concret à la fois."
+  method: "Rétrospective Start / Stop / Continue"
+  principles:
+  - "Bienveillante et sans recherche de coupable"
+  - "Les faits comme les ressentis comptent"
+  - "Peu d’actions, chacune avec un responsable et un suivi"
+  - "Regarder le système, pas les individus"
+  steps:
+    look_back: "Retour sur la période"
+    improve: "Choix des améliorations"
+  criteria:
+    quality.actionable: "Les actions sont-elles peu nombreuses, concrètes et attribuées ?"
+    quality.blameless: "La rétrospective est-elle exempte de recherche de coupable ?"
+  checks:
+  - "Les sections principales sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    period:
+      description: "Le sprint, la release ou le projet sur lequel revenir"
+
+rice-prioritization:
+  name: "Priorisation RICE"
+  summary: "Classer initiatives, epics ou fonctionnalités avec RICE : Reach × Impact × Confidence ÷ Effort."
+  purpose: "Comparer les éléments candidats sur une échelle commune et explicite, pour que les débats de priorisation portent sur des estimations plutôt que sur des opinions. RICE rend visible la confiance\
+    \ derrière chaque pari et pénalise le travail coûteux et incertain."
+  method: "Scoring RICE"
+  principles:
+  - "Le Reach est le nombre de personnes ou d’événements touchés par période, issu de données dès que possible"
+  - "L’Impact suit une échelle fixe : 3 massif, 2 fort, 1 moyen, 0,5 faible, 0,25 minimal"
+  - "La Confidence reflète les preuves : 100 % élevée, 80 % moyenne, 50 % faible"
+  - "L’Effort est le temps total de l’équipe en mois-personne ; score = Reach × Impact × Confidence ÷ Effort"
+  steps:
+    method: "Choix de la méthode et des candidats"
+    scoring: "Scoring RICE des initiatives"
+    assumptions: "Consignation des hypothèses de scoring"
+    recommendation: "Recommandation de l’ordre de priorité"
+  criteria:
+    quality.method_rigor: "Les échelles RICE sont-elles respectées et les scores correctement calculés ?"
+    quality.grounding: "Le Reach et l’Effort s’appuient-ils sur des données citées, avec une incertitude explicite ?"
+    quality.actionability: "La recommandation donne-t-elle un ordre clair et justifié ?"
+  checks:
+  - "La méthode, les éléments classés et la recommandation sont présents"
+  - "Les estimations citent le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    items:
+      description: "Les initiatives, epics ou fonctionnalités à classer, s’ils ne figurent pas dans le contexte"
+    period:
+      description: "Période utilisée pour le Reach (par exemple par trimestre)"
+    effort_unit:
+      description: "Unité d’effort (par exemple mois-personne)"
+
+risk-analysis:
+  name: "Analyse des risques"
+  summary: "Identifier les risques produit et de livraison, évaluer leur probabilité et leur impact, et planifier les mesures d’atténuation avec des responsables."
+  purpose: "Rendre l’incertitude visible et maîtrisable au lieu de la découvrir trop tard. Un registre des risques concentre l’attention sur les quelques risques qui pourraient compromettre la valeur,\
+    \ la livraison ou la confiance."
+  method: "Registre des risques avec pre-mortem"
+  principles:
+  - "Couvrir les risques de valeur, d’utilisabilité, de faisabilité et de viabilité, ainsi que les risques de livraison et de conformité"
+  - "Imaginer que le projet a échoué (pre-mortem) et lister pourquoi"
+  - "Évaluer séparément la probabilité et l’impact ; traiter d’abord les risques élevés sur les deux"
+  - "Chaque risque significatif a une mesure d’atténuation, un signal à surveiller et un responsable"
+  steps:
+    premortem: "Conduite du pre-mortem"
+    risks: "Évaluation des risques"
+    assumptions: "Mise en évidence des hypothèses"
+    actions: "Planification des mesures d’atténuation"
+  criteria:
+    quality.specificity: "Les risques sont-ils formulés précisément, en termes de cause et de conséquence ?"
+    quality.coverage: "Les risques couvrent-ils, selon le cas, la valeur, l’utilisabilité, la faisabilité, la viabilité et la livraison ?"
+    quality.mitigation: "Les risques significatifs ont-ils des mesures d’atténuation concrètes et des responsables ?"
+  checks:
+  - "La synthèse, les risques et les actions sont présents"
+  - "Les risques citent le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    scope:
+      description: "Le projet, la release ou l’initiative à analyser, s’il ne ressort pas clairement du contexte"
+    risk_appetite:
+      description: "La tolérance au risque de l’organisation, si elle est connue"
+
+root-cause-analysis:
+  name: "Analyse des causes racines"
+  summary: "Comprendre pourquoi un problème ou un incident est survenu, trouver les causes racines et définir des actions correctives et préventives."
+  purpose: "Tirer les leçons d’incidents, de baisses d’indicateurs ou de lancements ratés, sans recherche de coupable. Aller au-delà de la première explication jusqu’aux causes systémiques évite que le\
+    \ problème ne se reproduise."
+  method: "5 Whys sans recherche de coupable, avec catégories de causes"
+  principles:
+  - "Sans recherche de coupable : se concentrer sur les systèmes et les processus, pas sur les individus"
+  - "Demander « pourquoi » de manière itérative jusqu’à atteindre une cause sur laquelle l’équipe peut agir"
+  - "Explorer plusieurs branches causales (personnes, processus, produit, technologie, données, facteurs externes)"
+  - "Chaque cause racine reçoit une action corrective et une action préventive"
+  steps:
+    problem: "Description du problème"
+    whys: "Questionnement des cinq pourquoi"
+    root_cause: "Identification de la cause racine"
+    actions: "Définition des actions correctives"
+  criteria:
+    quality.depth: "L’analyse dépasse-t-elle les symptômes pour atteindre des causes racines systémiques et actionnables ?"
+    quality.evidence: "Les causes sont-elles étayées par des éléments cités ou signalées comme des hypothèses ?"
+    quality.blameless: "L’analyse est-elle exempte de recherche de coupable et centrée sur les systèmes ?"
+    quality.actionability: "Chaque cause racine a-t-elle des actions correctives et préventives ?"
+  checks:
+  - "Les sections principales de l’analyse des causes racines sont présentes"
+  - "Le problème et les causes citent le contexte"
+  - "Aucune donnée personnelle ni mise en cause d’individus nommés"
+  inputs:
+    problem:
+      description: "Le problème, l’incident ou la variation d’indicateur à analyser"
+      question: "Que s’est-il passé : quel problème, incident ou variation d’indicateur dois-je analyser, et quand est-ce survenu ?"
+
+sprint-planning:
+  name: "Sprint planning"
+  summary: "Préparer une proposition de sprint à partir de l’objectif de sprint, du backlog, du travail non terminé et de la capacité."
+  purpose: "Arriver au sprint planning avec une proposition réaliste : un objectif clair, le travail reporté rendu explicite, des stories candidates priorisées au regard de l’objectif et vérifiées en\
+    \ termes de dépendances et de capacité."
+  method: "Sprint planning guidé par l’objectif"
+  principles:
+  - "L’objectif de sprint passe en premier ; le périmètre sert l’objectif"
+  - "Le travail non terminé est rendu explicite avant d’ajouter du nouveau travail"
+  - "S’engager dans la limite de la capacité, en gardant une petite marge d’ambition"
+  - "Faire remonter les dépendances et les risques avant la réunion"
+  steps:
+    goal: "Revue de l’objectif de sprint"
+    unfinished: "Analyse du travail non terminé"
+    candidates: "Priorisation des stories candidates"
+    checks: "Vérification des dépendances et des risques"
+  criteria:
+    quality.goal_alignment: "Les éléments engagés servent-ils l’objectif de sprint ?"
+    quality.realism: "Le périmètre engagé est-il cohérent avec la capacité et le travail reporté ?"
+    quality.grounding: "Les stories proviennent-elles du backlog réel présent dans le contexte (aucun élément inventé) ?"
+  checks:
+  - "Les sections Objectif de sprint et Périmètre engagé sont présentes"
+  - "Le contenu cite au moins une source du contexte"
+  inputs:
+    sprint:
+      description: "Nom ou numéro du sprint (par exemple Sprint 19)"
+    capacity:
+      description: "Capacité de l’équipe si elle est connue (points ou jours-personne)"
+
+sprint-preparation:
+  name: "Préparation du sprint"
+  summary: "Vérifier que les éléments en tête du backlog sont prêts avant le sprint planning : les affiner, proposer des découpages, soulever les questions et contrôler la Definition of Ready."
+  purpose: "Éviter de découvrir des stories floues ou trop grosses pendant la réunion de planification. Préparer quelques jours à l’avance laisse le temps de répondre aux questions, de lever les dépendances\
+    \ et de découper les stories, pour que la planification se concentre sur l’engagement."
+  method: "Revue de préparation avant planification"
+  principles:
+  - "Se concentrer sur les éléments susceptibles d’entrer dans le prochain sprint (environ 1,5 fois la capacité attendue)"
+  - "Vérifier chaque élément au regard de la Definition of Ready de l’équipe, ou d’une définition standard à défaut"
+  - "Résoudre ou escalader les questions bloquantes et les dépendances avant la réunion"
+  - "Découper les éléments qui ne peuvent pas être terminés en un seul sprint"
+  steps:
+    candidates: "Sélection des éléments candidats"
+    refine: "Affinage des stories candidates"
+    splits: "Proposition de découpages"
+    readiness: "Contrôle de la Definition of Ready"
+  criteria:
+    quality.readiness: "Le résultat montre-t-il clairement quels candidats sont prêts et pourquoi les autres ne le sont pas ?"
+    quality.grounding: "Les candidats proviennent-ils du backlog réel présent dans le contexte, avec leurs identifiants conservés ?"
+    quality.actionability: "Les questions bloquantes et les découpages sont-ils assez concrets pour être traités avant la planification ?"
+  checks:
+  - "La synthèse, les stories affinées et le contrôle de préparation sont présents"
+  - "Les candidats citent le backlog dont ils proviennent"
+  inputs:
+    sprint:
+      description: "Nom ou numéro du sprint (par exemple Sprint 19)"
+    sprint_goal:
+      description: "L’objectif de sprint proposé, s’il est connu"
+
+stakeholder-brief:
+  name: "Note aux parties prenantes"
+  summary: "Adapter ce que chaque partie prenante doit savoir d’un projet ou d’un changement, avec messages clés, demandes et calendrier de communication."
+  purpose: "Embarquer les bonnes personnes avant un lancement, un changement ou une décision. Cartographier les parties prenantes selon leur intérêt et leur influence garantit que chacune reçoit le bon\
+    \ message au bon moment, sans mauvaise surprise."
+  method: "Cartographie des parties prenantes (pouvoir / intérêt)"
+  principles:
+  - "Cartographier les parties prenantes selon leur intérêt et leur influence pour décider comment impliquer chacune"
+  - "Un message par public, dans ses propres termes : ce qui change pour lui et ce dont nous avons besoin"
+  - "Les demandes sont des décisions ou des contributions explicites, avec une échéance"
+  - "Planifier la communication dans la durée, pas comme une action ponctuelle"
+  steps:
+    context: "Synthèse du sujet"
+    mapping: "Cartographie des parties prenantes"
+    messages: "Rédaction des messages clés et des demandes"
+    timeline: "Planification du calendrier de communication"
+  criteria:
+    quality.tailoring: "Les messages sont-ils adaptés aux intérêts de chaque partie prenante ?"
+    quality.mapping: "Les parties prenantes sont-elles cartographiées selon leur intérêt et leur influence, avec un mode d’implication adapté ?"
+    quality.actionability: "Les demandes sont-elles explicites, en précisant qui décide et pour quand ?"
+  checks:
+  - "Les sections principales de la note aux parties prenantes sont présentes"
+  - "La note cite le contexte lorsqu’un contexte a été fourni"
+  - "Aucune coordonnée ni donnée personnelle"
+  inputs:
+    topic:
+      description: "Le projet, le lancement, le changement ou la décision à communiquer"
+    stakeholders:
+      description: "Les groupes ou rôles de parties prenantes connus"
+
+status-report:
+  name: "Rapport d’avancement"
+  summary: "Rendre compte de l’avancement : santé globale, jalons, risques et problèmes, décisions attendues et prochaines étapes."
+  purpose: "Tenir les parties prenantes informées avec des faits, et obtenir à temps les décisions dont le projet a besoin."
+  method: "Rapport d’avancement RAG"
+  principles:
+  - "Commencer par l’état de santé (vert, orange, rouge) et sa justification"
+  - "Uniquement des faits issus du contexte"
+  - "Demander explicitement les décisions"
+  - "Les prochaines étapes ont des responsables"
+  steps:
+    health: "Évaluation de l’état de santé"
+    progress: "Compte rendu de l’avancement"
+    asks: "Demande de décisions"
+  criteria:
+    quality.factual: "Chaque statut s’appuie-t-il sur le contexte ?"
+    quality.asks: "Les décisions attendues sont-elles explicites ?"
+  checks:
+  - "Les sections principales sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    period:
+      description: "La période couverte par le rapport"
+
+story-mapping:
+  name: "Story mapping"
+  summary: "Construire une story map : une colonne vertébrale d’activités utilisateur, les user stories associées et les tranches de release."
+  purpose: "Voir l’ensemble de l’expérience produit comme un récit avant de la découper en releases. La story map aide l’équipe à trouver la plus petite release de bout en bout qui apporte de la valeur,\
+    \ et évite de développer des fonctionnalités isolées."
+  method: "User Story Mapping"
+  principles:
+  - "La colonne vertébrale décrit les activités de l’utilisateur dans l’ordre du récit, de gauche à droite"
+  - "Les stories se placent sous l’activité qu’elles servent, classées de haut en bas par nécessité"
+  - "Les tranches de release traversent toute la colonne vertébrale : chacune est une expérience de bout en bout porteuse de valeur"
+  - "La première tranche est la plus petite qui permet aux utilisateurs d’atteindre leur objectif (walking skeleton)"
+  steps:
+    narrative: "Récit utilisateur"
+    backbone: "Construction de la colonne vertébrale"
+    stories: "Placement des stories sous les activités"
+    slices: "Découpage des releases"
+  criteria:
+    quality.narrative: "La colonne vertébrale suit-elle le récit de l’utilisateur, avec des étapes au niveau des activités ?"
+    quality.slicing: "Chaque tranche de release est-elle de bout en bout, avec une première tranche minimale ?"
+    quality.traceability: "Chaque story est-elle rattachée à une activité ?"
+  checks:
+  - "Les sections principales de la story map sont présentes"
+  - "La story map s’appuie sur le contexte cité lorsqu’un contexte a été fourni"
+  inputs:
+    scope:
+      description: "Le produit ou la fonctionnalité à cartographier, s’il ne figure pas dans le contexte"
+    users:
+      description: "Les principaux rôles utilisateurs"
+
+technical-design:
+  name: "Conception technique"
+  summary: "Rédiger un document de conception / RFC : architecture proposée, alternatives, exigences non fonctionnelles et déploiement."
+  purpose: "Aligner les développeurs et les parties prenantes sur la manière dont une solution sera construite avant de la construire, en rendant les arbitrages explicites."
+  method: "Document de conception (RFC) avec alternatives et déploiement"
+  principles:
+  - "Énoncer les objectifs et les non-objectifs explicites"
+  - "Comparer au moins deux alternatives avec leurs compromis"
+  - "Couvrir la sécurité, la performance, l’observabilité et l’exploitabilité"
+  - "Planifier un déploiement incrémental et réversible"
+  steps:
+    frame: "Cadrage du problème"
+    goals: "Définition des objectifs et non-objectifs"
+    design: "Conception de la solution"
+    quality: "Sécurisation de la qualité et du déploiement"
+  criteria:
+    quality.tradeoffs: "Les alternatives sont-elles comparées avec des compromis explicites ?"
+    quality.nfr: "La sécurité, la performance et l’exploitabilité sont-elles couvertes ?"
+    quality.rollout: "Le déploiement est-il incrémental et réversible ?"
+  checks:
+  - "Les sections principales sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    problem:
+      description: "La fonctionnalité ou le problème pour lequel concevoir une solution"
+      question: "Que doit faire la solution, et quelles sont les principales contraintes ?"
+
+test-strategy:
+  name: "Stratégie de test"
+  summary: "Planifier les tests d’une fonctionnalité : stratégie, cas de test priorisés, environnements et critères de sortie."
+  purpose: "Rendre les risques qualité visibles et proportionner les tests à ces risques, pour que l’équipe sache quand une release est prête."
+  method: "Tests basés sur les risques (pyramide de tests)"
+  principles:
+  - "L’effort de test suit le risque"
+  - "Automatiser au niveau efficace le plus bas (pyramide de tests)"
+  - "Couvrir l’accessibilité, la sécurité et la performance lorsque c’est pertinent"
+  - "Des critères d’entrée et de sortie clairs"
+  steps:
+    scope: "Cadrage des tests"
+    cases: "Rédaction des cas de test"
+    readiness: "Définition des critères de mise en production"
+  criteria:
+    quality.risk_based: "Les priorités suivent-elles les risques qualité ?"
+    quality.coverage: "Les aspects fonctionnels et non fonctionnels sont-ils couverts ?"
+  checks:
+  - "Les sections principales sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    feature:
+      description: "La fonctionnalité ou la release à tester"
+      question: "Quelle fonctionnalité ou release le plan de test doit-il couvrir ?"
+
+usability-test-plan:
+  name: "Plan de test utilisateur"
+  summary: "Planifier un test d’utilisabilité : questions de recherche, participants, tâches, indicateurs, script et logistique."
+  purpose: "Tester les conceptions avec de vrais utilisateurs de manière structurée, pour que les décisions reposent sur des comportements observés."
+  method: "Test d’utilisabilité modéré basé sur des tâches"
+  principles:
+  - "Partir des questions de recherche"
+  - "Des tâches réalistes, sans formulation orientée"
+  - "Cinq participants par segment suffisent à repérer la plupart des problèmes"
+  - "Mesurer la réussite, le temps et les erreurs"
+  steps:
+    questions: "Définition des questions de recherche"
+    tasks: "Rédaction des tâches"
+    script: "Préparation de la session"
+  criteria:
+    quality.tasks: "Les tâches sont-elles réalistes et non orientées ?"
+    quality.metrics: "Les indicateurs de réussite sont-ils définis ?"
+  checks:
+  - "Les sections principales sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    prototype:
+      description: "Ce qui sera testé (prototype, fonctionnalité, parcours)"
+      question: "Que doivent tester les utilisateurs (prototype, parcours ou fonctionnalité) ?"
+
+user-journey:
+  name: "Parcours utilisateur"
+  summary: "Cartographier le parcours de bout en bout d’un utilisateur pour un scénario, avec actions, pensées, émotions, points de friction et opportunités."
+  purpose: "Rendre visible l’expérience de l’utilisateur à travers les points de contact comme une seule histoire, pour que l’équipe voie où elle se dégrade. La carte transforme des retours épars en un\
+    \ ensemble d’opportunités priorisées."
+  method: "Cartographie du parcours actuel"
+  principles:
+  - "Cartographier un persona et un scénario, avec un début et une fin clairs"
+  - "Décrire l’expérience du point de vue de l’utilisateur, y compris en dehors du produit"
+  - "Fonder les émotions et les points de friction sur des éléments probants"
+  - "Transformer les principaux points de friction en opportunités, pas en solutions"
+  steps:
+    scenario: "Définition du persona et du scénario"
+    steps: "Cartographie des étapes du parcours"
+    opportunities: "Priorisation des opportunités"
+  criteria:
+    quality.user_perspective: "Le parcours est-il raconté du point de vue de l’utilisateur, de bout en bout ?"
+    quality.evidence: "Les points de friction et les émotions s’appuient-ils sur des éléments cités ?"
+    quality.opportunities: "Les opportunités ciblent-elles les moments les plus pénibles sans imposer de solutions ?"
+  checks:
+  - "Les sections principales de la carte de parcours sont présentes"
+  - "Les points de friction citent des éléments probants lorsqu’un contexte a été fourni"
+  inputs:
+    scenario:
+      description: "Le scénario à cartographier (par exemple le premier mois d’un nouveau client)"
+    persona:
+      description: "Le persona ou le segment dont le parcours est cartographié"
+
+user-research-plan:
+  name: "Plan de recherche utilisateur"
+  summary: "Planifier une étude : ce qu’il faut apprendre, la bonne méthode, les participants à recruter, le calendrier et les livrables."
+  purpose: "S’assurer que la recherche répond aux questions qui comptent pour une décision à venir, avec une méthode adaptée à ces questions et un plan de recrutement réaliste. Un plan partagé en amont\
+    \ aligne les parties prenantes sur ce qui sera appris, et ce qui ne le sera pas."
+  method: "Planification de recherche guidée par la décision"
+  principles:
+  - "Partir de la décision que la recherche doit éclairer"
+  - "Adapter la méthode à la question : attitudinale ou comportementale, exploratoire ou évaluative"
+  - "Recruter des participants correspondant au comportement étudié, pas seulement à des critères démographiques"
+  - "Annoncer d’emblée les biais et les limites de la méthode"
+  steps:
+    goal: "Définition de l’objectif et des questions de recherche"
+    method: "Choix de la méthode et des participants"
+    logistics: "Planification du calendrier, des risques et des livrables"
+  criteria:
+    quality.decision_link: "Le plan est-il clairement relié à une décision et à des objectifs d’apprentissage ?"
+    quality.method_fit: "La méthode est-elle adaptée aux questions de recherche ?"
+    quality.feasibility: "Les participants, le calendrier et les biais sont-ils réalistes et explicites ?"
+  checks:
+  - "Les sections principales du plan de recherche sont présentes"
+  - "Les connaissances existantes citent le contexte lorsqu’un contexte a été fourni"
+  - "Aucune donnée personnelle sur les participants"
+  inputs:
+    research_goal:
+      description: "La décision que la recherche doit éclairer et ce qu’il faut apprendre"
+      question: "Quelle décision cette recherche doit-elle éclairer, et que devez-vous apprendre ?"
+    audience:
+      description: "Qui étudier (segment, rôle, comportement)"
+    timeline:
+      description: "Le temps disponible ou l’échéance de l’étude"
+
+user-story-generation:
+  name: "Rédaction de user stories"
+  summary: "Rédiger des user stories INVEST avec des critères d’acceptation Given/When/Then, regroupées par epic."
+  purpose: "Transformer une fonctionnalité, un epic ou une exigence en stories petites, utiles et testables, que l’équipe peut estimer et livrer. Les stories centrent la conversation sur la valeur utilisateur,\
+    \ tandis que les critères d’acceptation rendent la notion de « terminé » sans ambiguïté."
+  method: "User stories INVEST avec critères d’acceptation BDD"
+  principles:
+  - "Les stories sont des tranches verticales qui apportent une valeur visible pour l’utilisateur (INVEST)"
+  - "En tant que / je veux / afin de nomme un vrai rôle et un vrai bénéfice"
+  - "Chaque story a 2 à 4 critères d’acceptation testables au format Given/When/Then"
+  - "Découper par étape du parcours, règle métier ou variation de données plutôt que par couche technique"
+  steps:
+    epics: "Regroupement du travail en epics"
+    stories: "Rédaction des user stories"
+    questions: "Liste des questions ouvertes"
+  criteria:
+    quality.story_quality: "Les stories sont-elles des tranches verticales INVEST avec de vrais rôles et de vrais bénéfices ?"
+    quality.testability: "Les critères d’acceptation sont-ils des énoncés Given/When/Then testables couvrant les cas limites ?"
+    quality.traceability: "Les stories sont-elles rattachées à des epics et à des exigences ou décisions citées ?"
+  checks:
+  - "Les epics et les stories sont présents"
+  - "Les stories citent leur source lorsqu’un contexte a été fourni"
+  inputs:
+    feature:
+      description: "La fonctionnalité, l’epic ou l’exigence à découper, s’il ne figure pas dans le contexte"
+    users:
+      description: "Les rôles utilisateurs concernés"
+
+ux-writing:
+  name: "UX writing"
+  summary: "Rédiger les textes d’interface : libellés, messages, états vides et d’erreur, avec voix, ton et terminologie."
+  purpose: "Rendre l’interface claire et cohérente, pour que les utilisateurs comprennent quoi faire et ce qui s’est passé."
+  method: "Content design"
+  principles:
+  - "Clair, concis, utile"
+  - "Dire ce qui s’est passé et quoi faire ensuite"
+  - "Une terminologie cohérente"
+  - "Accessible : langage simple, libellés explicites"
+  steps:
+    voice: "Définition de la voix et du ton"
+    strings: "Rédaction des textes"
+    terms: "Fixation de la terminologie"
+  criteria:
+    quality.clarity: "Les textes sont-ils clairs, concis et actionnables ?"
+    quality.states: "Les états vides, d’erreur et de succès sont-ils couverts ?"
+  checks:
+  - "Les sections principales sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    screens:
+      description: "Les écrans ou le parcours pour lesquels rédiger"
+      question: "Quels écrans ou quel parcours ont besoin de textes ?"
+
+vision-to-backlog:
+  name: "De la vision au backlog"
+  summary: "Transformer une vision produit en objectifs, initiatives, epics et user stories avec critères d’acceptation."
+  purpose: "Faire le lien entre stratégie et livraison : chaque story du backlog se rattache à une initiative et à un objectif de la vision, pour que l’équipe construise d’abord ce qui compte."
+  method: "Décomposition résultat → initiative → epic → story"
+  principles:
+  - "Les objectifs décrivent des résultats ; les initiatives sont des paris pour les faire progresser"
+  - "Les epics sont des incréments de valeur livrables ; les stories sont des tranches verticales (INVEST)"
+  - "Chaque story a des critères d’acceptation testables au format Given/When/Then"
+  - "Conserver la traçabilité avec parent_id à chaque niveau"
+  steps:
+    objectives: "Déclinaison des objectifs à partir de la vision"
+    initiatives: "Définition des initiatives"
+    epics: "Création des epics"
+    stories: "Rédaction des user stories et des critères d’acceptation"
+    risks: "Vérification des dépendances et des risques"
+  criteria:
+    quality.traceability: "Chaque story se rattache-t-elle à un epic, une initiative et un objectif ?"
+    quality.story_quality: "Les stories sont-elles des tranches verticales avec des critères d’acceptation Given/When/Then testables ?"
+    quality.grounding: "Les objectifs et les initiatives s’appuient-ils sur la vision citée ?"
+  checks:
+  - "Les sections Objectifs, Initiatives, Epics et User stories sont présentes"
+  - "Le contenu cite au moins une source du contexte"
+  inputs:
+    vision:
+      description: "La vision produit ou son emplacement (généralement présente dans le contexte)"
+    horizon:
+      description: "Horizon de planification (par exemple le prochain trimestre)"
+
+vision-to-objectives:
+  name: "De la vision aux objectifs"
+  summary: "Traduire une vision produit en objectifs orientés résultats, résultats clés mesurables et initiatives censées les faire progresser."
+  purpose: "Relier la vision de long terme au prochain horizon de planification. Chaque objectif est un résultat découlant de la vision, mesuré par des résultats clés et poursuivi au travers de quelques\
+    \ initiatives, pour que l’équipe sache ce qu’elle doit atteindre avant de décider quoi construire."
+  method: "Vision → résultats → résultats clés → initiatives"
+  principles:
+  - "Les objectifs sont des résultats que la vision implique pour l’horizon, pas des fonctionnalités"
+  - "Chaque résultat clé est un changement mesurable, avec une cible et une échéance"
+  - "Les initiatives sont des paris rattachés à l’objectif qu’elles doivent faire progresser"
+  - "Rendre explicites les hypothèses qui relient les initiatives aux résultats"
+  steps:
+    read_vision: "Lecture de la vision"
+    objectives: "Déclinaison des objectifs de résultat"
+    key_results: "Définition des résultats clés"
+    initiatives: "Rattachement des initiatives et des hypothèses"
+  criteria:
+    quality.traceability: "Chaque objectif se rattache-t-il à la vision citée, et chaque résultat clé et initiative à un objectif ?"
+    quality.measurability: "Les résultats clés sont-ils des résultats mesurables, avec des cibles et des échéances ?"
+    quality.focus: "L’ensemble des objectifs est-il restreint et centré sur les résultats ?"
+  checks:
+  - "Les objectifs, résultats clés et initiatives sont présents"
+  - "Les objectifs s’appuient sur la vision citée"
+  inputs:
+    vision:
+      description: "La vision produit ou son emplacement (généralement présente dans le contexte)"
+    horizon:
+      description: "Horizon de planification (par exemple les deux prochains trimestres)"
+
+wsjf-prioritization:
+  name: "Priorisation WSJF"
+  summary: "Séquencer fonctionnalités ou epics selon le Weighted Shortest Job First : coût du retard divisé par la taille du travail."
+  purpose: "Séquencer le travail pour maximiser la valeur économique délivrée dans le temps. WSJF favorise les éléments dont le retard coûte cher et qui sont de petite taille, en rendant explicites la\
+    \ criticité temporelle et la réduction des risques, aux côtés de la valeur métier."
+  method: "WSJF (Reinertsen, SAFe)"
+  principles:
+  - "Coût du retard = valeur métier et utilisateur + criticité temporelle + réduction des risques ou ouverture d’opportunités"
+  - "Noter chaque composante de façon relative sur une échelle de Fibonacci modifiée, l’élément le plus petit valant 1"
+  - "La taille du travail est une estimation relative de durée ou d’effort, pas une date"
+  - "WSJF = coût du retard ÷ taille du travail ; le score le plus élevé passe en premier"
+  steps:
+    method: "Choix de la méthode et des candidats"
+    scoring: "Estimation du coût du retard et de la taille du travail"
+    assumptions: "Consignation des hypothèses de scoring"
+    sequence: "Recommandation de la séquence"
+  criteria:
+    quality.method_rigor: "Les composantes du coût du retard et les tailles de travail sont-elles notées de façon relative et correctement calculées ?"
+    quality.grounding: "La criticité temporelle et la valeur s’appuient-elles sur des échéances ou des éléments cités ?"
+    quality.actionability: "La recommandation donne-t-elle une séquence claire, qui tient compte des dépendances ?"
+  checks:
+  - "La méthode, les éléments classés et la recommandation sont présents"
+  - "Les estimations citent le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    items:
+      description: "Les fonctionnalités ou epics à séquencer, s’ils ne figurent pas dans le contexte"
+    scale:
+      description: "Échelle relative à utiliser (par défaut Fibonacci modifiée 1, 2, 3, 5, 8, 13, 20)"

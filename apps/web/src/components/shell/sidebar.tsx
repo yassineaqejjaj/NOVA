@@ -14,9 +14,9 @@ import { FolderKanban, History, Library, ListTodo, LogOut, Moon, Orbit, Search, 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { api } from "@/lib/api/client";
 import { useMe } from "@/lib/api/hooks";
 import { defineMessages, useT } from "@/lib/i18n";
+import { useSystemLabel } from "@/lib/i18n/catalog";
 import { useNovaState, useUi } from "@/stores/ui";
 
 import { NovaLogo, NovaMark, PHASE_LABEL } from "./nova-mark";
@@ -121,10 +121,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
   const theme = useUi((s) => s.theme);
   const setTheme = useUi((s) => s.setTheme);
   if (!me) return null;
-  const logout = async () => {
-    const r = await api.post<{ redirect: string | null }>("/auth/logout");
-    window.location.href = r.redirect ?? "/login";
-  };
+  const logout = () => router.push("/logout"); // confirmation screen
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -154,6 +151,7 @@ export function UserMenu({ compact = false }: { compact?: boolean }) {
 
 export function Sidebar() {
   const t = useT(M);
+  const label = useSystemLabel();
   const pathname = usePathname();
   const running = useNovaState((s) => s.running);
   const current = Object.values(running)[0];
@@ -184,7 +182,7 @@ export function Sidebar() {
                   </Link>
                 );
                 return item.icon === "orb" && current ? (
-                  <Tooltip key={item.href} content={current.label || PHASE_LABEL[current.phase]} side="right">{link}</Tooltip>
+                  <Tooltip key={item.href} content={current.label ? label(current.label) : PHASE_LABEL[current.phase]} side="right">{link}</Tooltip>
                 ) : (
                   link
                 );

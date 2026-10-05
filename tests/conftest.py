@@ -21,6 +21,10 @@ os.environ.update(
         "NOVA_ELEVENLABS_API_KEY": "",
         "NOVA_VOICE_URL": "",
         "NOVA_LLM_API_KEY": "",
+        "NOVA_LLM_PROVIDER": "vllm",
+        "NOVA_LLM_BASE_URL": "http://127.0.0.1:9/v1",
+        "NOVA_SMTP_HOST": "",  # codes go to the in-memory outbox
+        "NOVA_SMTP_FROM": "",
     }
 )
 

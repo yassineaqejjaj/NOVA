@@ -25,6 +25,9 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Artifact
   Artifact references, ORBIT context pinning.
 * **LangGraph runtime** — typed `NovaState`, branching, retries, Postgres checkpoints, human-in-the-loop
   (questions, workflow confirmation, approvals), resumable background execution (Celery + Valkey), live SSE.
+* **NOVA Core orchestration** — the intent becomes a task, decomposed into sub-objectives, routed to specialist agents;
+  a Research agent brings ORBIT context, a Validation agent verifies every deliverable (one revision when needed),
+  agents hand off to each other, NOVA supervises it all live.
 * **Sub-agents** — NOVA orchestrates four specialist agents (Product, Project, Design, Engineering); every step of a
   workflow runs under the persona and quality bar of the agent owning its Skill, shown live with its activity and timing.
   The user's profile (onboarding, Settings) chooses the lead agent.

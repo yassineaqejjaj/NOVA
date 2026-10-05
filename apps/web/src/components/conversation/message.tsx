@@ -13,6 +13,7 @@ import { api } from "@/lib/api/client";
 import type { Block, Message, NovaPhase } from "@/lib/api/types";
 import { clock } from "@/lib/format";
 import { defineMessages, type Lang, useLang, useT } from "@/lib/i18n";
+import { useCatalogNames } from "@/lib/i18n/catalog";
 
 import { type BlockContext, BlockView } from "./blocks";
 import { knownSystemLabel } from "./blocks.messages";
@@ -135,7 +136,9 @@ export function NovaMessage({ message, ctx, novaName }: { message: Message; ctx:
   const task = message.task;
   const live = !!task && ["queued", "running"].includes(task.status);
   const waiting = task?.status === "waiting_user";
+  const names = useCatalogNames();
   const progressBlock = message.blocks.find((b) => b.type === "progress") as Block<{ lines?: ActivityLine[] }> | undefined;
+  const stepsBlock = (message.blocks.find((b) => b.type === "plan") ?? message.blocks.find((b) => b.type === "workflow")) as Block<{ steps?: { id: string; skill_id?: string | null }[] }> | undefined;
   const blockCtx: BlockContext = {
     ...ctx,
     taskId: task?.id ?? null,
@@ -143,12 +146,13 @@ export function NovaMessage({ message, ctx, novaName }: { message: Message; ctx:
     taskStatus: task?.status,
     activity: progressBlock?.data.lines ?? [],
     hasPlan: message.blocks.some((b) => b.type === "plan"),
+    planSteps: stepsBlock?.data.steps ?? [],
     live,
     novaName,
   };
   const empty = message.blocks.length === 0;
   // The API's phase label is English system text: shown as is in English, translated when known, else the generic phase.
-  const phase = (current: NonNullable<Message["task"]>) => (current.phase_label && knownSystemLabel(current.phase_label, lang)) || PHASES[lang][current.phase];
+  const phase = (current: NonNullable<Message["task"]>) => (current.phase_label && knownSystemLabel(current.phase_label, lang, names)) || PHASES[lang][current.phase];
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="flex gap-3">
       <div className="pt-0.5">

@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from nova.domain.outputs import IntentClassification, PlanOutput
 from nova.infra import db
-from nova.infra.models import Artifact, ArtifactVersion, ContextRetrievalReference, Message, Task
+from nova.infra.models import Artifact, ArtifactVersion, ContextRetrievalReference, Message, Task, TaskStep
 from nova.services.conversations import ComposerInput, create_conversation, submit
 from nova.services.executions import run_task
 from nova.skills.registry import get_skill_registry
@@ -69,8 +69,12 @@ async def test_prd_single_skill_creates_structured_artifact_with_validated_citat
     assert step["started_at"] <= step["finished_at"]
     assert any(k.startswith("artifact-") for k in blocks)
     assert blocks["text"]["markdown"].startswith("Created")
-    progress = {line["key"]: line["status"] for line in blocks["progress"]["lines"]}
-    assert progress["context"] == "completed" and all(v == "completed" for v in progress.values())
+    progress = {line["key"]: line for line in blocks["progress"]["lines"]}
+    assert progress["context"]["status"] == "completed" and all(v["status"] == "completed" for v in progress.values())
+    # NOVA's Validation agent verified the deliverable before it was saved
+    assert progress["1-write-the-prd:validate"]["detail"].startswith("Approved")
+    assert step["validation"]["status"] == "passed" and step["validation"]["reviewed"]
+    assert all(c["passed"] for c in step["validation"]["checks"])
     assert orbit.queries[0].project_slug == "forge"
     assert forge.captured == []  # capture policy on_feedback
 
@@ -174,3 +178,61 @@ async def test_pause_stops_at_a_step_boundary_and_continue_resumes_from_the_chec
     async with db.session_scope() as session:
         artifacts = (await session.scalars(select(Artifact).where(Artifact.task_id == uuid.UUID(task_id)))).all()
     assert len(artifacts) == 1  # resumed, not restarted: one PRD
+
+
+async def test_nova_core_decomposes_assigns_validates_and_hands_off_between_sub_agents(user, project, llm):
+    """NOVA (orchestrator) decomposes the task, assigns each step to the sub-agent owning its Skill, has the
+    Validation agent verify each deliverable (one revision when needed) and passes a handoff to the next agent."""
+    llm.intent = lambda m: IntentClassification(
+        kind="run_workflow", goal="Design then build onboarding", candidate_skill_ids=["design-brief", "technical-design"]
+    )
+    llm.plan = lambda m: PlanOutput(
+        objective="Design then build onboarding",
+        steps=[
+            {"id": "a", "title": "Brief", "skill_id": "design-brief", "goal": "Frame the onboarding problem for designers"},
+            {"id": "b", "title": "Tech design", "skill_id": "technical-design", "goal": "Design the onboarding service"},
+        ],
+    )
+    reviews = iter(
+        [
+            {"verdict": "revise", "issues": [{"section": "problem", "problem": "Too vague", "fix": "Name the users"}]},
+            {"verdict": "pass", "summary": "Sound design."},
+        ]
+    )
+    llm.review = lambda m: next(reviews)
+    task_id, message_id = await _start(
+        user, project, "Design the onboarding and its technical design", autonomy="execute_automatically"
+    )
+    assert await run_task(task_id, "start") == "completed"
+
+    plan = (await _blocks(message_id))["plan"]
+    brief, tech = plan["steps"]
+    assert (brief["agent"], tech["agent"]) == ("design", "engineering")  # assignment & routing
+    assert brief["goal"] == "Frame the onboarding problem for designers"  # decomposition
+    assert brief["validation"]["status"] == "revised" and brief["validation"]["revisions"] == 1
+    assert tech["validation"]["status"] == "passed"
+    assert brief["handoff"]["from"] == "design" and brief["handoff"]["to"] == "engineering"
+
+    names = [name for name, _ in llm.calls]
+    assert names.count("ValidationReview") == 2
+    revision = next(m for name, m in llm.calls if name == "RawStepOutput" and "REVISION REQUESTED" in m[1].content)
+    assert "SUB-AGENT: you are NOVA's Design agent" in revision[0].content  # the specialist revises its own work
+    assert "problem: Too vague → Name the users" in revision[1].content
+    tech_steps = [m for name, m in llm.calls if name == "RawStepOutput" and "you are NOVA's Engineering agent" in m[0].content]
+    assert "YOUR ASSIGNMENT FROM NOVA" in tech_steps[0][1].content
+    assert "delivered by NOVA's Design agent" in tech_steps[0][1].content  # inter-agent communication
+    review = next(m for name, m in llm.calls if name == "ValidationReview")
+    assert "NOVA's Validation agent" in review[0].content
+
+    async with db.session_scope() as session:
+        rows = (await session.scalars(select(TaskStep).where(TaskStep.task_id == uuid.UUID(task_id)))).all()
+        report = {r.step_key: r.report for r in rows}
+    assert report["1-brief"]["validation"]["status"] == "revised" and report["1-brief"]["handoff"]["to"] == "engineering"
+
+
+async def test_explicit_skill_asks_its_question_in_the_users_language(user, project, llm):
+    llm.intent = lambda m: IntentClassification(kind="run_workflow", goal="Un epic", response_language="fr")
+    task_id, message_id = await _start(user, project, "/epic-definition")
+    assert await run_task(task_id, "start") == "waiting_user"
+    question = (await _blocks(message_id))["questions"]["questions"][0]["question"]
+    assert question == get_skill_registry().get("epic-definition").translations["fr"]["inputs"]["epic"]["question"]

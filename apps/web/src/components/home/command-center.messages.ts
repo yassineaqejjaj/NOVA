@@ -122,7 +122,7 @@ export const M = defineMessages({
     needsAttention: "Requiert votre attention",
     nothing: "Rien ne requiert votre attention pour l’instant. NOVA vous préviendra.",
     ignored: "Ignoré. NOVA le signalera à nouveau si quelque chose change.",
-    retrying: "Reprise depuis la dernière étape terminée.",
+    retrying: "Nouvelle tentative à partir de la dernière étape terminée.",
     showLess: "Afficher moins",
     showMore: (v: N) => `Afficher ${v.n} de plus`,
     workingOn: "NOVA travaille sur",

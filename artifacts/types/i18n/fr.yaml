@@ -430,7 +430,7 @@ tech_design:
   sections:
     summary: {title: "Synthèse"}
     context: {title: "Contexte et contraintes"}
-    goals: {title: "Objectifs et non-objectifs"}
+    goals: {title: "Objectifs et non-objectifs", description: "parent_id = aucun ; la description commence par Objectif : ou Non-objectif :"}
     proposed_design: {title: "Conception proposée"}
     alternatives: {title: "Alternatives envisagées"}
     nfr: {title: "Exigences non fonctionnelles"}
@@ -476,7 +476,7 @@ postmortem:
   sections:
     summary: {title: "Synthèse"}
     impact: {title: "Impact"}
-    timeline: {title: "Chronologie"}
+    timeline: {title: "Chronologie", description: "le titre commence par l’heure quand elle est connue"}
     root_causes: {title: "Causes racines"}
     went_well: {title: "Ce qui a bien fonctionné"}
     actions: {title: "Actions"}
@@ -509,7 +509,7 @@ usability_test_plan:
   sections:
     objectives: {title: "Questions de recherche"}
     participants: {title: "Participants et recrutement"}
-    tasks: {title: "Tâches"}
+    tasks: {title: "Tâches", description: "cas de test de type utilisabilité : étapes = scénario, résultat attendu = critère de succès"}
     metrics: {title: "Indicateurs"}
     script: {title: "Script de l’animateur"}
     logistics: {title: "Logistique"}
@@ -521,7 +521,7 @@ ux_copy:
     summary: {title: "Synthèse"}
     voice: {title: "Voix et ton"}
     strings: {title: "Textes d’interface"}
-    terminology: {title: "Terminologie"}
+    terminology: {title: "Terminologie", description: "titre = terme ; description = définition et mots à éviter"}
 
 design_review:
   name: "Revue de design"
@@ -564,7 +564,7 @@ raid_log:
   sections:
     risks: {title: "Risques"}
     assumptions: {title: "Hypothèses"}
-    issues: {title: "Problèmes"}
+    issues: {title: "Problèmes", description: "un problème est déjà survenu : titre = le problème ; responsable ; statut"}
     dependencies: {title: "Dépendances"}
 
 project_plan:

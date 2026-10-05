@@ -10,8 +10,8 @@ import { Suspense, useState } from "react";
 import { ClassificationBadge, EmptyState, ErrorNotice, Page, PageHeader } from "@/components/shell/page";
 import { api, ApiError, qs } from "@/lib/api/client";
 import type { ChangeEvent, ContextSource, OrbitIdentity } from "@/lib/api/types";
-import { classificationLabel, timeAgo } from "@/lib/format";
-import { defineMessages, useLang, useT } from "@/lib/i18n";
+import { classificationLabel, dateTime, timeAgo } from "@/lib/format";
+import { defineMessages, useT } from "@/lib/i18n";
 
 const M = defineMessages({
   en: {
@@ -27,7 +27,7 @@ const M = defineMessages({
     projects: "Projects",
     recent: "Recent context used by NOVA",
     contextFallback: "Context",
-    items: (v: { n: number }) => `${v.n} items`,
+    items: (v: { n: number }) => `${v.n} item${v.n === 1 ? "" : "s"}`,
     openWork: "Open the work",
     nothingYet: "Nothing yet.",
     search: "Search sources in ORBIT",
@@ -78,7 +78,6 @@ interface Overview {
 function ContextPage() {
   const params = useSearchParams();
   const t = useT(M);
-  const lang = useLang();
   const { data, isLoading } = useQuery({ queryKey: ["context"], queryFn: () => api.get<Overview>("/context") });
   const [project, setProject] = useState<string | null>(null);
   const [q, setQ] = useState(params.get("q") ?? "");
@@ -117,7 +116,7 @@ function ContextPage() {
                 <div className="text-[12.5px] text-subtle">{identity.email}</div>
                 <div className="mt-2 flex items-center gap-2 text-[12.5px] text-muted">
                   {t("clearance")} <Badge>{identity.clearance != null ? classificationLabel(identity.clearance) : "—"}</Badge>
-                  {identity.expires_at ? <span className="text-subtle">{t("sessionUntil", { date: new Date(identity.expires_at).toLocaleString(lang === "fr" ? "fr-FR" : undefined) })}</span> : null}
+                  {identity.expires_at ? <span className="text-subtle">{t("sessionUntil", { date: dateTime(identity.expires_at) })}</span> : null}
                 </div>
               </div>
             </section>

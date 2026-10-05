@@ -10,12 +10,14 @@ import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
 import { AgentStack, SubAgents } from "@/components/agents/sub-agents";
+import { evaluationStatusLabel } from "@/components/artifact/document.messages";
 import { EmptyState, Page, PageHeader } from "@/components/shell/page";
 import { api } from "@/lib/api/client";
-import { useProjects, useTask, useTasks } from "@/lib/api/hooks";
-import type { WorkItem } from "@/lib/api/types";
-import { duration, timeAgo } from "@/lib/format";
-import { defineMessages, useLang, useT } from "@/lib/i18n";
+import { useProjects, useSkills, useTask, useTasks } from "@/lib/api/hooks";
+import type { SkillSummary, WorkItem } from "@/lib/api/types";
+import { dateTime, duration, timeAgo } from "@/lib/format";
+import { defineMessages, type Lang, useLang, useT } from "@/lib/i18n";
+import { findSkill, skillName, useSystemLabel } from "@/lib/i18n/catalog";
 
 const M = defineMessages({
   en: {
@@ -64,23 +66,23 @@ const M = defineMessages({
   },
   fr: {
     status_queued: "En file d’attente",
-    status_scheduled: "Planifié",
+    status_scheduled: "Planifiée",
     status_running: "En cours",
-    status_waiting_user: "En attente de vous",
+    status_waiting_user: "En attente de votre retour",
     status_paused: "En pause",
-    status_completed: "Terminé",
+    status_completed: "Terminée",
     status_failed: "Échec",
-    status_cancelled: "Annulé",
-    scheduledFor: "planifié le {date}",
+    status_cancelled: "Annulée",
+    scheduledFor: "planifiée le {date}",
     steps: (v: { done: number; total: number }) => `${v.done} / ${v.total} étape${v.total > 1 ? "s" : ""}`,
-    retrying: "Reprise depuis la dernière étape terminée.",
-    cancelled: "Annulé.",
+    retrying: "Nouvelle tentative à partir de la dernière étape terminée.",
+    cancelled: "Tâche annulée.",
     close: "Fermer",
     plan: "Plan",
     planLater: "Le plan est établi au démarrage du travail.",
     noPlan: "Pas encore de plan.",
     outputs: "Livrables",
-    created: "Créé",
+    created: "Créée",
     duration: "Durée",
     model: "Modèle",
     tokens: "Tokens",
@@ -90,7 +92,7 @@ const M = defineMessages({
     evalQueued: "en file d’attente",
     passed: " · réussie",
     notPassed: " · non réussie",
-    notEvaluated: "Non évalué",
+    notEvaluated: "Non évaluée",
     openConversation: "Ouvrir la conversation",
     retry: "Relancer",
     cancel: "Annuler",
@@ -102,9 +104,9 @@ const M = defineMessages({
     title: "Tâches",
     description: "Tout ce que NOVA fait, a fait ou fera pour vous.",
     tab_active: "En cours",
-    tab_scheduled: "Planifié",
-    tab_completed: "Terminé",
-    tab_failed: "Échec",
+    tab_scheduled: "Planifiées",
+    tab_completed: "Terminées",
+    tab_failed: "En échec",
   },
 });
 
@@ -130,18 +132,21 @@ function useStatus() {
   };
 }
 
-const locale = (lang: string) => (lang === "fr" ? "fr-FR" : undefined);
+/** The task's Skills (the API lists their English names), localized. */
+const skillNames = (names: string[], skills: SkillSummary[] | undefined, lang: Lang) =>
+  names.map((name) => { const skill = findSkill(skills, name); return skill ? skillName(skill, lang) : name; });
 
 function WorkRow({ item, projectName, selected, onSelect }: { item: WorkItem; projectName?: string; selected: boolean; onSelect: () => void }) {
   const t = useT(M);
   const lang = useLang();
+  const { data: skills } = useSkills();
   const s = useStatus()(item.status);
   return (
     <button onClick={onSelect} className={cn("flex w-full items-center gap-4 border-b border-border px-4 py-3 text-left transition-colors hover:bg-surface", selected && "bg-surface")}>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] text-text">{item.objective}</div>
         <div className="mt-0.5 truncate text-[12px] text-subtle">
-          {[projectName, item.skills.join(" → ") || null, item.scheduled_for ? t("scheduledFor", { date: new Date(item.scheduled_for).toLocaleString(locale(lang)) }) : timeAgo(item.created_at)].filter(Boolean).join(" · ")}
+          {[projectName, skillNames(item.skills, skills, lang).join(" → ") || null, item.scheduled_for ? t("scheduledFor", { date: dateTime(item.scheduled_for) }) : timeAgo(item.created_at)].filter(Boolean).join(" · ")}
         </div>
       </div>
       {item.progress_total ? (
@@ -164,6 +169,7 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const client = useQueryClient();
   const t = useT(M);
   const lang = useLang();
+  const label = useSystemLabel();
   const status = useStatus();
   const retry = useMutation({
     mutationFn: () => api.post(`/executions/${id}/retry`),
@@ -202,7 +208,7 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
           </section>
         ) : null}
         <section className="grid grid-cols-2 gap-x-4 gap-y-2">
-          <Meta label={t("created")} value={new Date(task.created_at).toLocaleString(locale(lang))} />
+          <Meta label={t("created")} value={dateTime(task.created_at)} />
           <Meta label={t("duration")} value={duration(task.duration_seconds)} />
           <Meta label={t("model")} value={task.model ?? "—"} />
           <Meta label={t("tokens")} value={task.usage?.input_tokens != null ? t("tokensValue", { input: task.usage.input_tokens, output: task.usage.output_tokens ?? 0 }) : "—"} />
@@ -213,14 +219,14 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
               task.evaluation ? (
                 <a href={task.evaluation.url ?? "#"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
                   <FlaskConical className="size-3" />
-                  {task.evaluation.composite_score != null ? `${Math.round(task.evaluation.composite_score)} / 100` : task.evaluation.status ?? t("evalQueued")}
+                  {task.evaluation.composite_score != null ? `${Math.round(task.evaluation.composite_score)} / 100` : task.evaluation.status ? evaluationStatusLabel(task.evaluation.status, lang) : t("evalQueued")}
                   {task.evaluation.passed != null ? (task.evaluation.passed ? t("passed") : t("notPassed")) : ""}
                 </a>
               ) : t("notEvaluated")
             }
           />
         </section>
-        {task.error ? <p className="rounded-[10px] bg-danger/[0.06] px-3 py-2 text-muted">{task.error}</p> : null}
+        {task.error ? <p className="rounded-[10px] bg-danger/[0.06] px-3 py-2 text-muted">{label(task.error)}</p> : null}
       </div>
       <div className="flex gap-2 border-t border-border px-5 py-3">
         {task.conversation_id ? <Button variant="secondary" size="sm" asChild><Link href={`/c/${task.conversation_id}`}>{t("openConversation")}</Link></Button> : null}

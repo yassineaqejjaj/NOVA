@@ -3,12 +3,13 @@ export type Lang = "fr" | "en";
 
 export const COPY = {
   fr: {
-    nav: { vision: "Vision", product: "Produit", useCases: "Cas d'usage", security: "Sécurité" },
+    nav: { vision: "Vision", product: "Produit", useCases: "Cas d’usage", security: "Sécurité" },
     signIn: "Se connecter",
     bookDemo: "Réserver une démo",
     discover: "Découvrir Nova",
     menu: "Menu",
     theme: { light: "Thème clair", dark: "Thème sombre" },
+    a11y: { theme: "Thème", language: "Langue", sections: "Sections" },
     hero: {
       eyebrow: "Le work OS agentique",
       title: "L’IA agentique qui transforme votre équipe en force augmentée.",
@@ -35,14 +36,14 @@ export const COPY = {
     },
     product: {
       eyebrow: "Produit",
-      title: "De l’intention à l’artefact, en une conversation.",
+      title: "De l’intention à l’Artefact, en une conversation.",
       subtitle: "Exprimez ce que vous voulez obtenir. Nova trouve le contexte, choisit la méthode, exécute le workflow et vous rend un livrable structuré.",
-      steps: ["Intention", "Contexte ORBIT", "Plan", "Skills", "Artefact", "Approbation", "Évaluation FORGE"],
+      steps: ["Intention", "Contexte ORBIT", "Plan", "Skills", "Artefact", "Validation", "Évaluation FORGE"],
       features: [
         { title: "64 Skills versionnées", body: "Produit, projet, design et ingénierie — chaque étape confiée au sous-agent spécialiste, combinées automatiquement en workflows." },
-        { title: "54 types d’artefacts", body: "PRD, backlog, conception technique, ADR, plan de test, brief de design, charte de projet, RAID… Versions, comparaison, commentaires et export." },
+        { title: "54 types d’Artefacts", body: "PRD, backlog, conception technique, ADR, plan de test, brief de design, charte de projet, RAID… Versions, comparaison, commentaires et export." },
         { title: "Provenance vérifiable", body: "« Pourquoi cette exigence ? » Nova cite les sources ORBIT réellement utilisées — jamais de source inventée." },
-        { title: "Autonomie réglable", body: "Suggérer, assister, exécuter avec approbation ou automatiquement : vous décidez de ce que Nova peut faire seul." },
+        { title: "Autonomie réglable", body: "Suggérer, assister, exécuter avec validation ou automatiquement : vous décidez de ce que Nova peut faire seul." },
       ],
     },
     useCases: {
@@ -61,7 +62,7 @@ export const COPY = {
       items: [
         { title: "SSO et rôles", body: "Connexion via votre fournisseur d’identité (OIDC), contrôle d’accès par projet." },
         { title: "Classification C0–C3", body: "Nova voit uniquement ce que vous voyez dans ORBIT et signale les contenus confidentiels ou secrets." },
-        { title: "Humain dans la boucle", body: "Les modifications importantes et les actions externes attendent votre approbation." },
+        { title: "Humain dans la boucle", body: "Les modifications importantes et les actions externes attendent votre validation." },
         { title: "Défense contre l’injection", body: "Le contenu récupéré est traité comme une donnée, jamais comme une instruction." },
         { title: "Audit et confidentialité", body: "Journal d’audit des actions, masquage des données personnelles dans les traces." },
         { title: "Open source et auto-hébergeable", body: "Modèles open-weight sur votre infrastructure : aucune API de modèle propriétaire." },
@@ -78,6 +79,7 @@ export const COPY = {
     discover: "Discover Nova",
     menu: "Menu",
     theme: { light: "Light theme", dark: "Dark theme" },
+    a11y: { theme: "Theme", language: "Language", sections: "Sections" },
     hero: {
       eyebrow: "The agentic work OS",
       title: "Agentic AI that turns your team into an augmented force.",

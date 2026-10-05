@@ -156,6 +156,7 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
                 ),
             )
             updates["context_issue"] = ContextIssue(code="no_project", message="No project selected")
+            await progress(d, state, "context", "Retrieving context", "skipped", "No project selected")
         else:
             await progress(d, state, "context", "Retrieving context", "running")
             purpose = PURPOSE_BY_CATEGORY.get(c.category.value if c and c.category else "general", "general")

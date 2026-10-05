@@ -26,15 +26,17 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AgentAvatar, AgentStack } from "@/components/agents/sub-agents";
+import { evaluationStatusLabel } from "@/components/artifact/document.messages";
+import { conversationTitle } from "@/components/conversation/blocks.messages";
 import { ClassificationBadge } from "@/components/shell/page";
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
 import { api } from "@/lib/api/client";
-import { keys, useArtifactTypes, useMe, useSendIntent, useTask } from "@/lib/api/hooks";
+import { keys, useArtifactTypes, useMe, useSendIntent, useSkills, useTask } from "@/lib/api/hooks";
 import type { ArtifactSummary, OrbState, Recommendation, RecommendationAction, Today, WorkItem } from "@/lib/api/types";
 import { agentOf, AGENTS } from "@/lib/agents";
 import { timeAgo } from "@/lib/format";
 import { useLang, useT } from "@/lib/i18n";
-import { typeName } from "@/lib/i18n/catalog";
+import { findSkill, planStepTitle, skillName, typeName, useCatalogNames, useSystemLabel } from "@/lib/i18n/catalog";
 import { useVoiceAvailable } from "@/components/voice/voice-button";
 import { useComposer, useUi } from "@/stores/ui";
 
@@ -179,6 +181,7 @@ export function Suggestions() {
 
 export function ContinueList({ items }: { items: Today["continue"] }) {
   const t = useT(M);
+  const lang = useLang();
   if (!items.length) return null;
   return (
     <section aria-labelledby="continue-title">
@@ -187,7 +190,7 @@ export function ContinueList({ items }: { items: Today["continue"] }) {
         {items.map((c) => (
           <li key={c.conversation_id}>
             <Link href={`/c/${c.conversation_id}`} className="group block rounded-[16px] bg-surface-2/70 px-4 py-3 transition-colors hover:bg-surface-2">
-              <span className="line-clamp-1 text-[14px] font-medium group-hover:text-accent">{c.title}</span>
+              <span className="line-clamp-1 text-[14px] font-medium group-hover:text-accent">{conversationTitle(c.title, lang)}</span>
               <span className="mt-0.5 block truncate text-[12px] text-subtle">{[c.project_name, t("lastActive", { when: timeAgo(c.updated_at) })].filter(Boolean).join(" · ")}</span>
             </Link>
           </li>
@@ -378,6 +381,9 @@ function WorkingRow({ task, now }: { task: WorkItem; now: number }) {
   const { data: detail } = useTask(task.id);
   const control = useTaskControl();
   const lang = useLang();
+  const { data: skills } = useSkills();
+  const names = useCatalogNames();
+  const label = useSystemLabel();
   const steps = detail?.steps ?? task.steps ?? [];
   const current = steps.find((s) => s.status === "running" || s.status === "waiting_user") ?? steps.find((s) => s.status === "pending");
   const currentAgent = current ? AGENTS[agentOf(current.agent)] : null;
@@ -396,10 +402,10 @@ function WorkingRow({ task, now }: { task: WorkItem; now: number }) {
           <span className="ml-auto"><AgentStack steps={steps} taskStatus={task.status} /></span>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-subtle">
-          {task.skills[0] ? <span className="inline-flex items-center gap-1"><Sparkles className="size-3.5" /> {task.skills.join(" → ")}</span> : null}
+          {task.skills[0] ? <span className="inline-flex items-center gap-1"><Sparkles className="size-3.5" /> {task.skills.map((name) => { const skill = findSkill(skills, name); return skill ? skillName(skill, lang) : name; }).join(" → ")}</span> : null}
           <span className="inline-flex items-center gap-1"><CircleDot className="size-3.5" />{" "}
             {currentAgent && !paused ? <span className="font-medium" style={{ color: currentAgent.color }}>{currentAgent.name[lang]} ·</span> : null}
-            {paused ? t("pausedBefore") : current?.title ?? task.phase_label ?? t("starting")}
+            {paused ? t("pausedBefore") : current ? planStepTitle(current, skills, lang, names) : task.phase_label ? label(task.phase_label) : t("starting")}
           </span>
           <span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" /> {elapsed(task.created_at, now)}</span>
         </div>
@@ -490,6 +496,7 @@ export function RecentResults({ artifacts }: { artifacts: ArtifactSummary[] }) {
 
 export function ContextStatus({ context }: { context: Today["context"] }) {
   const t = useT(M);
+  const label = useSystemLabel();
   if (!context.linked) {
     return (
       <Link href="/settings#orbit" className="block rounded-[18px] bg-surface-2/60 px-4 py-3.5 transition-colors hover:bg-surface-2">
@@ -541,7 +548,7 @@ export function ContextStatus({ context }: { context: Today["context"] }) {
             </li>
           ))}
         </ul>
-        {context.error ? <p className="mt-2 text-[12px] text-warning">{context.error}</p> : null}
+        {context.error ? <p className="mt-2 text-[12px] text-warning">{label(context.error)}</p> : null}
         <Link href="/context" className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-accent hover:underline">
           {t("openContext")} <ArrowRight className="size-3.5" />
         </Link>
@@ -552,6 +559,7 @@ export function ContextStatus({ context }: { context: Today["context"] }) {
 
 export function QualityStatus({ quality }: { quality: Today["quality"] }) {
   const t = useT(M);
+  const lang = useLang();
   const last = quality.last_evaluation;
   return (
     <a
@@ -568,7 +576,7 @@ export function QualityStatus({ quality }: { quality: Today["quality"] }) {
         {last?.score !== null && last?.score !== undefined
           ? t("lastEvaluation", { score: Math.round(last.score), when: timeAgo(last.at) })
           : last
-            ? t("lastEvaluationStatus", { status: last.status ?? t("queued"), when: timeAgo(last.at) })
+            ? t("lastEvaluationStatus", { status: last.status ? evaluationStatusLabel(last.status, lang) : t("queued"), when: timeAgo(last.at) })
             : t("noEvaluation")}
       </div>
     </a>

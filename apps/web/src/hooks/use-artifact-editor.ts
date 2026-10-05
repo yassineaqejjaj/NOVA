@@ -7,6 +7,12 @@ import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api/client";
 import { keys, useArtifact, useArtifactComments } from "@/lib/api/hooks";
 import type { ArtifactContent, SectionContent } from "@/lib/api/types";
+import { defineMessages, getLang, translate } from "@/lib/i18n";
+
+const M = defineMessages({
+  en: { saveFailed: "Save failed", approved: "Version approved." },
+  fr: { saveFailed: "Échec de l’enregistrement", approved: "Version approuvée." },
+});
 
 export type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "saved"; version: number } | { kind: "conflict" } | { kind: "error"; message: string };
 
@@ -54,7 +60,7 @@ export function useArtifactEditor(artifactId: string) {
         void client.invalidateQueries({ queryKey: ["artifacts"] });
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) setSave({ kind: "conflict" });
-        else setSave({ kind: "error", message: err instanceof Error ? err.message : "Save failed" });
+        else setSave({ kind: "error", message: err instanceof ApiError ? err.message : translate(M, getLang(), "saveFailed") });
       }
     },
     [artifactId, client],
@@ -73,7 +79,7 @@ export function useArtifactEditor(artifactId: string) {
   const approve = useMutation({
     mutationFn: (version: number) => api.post(`/artifacts/${artifactId}/versions/${version}/approve`),
     onSuccess: () => {
-      toast("Version approved.");
+      toast(translate(M, getLang(), "approved"));
       setViewVersion(null);
       void client.invalidateQueries({ queryKey: ["artifact", artifactId] });
       void client.invalidateQueries({ queryKey: ["conversation"] });

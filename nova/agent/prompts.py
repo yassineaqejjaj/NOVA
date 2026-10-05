@@ -153,7 +153,9 @@ Plan the work as a short workflow of skills (1 to {state_max_steps(state)} steps
 - Prefer the smallest workflow that fully serves the goal; chain skills only when the user's goal needs them.
 - If the user asks for a specific deliverable (a PRD, a backlog, a sprint plan…), the skill that produces it MUST be
   in the plan. Never replace it with smaller skills whose content it already covers.
-- Step titles are short, operational ("Frame the problem", "Write the PRD").
+- Decompose the goal: each step gets a short operational title ("Frame the problem", "Write the PRD"), a goal (what
+  this step must deliver toward the user's goal) and a rationale (why this Skill). NOVA assigns each step to the
+  sub-agent that owns its Skill. Write titles, goals and rationales in the user's language.
 {ask_rule}{profile_rule}"""
     answers = "\n".join(f"- {k}: {v}" for k, v in state.user_inputs.items()) or "none"
     context_titles = "\n".join(f"- [{i.citation}] {i.title}" for i in state.context_items[:30]) or "none"
@@ -211,6 +213,9 @@ def skill_step_messages(
         if (d := artifact_type.section(key))
     )
     parts = [f"GOAL: {state.classification.goal if state.classification else state.intent}", f"USER REQUEST:\n{state.intent}"]
+    plan_step = state.plan.step(state.current_step) if state.plan and state.current_step else None
+    if plan_step and plan_step.goal:
+        parts.append(f"YOUR ASSIGNMENT FROM NOVA (step '{plan_step.title}'): {plan_step.goal}")
     if state.user_inputs:
         parts.append("USER ANSWERS:\n" + "\n".join(f"- {k}: {v}" for k, v in state.user_inputs.items()))
     if state.attachments:
@@ -241,6 +246,46 @@ def skill_step_messages(
         "even when the context is in another language."
     )
     return [system_message(state, skill_text + tools_text), LLMMessage(role="user", content="\n\n".join(parts))]
+
+
+# --- validate_step (NOVA's Validation agent) -----------------------------------------------------
+
+VALIDATION_AGENT = """\
+SUB-AGENT: you are NOVA's Validation agent — it verifies every deliverable before NOVA hands it over.
+PROFESSIONAL STANDARDS:
+- Judge the deliverable against the user's goal, the Skill's criteria and the project context, not your own taste
+- Ask for a revision only for problems that matter to the user (wrong, missing, unsupported or unusable content)
+- Be specific: name the section, the problem and the fix; never rewrite the content yourself"""
+
+
+def review_messages(
+    state: NovaState,
+    skill: SkillSpec,
+    artifact_type: ArtifactType,
+    sections: dict[str, SectionContent],
+    *,
+    step_goal: str,
+    failed_checks: list[str],
+) -> list[LLMMessage]:
+    criteria = "\n".join(f"- {c.get('key')}: {c.get('question')}" for c in skill.evaluation.criteria) or "- none"
+    keys = "\n".join(f"- {key}: {d.title}" for key in sections if (d := artifact_type.section(key)))
+    lang = state.classification.response_language if state.classification else "en"
+    instructions = (
+        f"{VALIDATION_AGENT}\n\nReview the {artifact_type.name} produced by NOVA's {AGENTS[skill.agent].name} "
+        f"with the Skill {skill.name} ({skill.methodology.name}). Grade every criterion; verdict 'revise' only when "
+        f"an issue matters. At most 4 issues. Write comments, problems, fixes and summary in '{lang}'."
+    )
+    parts = [
+        f"USER GOAL: {state.classification.goal if state.classification else state.intent}",
+        f"STEP GOAL: {step_goal or skill.summary}",
+        f"CRITERIA:\n{criteria}",
+        f"SECTIONS (keys):\n{keys}",
+        "DELIVERABLE:\n" + _sections_json(sections)[: MAX_PREVIOUS_CHARS * 2],
+    ]
+    if failed_checks:
+        parts.append("AUTOMATED CHECKS THAT FAILED:\n" + "\n".join(f"- {c}" for c in failed_checks))
+    parts.append(context_block(state.context_items, max_chars=MAX_CONTEXT_CHARS // 2))
+    return [system_message(state, instructions), LLMMessage(role="user", content="\n\n".join(parts))]
 
 
 # --- answers -----------------------------------------------------------------------------------

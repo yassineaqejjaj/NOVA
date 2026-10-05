@@ -13,10 +13,11 @@ from pathlib import Path
 
 import yaml
 from jsonschema import Draft202012Validator
+from pydantic import ValidationError
 
 from nova.artifacts.registry import ArtifactRegistry, get_artifact_registry
 from nova.config import get_settings
-from nova.domain.skills import SkillEvaluation, SkillSpec
+from nova.domain.skills import SkillEvaluation, SkillSpec, SkillTranslation
 
 SKILL_FILES = ("skill.yaml", "instructions.md", "input.schema.json", "output.schema.json", "evaluation.yaml")
 
@@ -104,7 +105,17 @@ class SkillRegistry:
                     errors.append(f"i18n/{path.name}: unknown skill '{skill_id}'")
                     continue
                 spec = self._skills[skill_id]
-                self._skills[skill_id] = spec.model_copy(update={"translations": {**spec.translations, lang: translation}})
+                try:
+                    parsed = SkillTranslation.model_validate(translation)
+                except ValidationError as exc:
+                    errors.append(f"i18n/{path.name}: {skill_id}: {exc.errors()[0]['loc']} {exc.errors()[0]['msg']}")
+                    continue
+                if problems := parsed.problems(spec):
+                    errors.append(f"i18n/{path.name}: {skill_id}: " + "; ".join(problems))
+                    continue
+                data = parsed.model_dump(exclude_none=True, exclude_defaults=True)
+                data.update(name=parsed.name, summary=parsed.summary)
+                self._skills[skill_id] = spec.model_copy(update={"translations": {**spec.translations, lang: data}})
         for spec in self._skills.values():
             unknown = [s for s in spec.composes_with if s not in self._skills]
             if unknown:

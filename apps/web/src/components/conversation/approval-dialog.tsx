@@ -6,9 +6,12 @@ import { AlertTriangle, CheckCircle2, CircleDashed, ExternalLink, FileText, Shie
 
 import { api } from "@/lib/api/client";
 import { useArtifact, useResume } from "@/lib/api/hooks";
-import type { ArtifactContent, ArtifactItem, QualityCheck, SectionDiff } from "@/lib/api/types";
+import { localizeCheck } from "@/components/artifact/document.messages";
+import type { ArtifactContent, ArtifactItem, ArtifactTypeDef, QualityCheck, SectionDiff } from "@/lib/api/types";
 import { defineMessages, useLang, useT } from "@/lib/i18n";
-import { sectionTitle } from "@/lib/i18n/catalog";
+import { sectionTitle, useCatalogNames } from "@/lib/i18n/catalog";
+
+import { systemLabel } from "./blocks.messages";
 
 const M = defineMessages({
   en: {
@@ -39,12 +42,6 @@ const M = defineMessages({
     reject: "Reject",
     approve: "Approve",
     approveAll: "Approve all",
-    // Deterministic quality checks computed by the API (labels keyed by check key).
-    quality_grounded: "Grounded in sources",
-    quality_unsupported: "No unsupported claims",
-    quality_complete: "All sections drafted",
-    quality_acceptance: "Stories have acceptance criteria",
-    quality_forge: "Consistent with context (FORGE)",
   },
   fr: {
     whatWillHappen: "Ce qui va se passer",
@@ -74,15 +71,8 @@ const M = defineMessages({
     reject: "Rejeter",
     approve: "Approuver",
     approveAll: "Tout approuver",
-    quality_grounded: "Fondé sur des sources",
-    quality_unsupported: "Aucune affirmation non étayée",
-    quality_complete: "Toutes les sections rédigées",
-    quality_acceptance: "Les stories ont des critères d’acceptation",
-    quality_forge: "Cohérent avec le contexte (FORGE)",
   },
 });
-
-const QUALITY_KEYS = new Set(["grounded", "unsupported", "complete", "acceptance", "forge"]);
 
 export interface ApprovalData {
   id: string;
@@ -123,14 +113,12 @@ function Heading({ children }: { children: React.ReactNode }) {
   return <h3 className="mb-2 text-[13px] font-semibold text-text">{children}</h3>;
 }
 
-function QualityList({ checks }: { checks: QualityCheck[] }) {
-  const t = useT(M);
+function QualityList({ checks, definition }: { checks: QualityCheck[]; definition: ArtifactTypeDef }) {
   const lang = useLang();
-  // English keeps the API label as is; French uses the known label for the check key.
-  const label = (c: QualityCheck) => (lang !== "en" && QUALITY_KEYS.has(c.key) ? t(`quality_${c.key}` as keyof typeof M.en) : c.label);
+  // The API computes the checks in English; known labels and details are localized.
   return (
     <ul className="space-y-1.5">
-      {checks.map((c) => (
+      {checks.map((c) => ({ ...c, ...localizeCheck(c, definition, lang) })).map((c) => (
         <li key={c.key} className="flex items-start gap-2 text-[13px]">
           {c.status === "pass" ? (
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
@@ -140,7 +128,7 @@ function QualityList({ checks }: { checks: QualityCheck[] }) {
             <CircleDashed className="mt-0.5 size-4 shrink-0 text-subtle" />
           )}
           <span>
-            {label(c)}
+            {c.label}
             {c.detail ? <span className="text-subtle"> · {c.detail}</span> : null}
           </span>
         </li>
@@ -231,7 +219,7 @@ function ArtifactChanges({ approval }: { approval: ApprovalData }) {
       </section>
       <section>
         <Heading>{t("qualityCheck")}</Heading>
-        <QualityList checks={proposed.quality} />
+        <QualityList checks={proposed.quality} definition={proposed.definition} />
       </section>
     </div>
   );
@@ -284,13 +272,15 @@ export function ApprovalDialog({
 }) {
   const resume = useResume();
   const t = useT(M);
+  const lang = useLang();
+  const names = useCatalogNames();
   const decide = (action: "approve" | "reject") => {
     if (!taskId) return;
     resume.mutate({ taskId, value: { action } }, { onSuccess: () => onOpenChange(false) });
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title={approval.title} description={approval.description} className="top-[6vh] max-h-[88vh] w-[min(94vw,680px)] overflow-y-auto rounded-[20px]">
+      <DialogContent title={systemLabel(approval.title, lang, names)} description={systemLabel(approval.description, lang, names)} className="top-[6vh] max-h-[88vh] w-[min(94vw,680px)] overflow-y-auto rounded-[20px]">
         {approval.action === "external_write" ? <ExternalWrite approval={approval} /> : <ArtifactChanges approval={approval} />}
         <div className={cn("mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4")}>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("cancel")}</Button>

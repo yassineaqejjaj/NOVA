@@ -96,13 +96,13 @@ NOVA supports three providers behind one interface (`NOVA_LLM_PROVIDER`):
 
 | Provider | Variables |
 |---|---|
-| `anthropic` (Claude API) | `NOVA_LLM_API_KEY` (required), `NOVA_LLM_MODEL` (default `claude-sonnet-5-5`) |
+| `anthropic` (Claude API) | `NOVA_LLM_API_KEY` (required), `NOVA_LLM_MODEL` (default `claude-haiku-4-5`) |
 | `vllm` / `openai_compatible` (self-hosted: vLLM, LM Studio, Ollama…) | `NOVA_LLM_BASE_URL`, `NOVA_LLM_MODEL`, optional `NOVA_LLM_API_KEY` |
 
-Current production setup: **Gemma 4 12B (QAT) served by LM Studio** on the product owner's Mac
-(`NOVA_LLM_MODEL=google/gemma-4-12b-qat`), reached through the authenticated tunnel. Gemma 4 reasons before
-answering and its reasoning counts against `max_tokens`: `NOVA_LLM_REASONING_TOKENS=2048` adds that headroom.
-Throughput is about 10 tokens/s on the laptop, so long deliverables (a full PRD) take several minutes.
+Current production setup: **Claude Haiku 4.5 through the Claude API** (`NOVA_LLM_PROVIDER=anthropic`,
+`NOVA_LLM_MODEL=claude-haiku-4-5`, `NOVA_LLM_REASONING_TOKENS=0`, `NOVA_LLM_TIMEOUT_SECONDS=120`). Structured outputs use a
+forced tool call. A request takes seconds (Gemma 4 on LM Studio through the laptop tunnel took minutes; that setup
+remains documented in `docs/OPERATIONS.md` but its launchd services are unloaded).
 
 With the Claude API, the ORBIT context of each request is sent to Anthropic. `NOVA_POLICY_MAX_CLASSIFICATION`
 (0–3) caps what ORBIT returns to NOVA: set it to `1` to keep Confidential (C2) and Secret (C3) context out of
@@ -113,8 +113,29 @@ Set the key without echoing it (on `api`, `worker` and `beat`):
 
 ```bash
 railway variable set NOVA_LLM_API_KEY --stdin -s api      # then worker, beat
-railway variable set NOVA_LLM_PROVIDER=anthropic NOVA_LLM_MODEL=claude-sonnet-5-5 -s api
+railway variable set NOVA_LLM_PROVIDER=anthropic NOVA_LLM_BASE_URL=https://api.anthropic.com/v1 NOVA_LLM_MODEL=claude-haiku-4-5 NOVA_LLM_REASONING_TOKENS=0 -s api
 ```
+
+## Accounts: sign-up with a company address
+
+NOVA has its own sign-in, sign-up and logout screens (`/login`, `/logout`). Keycloak remains the identity provider:
+NOVA's back end signs users in with the password grant of the confidential `nova-web` client and creates accounts
+with its service account; Keycloak keeps the passwords and its brute-force protection. Sign-up is restricted to
+`NOVA_SIGNUP_DOMAINS` (default `devoteam.com`); the account stays disabled until the 6-digit code e-mailed to the
+address is entered (15 minutes, 5 attempts, one new code per minute, stored as an HMAC only). The same codes reset
+forgotten passwords.
+
+1. Enable the client on an existing realm (new realms get it from `nova-realm.json`):
+
+   ```bash
+   KC_URL=https://<keycloak> KC_ADMIN=<admin> KC_ADMIN_PASSWORD=<…> uv run python infrastructure/keycloak/configure_accounts.py
+   ```
+2. Configure SMTP on `api` (sign-up and reset stay unavailable in production until it is set):
+   `NOVA_SMTP_HOST`, `NOVA_SMTP_PORT` (587 STARTTLS, or 465 TLS), `NOVA_SMTP_USERNAME`, `NOVA_SMTP_PASSWORD` (via
+   `--stdin`), `NOVA_SMTP_FROM` (e.g. `NOVA <nova@devoteam.com>`).
+
+Outside production without SMTP, codes go to a development outbox (API log and `GET /api/v1/auth/dev/outbox`).
+The Google button is shown disabled ("Soon") until a Google identity provider is configured in Keycloak.
 
 ## Operations
 

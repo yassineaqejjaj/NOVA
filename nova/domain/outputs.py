@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from nova.domain.enums import IntentKind, SkillCategory, StepStatus
 
@@ -24,7 +24,15 @@ class IntentClassification(BaseModel):
     needs_context: bool = True
     context_query: str = Field(default="", description="What to look for in the project context")
     candidate_skill_ids: list[str] = Field(default_factory=list, max_length=8)
-    response_language: str = Field(default="en", description="ISO code of the user's language")
+    response_language: str = Field(default="en", description="ISO 639-1 code of the user's language (en, fr…)")
+
+    @field_validator("response_language", mode="before")
+    @classmethod
+    def _iso_language(cls, value: object) -> str:
+        """Models sometimes answer "French" or "fr-FR": keep the two-letter code."""
+        text = str(value or "en").strip().lower()
+        names = {"french": "fr", "français": "fr", "francais": "fr", "english": "en", "anglais": "en"}
+        return names.get(text, text[:2] if len(text) >= 2 else "en")
 
 
 class ContextRequest(BaseModel):
@@ -38,7 +46,8 @@ class PlannedStep(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9_-]+$")
     title: str
     skill_id: str
-    rationale: str = ""
+    goal: str = Field(default="", description="What this step must deliver toward the user's goal, one sentence")
+    rationale: str = Field(default="", description="Why this step and its Skill are needed, one sentence")
 
 
 class MissingInput(BaseModel):
@@ -65,8 +74,11 @@ class ExecutionStep(BaseModel):
     rationale: str = ""
     detail: str = ""
     artifact_id: str | None = None
+    goal: str = ""  # sub-objective set by NOVA when it decomposes the task
     started_at: str | None = None  # ISO timestamps: the sub-agent's working time shown live
     finished_at: str | None = None
+    validation: dict[str, Any] | None = None  # StepValidation from NOVA's Validation agent
+    handoff: dict[str, Any] | None = None  # note passed to the next sub-agent {to, title, note}
 
 
 class ExecutionPlan(BaseModel):

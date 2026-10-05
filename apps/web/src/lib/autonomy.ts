@@ -13,7 +13,7 @@ const OPTIONS: Record<Lang, Option[]> = {
   fr: [
     { value: "suggest", label: "Suggérer", hint: "NOVA propose ; rien ne s’exécute sans vous" },
     { value: "assist", label: "Assister", hint: "Une Skill seule s’exécute ; les workflows attendent votre accord (par défaut)" },
-    { value: "execute_with_approval", label: "Exécuter avec validation", hint: "Exécute les workflows ; les modifications d’artefacts existants attendent votre validation" },
+    { value: "execute_with_approval", label: "Exécuter avec validation", hint: "Exécute les workflows ; les modifications d’Artefacts existants attendent votre validation" },
     { value: "execute_automatically", label: "Exécuter automatiquement", hint: "Sans confirmation ; les modifications externes suivent toujours la politique de l’entreprise" },
   ],
 };

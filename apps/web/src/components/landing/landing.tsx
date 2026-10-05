@@ -101,11 +101,11 @@ function Header({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   ];
   const controls = (
     <>
-      <Segmented label="Theme">
+      <Segmented label={t.a11y.theme}>
         <SegmentButton active={theme === "light"} onClick={() => setTheme("light")} label={t.theme.light}><Sun /></SegmentButton>
         <SegmentButton active={theme === "dark"} onClick={() => setTheme("dark")} label={t.theme.dark}><Moon /></SegmentButton>
       </Segmented>
-      <Segmented label="Language">
+      <Segmented label={t.a11y.language}>
         <SegmentButton active={lang === "fr"} onClick={() => setLang("fr")} label="Français">FR</SegmentButton>
         <SegmentButton active={lang === "en"} onClick={() => setLang("en")} label="English">EN</SegmentButton>
       </Segmented>
@@ -115,7 +115,7 @@ function Header({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
     <header className="sticky top-3 z-40 mx-auto w-full max-w-[1240px] px-4">
       <div className="flex items-center gap-4 rounded-full border border-border bg-surface/85 py-2.5 pl-6 pr-2.5 shadow-[0_8px_30px_rgb(0_0_0/0.04)] backdrop-blur-xl">
         <Brand />
-        <nav className="mx-auto hidden items-center gap-8 lg:flex" aria-label="Sections">
+        <nav className="mx-auto hidden items-center gap-8 lg:flex" aria-label={t.a11y.sections}>
           {links.map((l) => (
             <a key={l.href} href={l.href} className="text-[15px] font-medium text-text/80 transition-colors hover:text-text">{l.label}</a>
           ))}
@@ -133,7 +133,7 @@ function Header({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
       </div>
       {open ? (
         <div className="mt-2 space-y-4 rounded-[24px] border border-border bg-surface p-5 shadow-panel lg:hidden">
-          <nav className="flex flex-col gap-3" aria-label="Sections">
+          <nav className="flex flex-col gap-3" aria-label={t.a11y.sections}>
             {links.map((l) => (
               <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="text-[16px] font-medium">{l.label}</a>
             ))}

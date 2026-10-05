@@ -84,7 +84,25 @@ START → understand_intent ─┬─► retrieve_orbit_context ─► plan_exec
   Valkey `nova:exec:{id}`); the SSE endpoint replays from the DB then follows pub/sub. Progress is
   only what actually happened (no timers, no simulated steps).
 
-## 5b. Sub-agents and profiles
+## 5b. NOVA Core: orchestration of the agents
+
+NOVA Core (the graph of §5) is the coordinator of the constellation NOVA / ORBIT / FORGE:
+
+| Orchestration | What NOVA does | Where |
+|---|---|---|
+| Task planning | turns the intent into a task: goal, deliverables (artifact types), questions when inputs are missing | `understand_intent`, `plan_execution` |
+| Objective decomposition | one step per Skill, each with a **sub-objective** (`goal`) and a reason (`rationale`) | `PlanOutput.steps[].goal` |
+| Assignment & routing | each step goes to the specialist agent owning its Skill; the persona opens every prompt of the step | `skill.agent`, `agent_instructions` |
+| Research | the **Research agent** retrieves the project context from ORBIT (as the user) | `retrieve_orbit_context` |
+| Verification | the **Validation agent** runs the Skill's checks (FORGE rule types run locally: sections present, citations, length, no PII, every section filled) and grades its criteria with the model; on failure NOVA sends the step back **once** to the specialist with precise fixes, then re-checks | `validate_step`, `nova/agent/validation.py` |
+| Inter-agent communication | after each deliverable, a **handoff** (summary + review notes) is passed to the next agent and shown | `_handoff`, `_previous_outputs` |
+| Monitoring & supervision | live status, timing, validation and revisions per step; pause / continue / cancel; FORGE evaluates the whole run | plan block, `/tasks`, FORGE trace |
+
+Each step's report (`task_steps.report`: goal, rationale, validation, handoff) is stored and exposed by `/tasks`.
+`NOVA_VALIDATION_REVIEW=false` keeps only the deterministic checks (one model call less per step);
+`NOVA_MAX_REVISIONS` (default 1) bounds the revisions.
+
+## 5c. Sub-agents and profiles
 
 NOVA is the **orchestrator**: it understands the request, retrieves context and plans the workflow. Each step is then
 carried out by the **specialist sub-agent** that owns the step's Skill (`agent:` in `skill.yaml`;

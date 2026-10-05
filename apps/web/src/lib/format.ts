@@ -20,6 +20,11 @@ export function clock(iso: string): string {
   return new Date(iso).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 }
 
+/** Full date and time in the interface language ("5 Oct 2026, 14:05" / "5 oct. 2026, 14:05"). */
+export function dateTime(iso: string): string {
+  return new Date(iso).toLocaleString(locale(), { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 export function dayLabel(iso: string): string {
   const fr = getLang() === "fr";
   const date = new Date(iso);

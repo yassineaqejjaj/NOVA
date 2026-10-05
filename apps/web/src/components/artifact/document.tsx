@@ -99,6 +99,7 @@ function QualityRail({ checks, definition }: { checks: QualityCheck[]; definitio
 }
 
 function SourceRow({ s }: { s: ContextSource }) {
+  const t = useT(M);
   return (
     <li className="rounded-[12px] border border-border px-3 py-2.5">
       <div className="flex items-center gap-2 text-[13.5px]">
@@ -107,7 +108,7 @@ function SourceRow({ s }: { s: ContextSource }) {
         <ClassificationBadge level={s.classification} />
         <span className="ml-auto shrink-0 text-[11.5px] text-subtle">{[s.type, s.updated ? timeAgo(s.updated) : null].filter(Boolean).join(" · ")}</span>
       </div>
-      {s.excerpt ? <p className="mt-1 line-clamp-3 text-[12.5px] text-muted">“{s.excerpt}”</p> : null}
+      {s.excerpt ? <p className="mt-1 line-clamp-3 text-[12.5px] text-muted">{t("excerpt", { text: s.excerpt })}</p> : null}
     </li>
   );
 }

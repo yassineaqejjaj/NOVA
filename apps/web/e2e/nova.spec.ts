@@ -232,15 +232,27 @@ test("Sub-agents: NOVA delegates each step to the Design and Engineering agents,
   await expect(page.getByLabel("Suggested requests")).toContainText("Design agent");
   await expect(page.getByRole("button", { name: "Write the design brief for onboarding" })).toBeVisible();
 
-  await ask(page, "Write the design brief and the technical design of the onboarding flow");
+  await ask(page, "Write the design brief and the technical design of the onboarding flow, with a strict review");
   await page.getByRole("button", { name: "Run workflow" }).click();
   const team = page.getByTestId("sub-agents");
-  await expect(team).toContainText("orchestrating the sub-agents");
+  await expect(team).toContainText("NOVA Core");
+  await expect(team).toContainText("orchestrating the agents");
+  const lanes = team.getByTestId("orchestration");
+  for (const lane of ["Task planning", "Decomposition", "Assignment & routing", "Supervision"]) await expect(lanes).toContainText(lane);
+  await expect(team.locator('[data-agent="research"]')).toContainText("Research agent");
   await expect(team.locator('[data-agent="design"]')).toContainText("Design agent");
   await expect(team.locator('[data-agent="engineering"]')).toContainText("Engineering agent");
   await expect(team.locator('[data-agent="design"][data-status="done"]')).toBeVisible({ timeout: 45_000 });
   await expect(team.locator('[data-agent="engineering"][data-status="done"]')).toBeVisible({ timeout: 45_000 });
   await expect(team.getByText("2/2 steps")).toBeVisible();
+  // NOVA's Validation agent asked the Design agent for a revision, then approved; the Design agent handed off to Engineering
+  const designValidation = team.locator('[data-agent="design"]').getByTestId("validation");
+  await expect(designValidation).toHaveAttribute("data-validation", "revised");
+  await expect(designValidation).toContainText("Approved after revision");
+  await designValidation.getByRole("button").click();
+  await expect(designValidation).toContainText("Too vague for the team to act on.");
+  await expect(team.locator('[data-agent="design"]').getByTestId("handoff")).toContainText("Handoff to the Engineering agent");
+  await expect(lanes.locator('[data-lane="supervision"]')).toContainText("2/2 validated");
   await expect(page.getByLabel("Artifact title")).toBeVisible();
 
   // The task keeps its team: Tasks shows who did what
@@ -258,6 +270,48 @@ test("Sub-agents: NOVA delegates each step to the Design and Engineering agents,
   await expect(page.getByText("Status Report", { exact: true })).toHaveCount(0);
   await page.goto("/");
   await expect(page.getByLabel("Suggested requests")).toContainText("Engineering agent");
+});
+
+test("Accounts: sign up with a @devoteam.com address confirmed by an e-mailed code, log out, sign back in", async ({ page }) => {
+  const email = `camille.${Date.now()}@devoteam.com`;
+  const password = "Orbit-and-forge-2026";
+  await page.goto("/login?tab=signup");
+  await expect(page.getByRole("heading", { name: /Join\s+NOVA/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Google/ })).toBeDisabled();
+  await expect(page.getByText("Soon").first()).toBeVisible();
+
+  await page.getByLabel("Work email").fill("camille@gmail.com");
+  await page.getByLabel("Full name").fill("Camille Martin");
+  await page.getByLabel("Create a password").fill(password);
+  await page.getByRole("checkbox", { name: /I agree to the/ }).check({ force: true }); // the visual box overlays the native input
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: /./ })).toContainText("Use your company address (@devoteam.com)");
+
+  await page.getByLabel("Work email").fill(email);
+  await expect(page.getByLabel("Company")).toHaveValue("Devoteam");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("heading", { name: "Confirm your e-mail" })).toBeVisible();
+  const code = (await (await page.request.get(`/api/v1/auth/dev/outbox?email=${encodeURIComponent(email)}`)).json()).code as string;
+  await expect(page.getByText(`your code is ${code}`)).toBeVisible(); // development outbox (no SMTP server)
+  await page.getByLabel("Digit 1").fill(code); // pasting the whole code fills the six boxes
+  await page.getByRole("button", { name: "Verify and continue" }).click();
+  await expect(page).toHaveURL(/\/welcome/);
+  await expect(page.getByText("What is your role?")).toBeVisible();
+
+  await page.goto("/logout");
+  await expect(page.getByRole("heading", { name: "Logging out" })).toBeVisible();
+  await page.getByRole("button", { name: "Log out" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  expect((await page.request.get("/api/v1/me")).status()).toBe(401);
+
+  await page.goto("/login");
+  await page.getByLabel("Work email").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill("Wrong-password-1");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: /./ })).toContainText("Incorrect e-mail or password");
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/welcome/); // onboarding not finished yet
 });
 
 test("Voice: talk to NOVA from the orb — transcript sent as an autonomous request, answer spoken and captioned", async ({ page }) => {

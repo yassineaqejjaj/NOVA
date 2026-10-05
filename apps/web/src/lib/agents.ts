@@ -1,4 +1,4 @@
-import { Code2, KanbanSquare, type LucideIcon, PenTool, Target } from "lucide-react";
+import { Code2, KanbanSquare, type LucideIcon, PenTool, Search, ShieldCheck, Target } from "lucide-react";
 
 import type { Lang } from "@/lib/i18n";
 
@@ -91,12 +91,38 @@ export const AGENTS: Record<AgentProfile, AgentDef> = {
   },
 };
 
+/** Agents of NOVA Core that serve every task (not profiles): context research and deliverable validation. */
+export type SupportAgent = "research" | "validation";
+export type AgentKey = AgentProfile | SupportAgent;
+
+export const SUPPORT_AGENTS: Record<SupportAgent, { icon: LucideIcon; color: string; name: Record<Lang, string>; mission: Record<Lang, string> }> = {
+  research: {
+    icon: Search,
+    color: "#14b8a6",
+    name: { en: "Research agent", fr: "Agent Recherche" },
+    mission: { en: "Finds the relevant project context in ORBIT, as you.", fr: "Trouve le contexte projet pertinent dans ORBIT, avec vos droits." },
+  },
+  validation: {
+    icon: ShieldCheck,
+    color: "#22c55e",
+    name: { en: "Validation agent", fr: "Agent Validation" },
+    mission: {
+      en: "Verifies every deliverable against the Skill’s checks and criteria before NOVA hands it over.",
+      fr: "Vérifie chaque livrable selon les contrôles et critères de la Skill avant que NOVA ne le remette.",
+    },
+  },
+};
+
+export function agentLook(key: AgentKey): { icon: LucideIcon; color: string; name: Record<Lang, string> } {
+  return key in SUPPORT_AGENTS ? SUPPORT_AGENTS[key as SupportAgent] : AGENTS[key as AgentProfile];
+}
+
 export function agentOf(value: string | null | undefined): AgentProfile {
   return value && value in AGENTS ? (value as AgentProfile) : "product";
 }
 
 /** Avatar of a sub-agent: its icon on a tinted disc of its identity color. */
-export function agentAvatarStyle(profile: AgentProfile): { color: string; background: string; borderColor: string } {
-  const color = AGENTS[profile].color;
+export function agentAvatarStyle(profile: AgentKey): { color: string; background: string; borderColor: string } {
+  const color = agentLook(profile).color;
   return { color, background: `color-mix(in srgb, ${color} 14%, transparent)`, borderColor: `color-mix(in srgb, ${color} 35%, transparent)` };
 }

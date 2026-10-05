@@ -52,6 +52,11 @@ async def _task_view(session: AsyncSession, task: Task, *, detail: bool = False)
             "artifact_id": str(s.artifact_id) if s.artifact_id else None,
             "started_at": s.started_at.isoformat() if s.started_at else None,
             "finished_at": s.finished_at.isoformat() if s.finished_at else None,
+            # what NOVA recorded as orchestrator: sub-objective, routing reason, Validation agent result, handoff
+            "goal": (s.report or {}).get("goal", ""),
+            "rationale": (s.report or {}).get("rationale", ""),
+            "validation": (s.report or {}).get("validation"),
+            "handoff": (s.report or {}).get("handoff"),
         }
         for s in task.steps
     ]

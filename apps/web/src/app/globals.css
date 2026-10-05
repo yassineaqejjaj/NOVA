@@ -92,8 +92,11 @@ body {
   background: var(--accent-soft);
 }
 
-* {
-  border-color: var(--border);
+/* In a layer so that border-color utilities (border-accent/40…) win over the default. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 /* Subtle scrollbars */

@@ -3,6 +3,7 @@
 import { Button, Card, cn, Input, Label, Select, Separator } from "@nova/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -74,7 +75,7 @@ const M = defineMessages({
     tone: "Ton",
     tonePlaceholder: "clair et concis",
     methods: "Méthodes préférées",
-    format: "Format des artefacts",
+    format: "Format des Artefacts",
     structured: "Structuré",
     concise: "Concis",
     detailed: "Détaillé",
@@ -108,7 +109,7 @@ const M = defineMessages({
     s_thinking: "Réfléchit",
     s_working: "Travaille",
     s_waiting: "Vous attend",
-    s_clarification: "Précision",
+    s_clarification: "Besoin d’une précision",
     s_completed: "Terminé",
   },
 });
@@ -116,6 +117,7 @@ const M = defineMessages({
 const PREVIEW_STATES: OrbState[] = ["idle", "thinking", "working", "waiting", "clarification", "completed"];
 
 export default function SettingsPage() {
+  const router = useRouter();
   const t = useT(M);
   const lang = useLang();
   const { data: me } = useMe();
@@ -155,10 +157,7 @@ export default function SettingsPage() {
     setPrefs((current) => (current ? { ...current, profile: value } : current));
     savePreference.mutate({ profile: value }, { onSuccess: () => toast(t("profileSaved")) });
   };
-  const logout = async () => {
-    const r = await api.post<{ redirect: string | null }>("/auth/logout");
-    window.location.href = r.redirect ?? "/login";
-  };
+  const logout = () => router.push("/logout"); // confirmation screen
   if (!me || !prefs) return null;
   const set = (patch: Partial<Preferences>) => setPrefs({ ...prefs, ...patch });
 

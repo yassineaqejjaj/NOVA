@@ -11,7 +11,6 @@ import base64
 import hashlib
 import secrets
 import time
-from functools import lru_cache
 from typing import Annotated, Any
 from urllib.parse import urlencode
 
@@ -25,7 +24,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nova.config import Settings, get_settings
 from nova.domain.permissions import Principal
 from nova.infra.db import get_session
+from nova.services import accounts
 from nova.services.audit import audit
+from nova.services.identity import IdentityError, validate_oidc_token
+from nova.services.mailer import last_code
 from nova.services.users import get_user, principal_for, upsert_user
 from nova_api.errors import ApiError
 
@@ -38,45 +40,33 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 # --- Session tokens ----------------------------------------------------------------------------------
 
 
-def issue_session(user_id: str, settings: Settings) -> str:
+def issue_session(user_id: str, settings: Settings, *, ttl_seconds: int | None = None, method: str = "sso") -> str:
+    """``method``: how the user signed in (``sso`` through Keycloak's pages, ``pwd`` on NOVA's screens, ``dev``)."""
     now = int(time.time())
     return jwt.encode(
-        {"sub": user_id, "iat": now, "exp": now + settings.session_ttl_minutes * 60, "typ": "nova-session"},
+        {
+            "sub": user_id,
+            "iat": now,
+            "exp": now + (ttl_seconds or settings.session_ttl_minutes * 60),
+            "typ": "nova-session",
+            "amr": method,
+        },
         settings.session_secret,
         algorithm="HS256",
     )
 
 
-def _set_session(response: Response, token: str, settings: Settings) -> None:
+def _set_session(response: Response, token: str, settings: Settings, *, max_age: int | None = -1) -> None:
+    """``max_age=None`` makes a browser-session cookie ("Keep me signed in" unchecked)."""
     response.set_cookie(
         SESSION_COOKIE,
         token,
         httponly=True,
         secure=settings.cookie_secure,
         samesite="lax",
-        max_age=settings.session_ttl_minutes * 60,
+        max_age=settings.session_ttl_minutes * 60 if max_age == -1 else max_age,
         path="/",
     )
-
-
-@lru_cache
-def _jwks_client(url: str) -> jwt.PyJWKClient:
-    return jwt.PyJWKClient(url, cache_keys=True, lifespan=600)
-
-
-def validate_oidc_token(token: str, settings: Settings, *, audience: str, nonce: str | None = None) -> dict[str, Any]:
-    signing_key = _jwks_client(f"{settings.oidc_backchannel}/protocol/openid-connect/certs").get_signing_key_from_jwt(token)
-    claims = jwt.decode(
-        token,
-        signing_key.key,
-        algorithms=["RS256", "ES256"],
-        audience=audience,
-        issuer=settings.oidc_issuer,
-        options={"require": ["exp", "iss", "sub"]},
-    )
-    if nonce is not None and claims.get("nonce") != nonce:
-        raise jwt.InvalidTokenError("nonce mismatch")
-    return claims
 
 
 def _roles(claims: dict[str, Any]) -> list[str]:
@@ -133,7 +123,16 @@ def _safe_next(target: str | None) -> str:
 @router.get("/config")
 async def auth_config() -> dict[str, Any]:
     settings = get_settings()
-    return {"mode": settings.auth_mode, "issuer": settings.oidc_issuer if settings.auth_mode == "oidc" else None}
+    return {
+        "mode": settings.auth_mode,
+        "issuer": settings.oidc_issuer if settings.auth_mode == "oidc" else None,
+        "password_login": True,
+        "signup": {"enabled": settings.signup_enabled, "domains": settings.signup_domain_list},
+        "password_reset": settings.smtp_configured or settings.email_outbox,
+        "dev_outbox": settings.email_outbox,
+        # Identity providers shown on the sign-in screen; "available" once configured in Keycloak.
+        "providers": [{"id": "google", "name": "Google", "available": False}],
+    }
 
 
 @router.get("/login")
@@ -242,16 +241,149 @@ async def dev_login(body: DevLoginIn, session: SessionDep, response: Response) -
         session, actor_id=user.id, action="auth.login", target_type="user", target_id=str(user.id), summary="Signed in (dev)"
     )
     await session.commit()
-    _set_session(response, issue_session(str(user.id), settings), settings)
+    _set_session(response, issue_session(str(user.id), settings, method="dev"), settings)
     return {"user_id": str(user.id)}
 
 
+# --- Password accounts (NOVA's own sign-in / sign-up screens) -------------------------------------------
+
+LANG = Annotated[str, StringConstraints(pattern=r"^(en|fr)$")]
+
+
+class PasswordLoginIn(BaseModel):
+    email: LooseEmail
+    password: str = Field(min_length=1, max_length=256)
+    remember: bool = False
+
+
+class SignupIn(BaseModel):
+    email: LooseEmail
+    name: str = Field(min_length=1, max_length=200)
+    password: str = Field(min_length=1, max_length=256)
+    accept_terms: bool
+    lang: LANG = "en"
+
+
+class EmailIn(BaseModel):
+    email: LooseEmail
+    lang: LANG = "en"
+
+
+class CodeIn(BaseModel):
+    email: LooseEmail
+    code: str = Field(pattern=r"^\s*\d{6}\s*$")
+
+
+class ResetIn(CodeIn):
+    password: str = Field(min_length=1, max_length=256)
+
+
+IDENTITY_STATUS = {
+    "invalid_credentials": 401,
+    "email_not_verified": 403,
+    "account_disabled": 403,
+    "account_exists": 409,
+    "domain_not_allowed": 422,
+    "weak_password": 422,
+    "name_required": 422,
+    "invalid_code": 422,
+    "code_expired": 410,
+    "too_many_requests": 429,
+    "signup_disabled": 403,
+    "email_unavailable": 503,
+    "identity_unavailable": 503,
+}
+
+
+def _identity_error(exc: IdentityError) -> ApiError:
+    return ApiError(IDENTITY_STATUS.get(exc.code, 400), exc.code, str(exc))
+
+
+def _sign_in(response: Response, user_id: str, settings: Settings, *, remember: bool) -> None:
+    if remember:
+        ttl = settings.remember_me_days * 86400
+        _set_session(response, issue_session(user_id, settings, ttl_seconds=ttl, method="pwd"), settings, max_age=ttl)
+    else:
+        _set_session(response, issue_session(user_id, settings, method="pwd"), settings, max_age=None)
+
+
+@router.post("/password-login")
+async def password_login(body: PasswordLoginIn, session: SessionDep, response: Response) -> dict[str, str]:
+    try:
+        user = await accounts.password_login(session, email=body.email, password=body.password)
+    except IdentityError as exc:
+        raise _identity_error(exc) from exc
+    _sign_in(response, str(user.id), get_settings(), remember=body.remember)
+    return {"user_id": str(user.id)}
+
+
+@router.post("/signup", status_code=202)
+async def signup(body: SignupIn, session: SessionDep) -> dict[str, Any]:
+    if not body.accept_terms:
+        raise ApiError(422, "terms_required", "Accept the terms of service and the privacy policy.")
+    try:
+        await accounts.start_signup(session, email=body.email, name=body.name, password=body.password, lang=body.lang)
+    except IdentityError as exc:
+        raise _identity_error(exc) from exc
+    return {"email": body.email, "expires_in_minutes": get_settings().email_code_ttl_minutes}
+
+
+@router.post("/signup/resend", status_code=202)
+async def signup_resend(body: EmailIn, session: SessionDep) -> dict[str, str]:
+    try:
+        await accounts.resend_signup_code(session, email=body.email, lang=body.lang)
+    except IdentityError as exc:
+        raise _identity_error(exc) from exc
+    return {"status": "sent"}
+
+
+@router.post("/signup/verify")
+async def signup_verify(body: CodeIn, session: SessionDep, response: Response) -> dict[str, str]:
+    try:
+        user = await accounts.verify_signup(session, email=body.email, code=body.code)
+    except IdentityError as exc:
+        raise _identity_error(exc) from exc
+    _sign_in(response, str(user.id), get_settings(), remember=False)
+    return {"user_id": str(user.id)}
+
+
+@router.post("/password/forgot", status_code=202)
+async def password_forgot(body: EmailIn, session: SessionDep) -> dict[str, str]:
+    try:
+        await accounts.forgot_password(session, email=body.email, lang=body.lang)
+    except IdentityError as exc:
+        raise _identity_error(exc) from exc
+    return {"status": "sent"}  # same answer whether or not the address has an account
+
+
+@router.post("/password/reset")
+async def password_reset(body: ResetIn, session: SessionDep) -> dict[str, str]:
+    try:
+        await accounts.reset_password(session, email=body.email, code=body.code, password=body.password)
+    except IdentityError as exc:
+        raise _identity_error(exc) from exc
+    return {"status": "reset"}
+
+
+@router.get("/dev/outbox")
+async def dev_outbox(email: str = Query()) -> dict[str, str | None]:
+    """Development only: the last code e-mailed to an address (no SMTP server outside production)."""
+    if not get_settings().email_outbox:
+        raise ApiError(404, "not_found", "Not available.")
+    return {"code": last_code(email.strip().lower())}
+
+
 @router.post("/logout")
-async def logout(response: Response) -> dict[str, str | None]:
+async def logout(request: Request, response: Response) -> dict[str, str | None]:
     settings = get_settings()
+    try:
+        method = jwt.decode(request.cookies.get(SESSION_COOKIE, ""), settings.session_secret, algorithms=["HS256"]).get("amr")
+    except jwt.PyJWTError:
+        method = None
     response.delete_cookie(SESSION_COOKIE, path="/")
     end_session = None
-    if settings.auth_mode == "oidc":
+    # NOVA's own sign-in leaves no Keycloak session behind; sessions from before the "amr" claim came through SSO.
+    if settings.auth_mode == "oidc" and method in ("sso", None):
         params = urlencode({"client_id": settings.oidc_client_id, "post_logout_redirect_uri": settings.public_url})
         end_session = f"{settings.oidc_issuer}/protocol/openid-connect/logout?{params}"
     return {"redirect": end_session}

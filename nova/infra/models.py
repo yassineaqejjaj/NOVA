@@ -212,6 +212,7 @@ class TaskStep(Base):
     artifact_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    report: Mapped[dict | None] = mapped_column(JSONType)  # {goal, rationale, validation, handoff}
 
 
 class Skill(Base):
@@ -415,3 +416,29 @@ class AuditEvent(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     details: Mapped[dict] = mapped_column(JSONType, default=dict)
     created_at: Mapped[datetime] = _created()
+
+
+class EmailCode(Base):
+    """One-time code e-mailed to prove ownership of an address (sign-up, password reset). Only its hash is kept."""
+
+    __tablename__ = "email_codes"
+    id: Mapped[uuid.UUID] = _pk()
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    purpose: Mapped[str] = mapped_column(String(20))  # signup | reset
+    code_hash: Mapped[str] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DevIdentity(Base):
+    """Password accounts for development and tests (``NOVA_AUTH_MODE=dev``); production accounts live in Keycloak."""
+
+    __tablename__ = "dev_identities"
+    id: Mapped[uuid.UUID] = _pk()
+    email: Mapped[str] = mapped_column(String(320), unique=True)
+    name: Mapped[str] = mapped_column(String(200), default="")
+    password_hash: Mapped[str] = mapped_column(String(200))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

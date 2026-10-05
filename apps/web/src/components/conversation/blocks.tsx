@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Button, cn, Input, Select } from "@nova/ui";
+import { Badge, Button, cn, Input, Select, Tooltip } from "@nova/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -25,18 +25,19 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
-import { type ActivityLine, type AgentStep, SubAgents } from "@/components/agents/sub-agents";
+import { type ActivityLine, AgentAvatar, type AgentStep, SubAgents } from "@/components/agents/sub-agents";
 import { type ApprovalData, ApprovalDialog } from "@/components/conversation/approval-dialog";
 import { ClassificationBadge, ErrorNotice } from "@/components/shell/page";
 import { api } from "@/lib/api/client";
+import { agentOf, AGENTS } from "@/lib/agents";
 import { useArtifactTypes, useResume, useSkills } from "@/lib/api/hooks";
 import type { Action, Block, ContextSource } from "@/lib/api/types";
 import { timeAgo } from "@/lib/format";
 import { useLang, useT } from "@/lib/i18n";
-import { sectionTitle, skillName, typeName } from "@/lib/i18n/catalog";
+import { questionText, sectionTitle, skillName, stepActivityLabel, typeName, useCatalogNames } from "@/lib/i18n/catalog";
 import { useComposer } from "@/stores/ui";
 
-import { M, statusLabel, systemLabel } from "./blocks.messages";
+import { answerLabel, M, statusLabel, systemLabel, systemMarkdown, toolLabel } from "./blocks.messages";
 
 export interface BlockContext {
   taskId: string | null;
@@ -52,6 +53,8 @@ export interface BlockContext {
   activity?: ActivityLine[];
   /** The message has a plan: step activity is shown under the sub-agents, not in the progress summary. */
   hasPlan?: boolean;
+  /** Steps of the message's plan (or proposed workflow): progress lines "<step>:<sub-step>" belong to them. */
+  planSteps?: { id: string; skill_id?: string | null }[];
   live?: boolean;
   novaName?: string;
 }
@@ -73,6 +76,7 @@ function TextBlockView({ block }: { block: Block<{ markdown: string; suggestions
   const t = useT(M);
   const lang = useLang();
   const { data: skills } = useSkills();
+  const names = useCatalogNames();
   const focus = (text: string) => {
     setDraft(text);
     setTimeout(() => document.getElementById("nova-composer")?.focus(), 30);
@@ -80,13 +84,13 @@ function TextBlockView({ block }: { block: Block<{ markdown: string; suggestions
   return (
     <motion.div {...fade}>
       <div className="prose-nova text-[14.5px] leading-relaxed text-text">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{block.data.markdown}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{systemMarkdown(block.data.markdown, lang, names)}</ReactMarkdown>
       </div>
       {block.data.suggestions?.length || block.data.follow_ups?.length ? (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {block.data.suggestions?.map((s) => (
             <button key={s.skill_id} onClick={() => focus(`/${s.skill_id} `)} className="rounded-lg border border-border px-2.5 py-1 text-[12.5px] text-muted hover:border-accent/40 hover:text-text">
-              {t("next", { label: skills?.find((k) => k.id === s.skill_id)?.translations?.[lang]?.name || s.label })}
+              {t("next", { label: (() => { const skill = skills?.find((k) => k.id === s.skill_id); return skill ? skillName(skill, lang) : s.label; })() })}
             </button>
           ))}
           {block.data.follow_ups?.map((f) => (
@@ -106,9 +110,12 @@ function ProgressBlock({ block, live, ctx }: { block: Block<{ lines: ActivityLin
   const [open, setOpen] = useState(live);
   const t = useT(M);
   const lang = useLang();
+  const { data: skills } = useSkills();
+  const names = useCatalogNames();
+  // The detail of the "intent" line is NOVA's reading of the request (model text), never a system label.
   // With a plan, the lines of each step ("<step>:<sub-step>") belong to its sub-agent; NOVA's own work stays here.
   const lines = (block.data.lines ?? []).filter((l) => !ctx.hasPlan || !l.key.includes(":"));
-  const done = lines.every((l) => l.status === "completed" || l.status === "failed");
+  const done = lines.every((l) => l.status === "completed" || l.status === "failed" || l.status === "skipped");
   const expanded = open || live;
   return (
     <div className="rounded-[12px] border border-border bg-surface/60">
@@ -125,8 +132,8 @@ function ProgressBlock({ block, live, ctx }: { block: Block<{ lines: ActivityLin
                 <span className="mt-0.5">
                   <StepIcon status={line.status} />
                 </span>
-                <span className={cn(line.status === "running" ? "text-text" : "text-muted")}>{systemLabel(line.label, lang)}</span>
-                {line.detail ? <span className="ml-auto max-w-[55%] truncate text-right text-[12px] text-subtle">{line.detail}</span> : null}
+                <span className={cn(line.status === "running" ? "text-text" : "text-muted")}>{stepActivityLabel(skills, ctx.planSteps, line, lang, names)}</span>
+                {line.detail ? <span className="ml-auto max-w-[55%] truncate text-right text-[12px] text-subtle">{line.key === "intent" ? line.detail : systemLabel(line.detail, lang, names)}</span> : null}
               </li>
             ))}
           </motion.ul>
@@ -189,6 +196,14 @@ function WorkflowBlock({ block, ctx }: { block: Block<{ status: string; objectiv
         {steps.map((s, i) => (
           <li key={s.id} className="flex items-center gap-2 rounded-[10px] bg-surface/70 px-2.5 py-1.5 text-[13.5px]">
             <span className="w-4 text-[12px] text-subtle">{i + 1}</span>
+            {(() => {
+              const agent = agentOf(skills?.find((k) => k.id === s.skill_id)?.agent);
+              return (
+                <Tooltip content={AGENTS[agent].name[lang]}>
+                  <span data-agent={agent}><AgentAvatar profile={agent} size={20} /></span>
+                </Tooltip>
+              );
+            })()}
             <span className="shrink-0 whitespace-nowrap text-text">{name(s.skill_id)}</span>
             {s.rationale ? <span className="min-w-0 truncate text-[12px] text-subtle">· {s.rationale}</span> : null}
             {proposed ? (
@@ -228,16 +243,18 @@ function WorkflowBlock({ block, ctx }: { block: Block<{ status: string; objectiv
 
 // --- question -------------------------------------------------------------------------------------
 
-function QuestionBlock({ block, ctx }: { block: Block<{ questions: { key: string; question: string }[]; answered: boolean; answers?: Record<string, string> }>; ctx: BlockContext }) {
+function QuestionBlock({ block, ctx }: { block: Block<{ questions: { key: string; question: string; skill_id?: string | null }[]; answered: boolean; answers?: Record<string, string> }>; ctx: BlockContext }) {
   const resume = useResume();
   const t = useT(M);
+  const lang = useLang();
+  const { data: skills } = useSkills();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   if (block.data.answered || !ctx.waiting) {
     return (
       <div className="space-y-1 rounded-[12px] border border-border bg-surface px-4 py-3 text-[13px]">
         {block.data.questions.map((q) => (
           <div key={q.key}>
-            <span className="text-muted">{q.question}</span> <span className="text-text">{block.data.answers?.[q.key] ?? "—"}</span>
+            <span className="text-muted">{questionText(skills, q, lang)}</span> <span className="text-text">{block.data.answers?.[q.key] ? answerLabel(block.data.answers[q.key]!, lang) : "—"}</span>
           </div>
         ))}
       </div>
@@ -255,7 +272,7 @@ function QuestionBlock({ block, ctx }: { block: Block<{ questions: { key: string
       <div className="text-[12px] font-medium uppercase tracking-wider text-warning">{t("needsInfo")}</div>
       {block.data.questions.map((q) => (
         <label key={q.key} className="block space-y-1.5">
-          <span className="text-[13.5px] text-text">{q.question}</span>
+          <span className="text-[13.5px] text-text">{questionText(skills, q, lang)}</span>
           <Input value={answers[q.key] ?? ""} onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))} autoFocus />
         </label>
       ))}
@@ -274,6 +291,7 @@ function ContextBlock({ block }: { block: Block<{ project: string | null; refere
   const exclude = useComposer((s) => s.exclude);
   const setDraft = useComposer((s) => s.setDraft);
   const t = useT(M);
+  const lang = useLang();
   const { items, warnings, excluded_count } = block.data;
   return (
     <div className="rounded-[12px] border border-border bg-surface/60">
@@ -288,7 +306,7 @@ function ContextBlock({ block }: { block: Block<{ project: string | null; refere
       </button>
       {warnings.length ? (
         <div className="mx-3 mb-2 flex items-start gap-2 rounded-[8px] bg-warning/[0.08] px-2.5 py-1.5 text-[12px] text-warning">
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> {warnings.join(" ")}
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> {warnings.map((w) => systemLabel(w, lang)).join(" ")}
         </div>
       ) : null}
       <AnimatePresence initial={false}>
@@ -384,6 +402,7 @@ function DecisionBlock({ block, ctx }: { block: Block<ApprovalData>; ctx: BlockC
   const resume = useResume();
   const t = useT(M);
   const lang = useLang();
+  const names = useCatalogNames();
   const pending = block.data.status === "pending" && ctx.waiting;
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -394,8 +413,8 @@ function DecisionBlock({ block, ctx }: { block: Block<ApprovalData>; ctx: BlockC
   }, [pending, block.data.id, block.data.action]);
   return (
     <motion.div {...fade} className={cn("rounded-[14px] border px-4 py-3", pending ? "border-accent/35 bg-accent-soft/50" : "border-border bg-surface")}>
-      <div className="text-[13.5px] font-medium">{block.data.title}</div>
-      <p className="mt-0.5 text-[13px] text-muted">{block.data.description}</p>
+      <div className="text-[13.5px] font-medium">{systemLabel(block.data.title, lang, names)}</div>
+      <p className="mt-0.5 text-[13px] text-muted">{systemLabel(block.data.description, lang, names)}</p>
       {pending ? (
         <div className="mt-2.5 flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>{t("reviewChanges")}</Button>
@@ -434,11 +453,12 @@ function useActions(ctx: BlockContext) {
 function NoticeBlock({ block, ctx }: { block: Block<{ title: string; message: string; actions: Action[] }>; ctx: BlockContext }) {
   const run = useActions(ctx);
   const lang = useLang();
+  const names = useCatalogNames();
   if (block.type === "error") {
     return (
       <ErrorNotice
         title={systemLabel(block.data.title, lang)}
-        message={block.data.message}
+        message={systemLabel(block.data.message, lang, names)}
         actions={block.data.actions.map((a) => (
           <Button key={a.action} size="sm" variant="secondary" onClick={() => void run(a)}>{systemLabel(a.label, lang)}</Button>
         ))}
@@ -450,7 +470,7 @@ function NoticeBlock({ block, ctx }: { block: Block<{ title: string; message: st
       <div className="flex items-center gap-2 text-[13.5px] font-medium">
         <AlertTriangle className="size-4 text-warning" /> {systemLabel(block.data.title, lang)}
       </div>
-      <p className="mt-0.5 text-[13px] text-muted">{block.data.message}</p>
+      <p className="mt-0.5 text-[13px] text-muted">{systemLabel(block.data.message, lang, names)}</p>
       {block.data.actions.length ? (
         <div className="mt-2 flex gap-2">
           {block.data.actions.map((a) => (
@@ -499,11 +519,12 @@ function CitationsBlock({ block, ctx }: { block: Block<{ sources: ContextSource[
 // --- tool / generic -------------------------------------------------------------------------------
 
 function ToolBlock({ block }: { block: Block<{ tool: string; status: string; summary?: string; error?: string; duration_ms?: number }> }) {
+  const lang = useLang();
   return (
     <div className="flex items-center gap-2 px-1 text-[12.5px] text-subtle">
-      <Wrench className="size-3.5" /> {block.data.tool.replaceAll("_", " ")}
+      <Wrench className="size-3.5" /> {toolLabel(block.data.tool, lang)}
       <StepIcon status={block.data.status} />
-      {block.data.error ? <span className="text-danger">{block.data.error}</span> : null}
+      {block.data.error ? <span className="text-danger">{systemLabel(block.data.error, lang)}</span> : null}
       {block.data.duration_ms ? <span>· {block.data.duration_ms} ms</span> : null}
     </div>
   );
