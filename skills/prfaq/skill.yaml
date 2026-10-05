@@ -1,6 +1,6 @@
 id: prfaq
 name: PR/FAQ (Working Backwards)
-version: 1.0.0
+version: 1.1.0
 category: definition
 agent: product
 summary: Write an Amazon-style press release and FAQ that describes the product from the customer's point of view before building it.

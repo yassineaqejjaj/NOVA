@@ -1,6 +1,6 @@
 id: rice-prioritization
 name: RICE Prioritization
-version: 1.0.0
+version: 1.1.0
 category: prioritization
 agent: product
 summary: "Rank initiatives, epics or features with RICE: Reach × Impact × Confidence ÷ Effort."

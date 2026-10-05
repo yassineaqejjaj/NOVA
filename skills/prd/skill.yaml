@@ -1,6 +1,6 @@
 id: prd
 name: Product Requirements Document
-version: 1.0.0
+version: 1.1.0
 category: definition
 agent: product
 summary: Turn an idea or initiative into a complete, structured PRD that engineering can build from.

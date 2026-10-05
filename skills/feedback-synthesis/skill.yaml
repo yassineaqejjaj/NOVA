@@ -1,6 +1,6 @@
 id: feedback-synthesis
 name: Feedback Synthesis
-version: 1.0.0
+version: 1.1.0
 category: analysis
 agent: product
 summary: Synthesize user feedback into themes with frequency and severity, representative quotes and product opportunities.

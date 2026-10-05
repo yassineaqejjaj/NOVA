@@ -1,6 +1,6 @@
 id: product-update
 name: Product Update
-version: 1.0.0
+version: 1.1.0
 category: communication
 agent: product
 summary: "Write a concise progress update: headline status, highlights, key metrics, risks and blockers, asks and what comes next."

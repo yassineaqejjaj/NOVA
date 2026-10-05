@@ -1,6 +1,6 @@
 id: story-mapping
 name: Story Mapping
-version: 1.0.0
+version: 1.1.0
 category: definition
 agent: product
 summary: "Build a user story map: a backbone of user activities, the stories beneath them and release slices."

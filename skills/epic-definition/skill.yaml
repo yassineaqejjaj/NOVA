@@ -1,6 +1,6 @@
 id: epic-definition
 name: Epic Definition
-version: 1.0.0
+version: 1.1.0
 category: definition
 agent: product
 summary: Define an epic as a shippable increment of value, with scope boundaries, candidate stories, success metrics, dependencies and risks.

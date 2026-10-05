@@ -1,6 +1,6 @@
 id: product-metrics
 name: Product Metrics Plan
-version: 1.0.0
+version: 1.1.0
 category: analysis
 agent: product
 summary: Define the metrics that show whether a product or feature succeeds, and the instrumentation needed to measure them.

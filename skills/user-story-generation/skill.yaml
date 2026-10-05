@@ -1,6 +1,6 @@
 id: user-story-generation
 name: User Story Generation
-version: 1.0.0
+version: 1.1.0
 category: definition
 agent: product
 summary: Write INVEST user stories with Given/When/Then acceptance criteria, grouped under epics.

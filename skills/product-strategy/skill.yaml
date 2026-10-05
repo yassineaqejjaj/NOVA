@@ -1,6 +1,6 @@
 id: product-strategy
 name: Product Strategy
-version: 1.0.0
+version: 1.1.0
 category: strategy
 agent: product
 summary: "Define how the product will reach its vision: the diagnosis, the strategic bets, the trade-offs and how progress is measured."

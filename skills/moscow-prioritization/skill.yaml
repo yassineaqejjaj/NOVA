@@ -1,6 +1,6 @@
 id: moscow-prioritization
 name: MoSCoW Prioritization
-version: 1.0.0
+version: 1.1.0
 category: prioritization
 agent: product
 summary: Classify requirements or features into Must, Should, Could and Won't have for a given release or timebox.

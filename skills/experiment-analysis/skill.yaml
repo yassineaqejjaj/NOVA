@@ -1,6 +1,6 @@
 id: experiment-analysis
 name: Experiment Analysis
-version: 1.0.0
+version: 1.1.0
 category: analysis
 agent: product
 summary: Analyse experiment results against the pre-set hypothesis and decision rule, and turn them into a decision.

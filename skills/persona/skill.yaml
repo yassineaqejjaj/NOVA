@@ -1,6 +1,6 @@
 id: persona
 name: Persona
-version: 1.0.0
+version: 1.1.0
 category: discovery
 agent: design
 summary: Build an evidence-based persona describing a user segment's goals, frustrations, behaviours and needs.

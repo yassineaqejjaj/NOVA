@@ -1,6 +1,6 @@
 id: initiative-definition
 name: Initiative Definition
-version: 1.0.0
+version: 1.1.0
 category: strategy
 agent: product
 summary: "Scope an initiative: the problem it addresses, the objectives it serves, success metrics, milestones, dependencies and risks."

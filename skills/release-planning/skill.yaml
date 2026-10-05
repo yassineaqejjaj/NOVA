@@ -1,6 +1,6 @@
 id: release-planning
 name: Release Planning
-version: 1.0.0
+version: 1.1.0
 category: delivery
 agent: project
 summary: "Plan a release: goal, scope by epic, milestones, dependencies, risks, rollout and a go/no-go checklist."

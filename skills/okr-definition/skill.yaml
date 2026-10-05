@@ -1,6 +1,6 @@
 id: okr-definition
 name: OKR Definition
-version: 1.0.0
+version: 1.1.0
 category: strategy
 agent: product
 summary: Define a focused set of OKRs for a team and period, with ambitious, measurable key results.

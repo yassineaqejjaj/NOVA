@@ -1,6 +1,6 @@
 id: experiment-definition
 name: Experiment Definition
-version: 1.0.0
+version: 1.1.0
 category: discovery
 agent: product
 summary: Design an experiment that tests a hypothesis, with method, metrics, success threshold and a decision rule set in advance.
