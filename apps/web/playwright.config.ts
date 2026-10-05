@@ -17,6 +17,11 @@ const api = {
   NOVA_FORGE_API_KEY: "",
   NOVA_VOICE_URL: "http://127.0.0.1:8394",
   NOVA_VOICE_TOKEN: "test-voice-token-0123456789abcdef",
+  // Never reach external services from E2E, whatever the developer's .env enables.
+  NOVA_VOICE_TTS_PROVIDER: "selfhosted",
+  NOVA_VOICE_STT_PROVIDER: "selfhosted",
+  NOVA_ELEVENLABS_API_KEY: "",
+  NOVA_LLM_API_KEY: "",
   PYTHONPATH: ".:apps/api:services/worker",
 };
 

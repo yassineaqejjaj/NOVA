@@ -51,18 +51,19 @@ export const ORB_PALETTES = {
 } as const;
 export type OrbPalette = keyof typeof ORB_PALETTES;
 
-// --- Footage: public/orb/orb.mp4 — one segment per state (ping-pong loops encoded in the file) -----------
+// --- Footage: public/orb/orb.mp4 — one segment per state; loops play forward and are seamless (crossfade
+// encoded at the loop point), calm states are slowed down with motion interpolation -----------------------
 
 const VIDEO = "/orb/orb.mp4";
 // Frame-exact boundaries of public/orb/orb.mp4 (24 fps; regenerate with infrastructure/orb/build_orb_assets.py).
 const SEGMENTS = {
-  idle: [0, 1.4167],
-  thinking: [1.4167, 5.8333],
-  working: [5.8333, 9.8333],
-  waiting: [9.8333, 11.8333],
-  clarification: [11.8333, 14.1667],
-  completed: [14.1667, 17.75], // one shot: impulsion → lumière blanche → cœur doré → éclat final → retour au calme
-  calm: [17.75, 19.1],
+  idle: [0, 1.2917],
+  thinking: [1.2917, 3.4583],
+  working: [3.4583, 5.0],
+  waiting: [5.0, 6.375],
+  clarification: [6.375, 7.7917],
+  completed: [7.7917, 11.375], // one shot: impulsion → lumière blanche → cœur doré → éclat final → retour au calme
+  calm: [11.375, 12.875],
 } as const;
 type Segment = keyof typeof SEGMENTS;
 
@@ -96,13 +97,13 @@ export type OrbLook =
 /** How small orbs tell each state with stills: a cycle, or a one-shot sequence resting on its last look. */
 const CHOREOGRAPHY: Record<OrbState, { looks: OrbLook[]; step: number; loop: boolean }> = {
   idle: { looks: ["veille"], step: 0, loop: false },
-  thinking: { looks: ["activation", "rubans"], step: 1400, loop: true },
-  working: { looks: ["tourbillon", "concentration", "convergence"], step: 1600, loop: true },
-  waiting: { looks: ["activation", "veille"], step: 2000, loop: true },
-  clarification: { looks: ["ondes", "activation"], step: 1500, loop: true },
-  completed: { looks: ["impulsion", "lumiere", "coeur", "eclat", "calme"], step: 650, loop: false },
+  thinking: { looks: ["activation", "rubans"], step: 2600, loop: true },
+  working: { looks: ["tourbillon", "concentration", "convergence"], step: 2200, loop: true },
+  waiting: { looks: ["activation", "veille"], step: 3200, loop: true },
+  clarification: { looks: ["ondes", "activation"], step: 2600, loop: true },
+  completed: { looks: ["impulsion", "lumiere", "coeur", "eclat", "calme"], step: 800, loop: false },
   listening: { looks: ["activation"], step: 0, loop: false },
-  speaking: { looks: ["ondes", "convergence"], step: 900, loop: true },
+  speaking: { looks: ["ondes", "convergence"], step: 1600, loop: true },
 };
 
 const still = (look: OrbLook) => `/orb/${look}.webp`;
@@ -135,8 +136,19 @@ function useLook(state: OrbState, animate: boolean): OrbLook {
   return plan.looks[Math.min(index, plan.looks.length - 1)] ?? "veille";
 }
 
-/** Plays the state's segment of the footage in a loop (completed: once, then the calm loop). */
-function useSegmentPlayer(video: React.RefObject<HTMLVideoElement | null>, state: OrbState, enabled: boolean) {
+const CROSSFADE_MS = 650;
+
+/**
+ * Plays the state's segment of the footage (completed: once, then the calm loop). Loops wrap at their encoded
+ * seam; changing state crossfades: the current frame is frozen on a canvas that fades out while the new segment
+ * starts underneath, so the orb never jumps.
+ */
+function useSegmentPlayer(
+  video: React.RefObject<HTMLVideoElement | null>,
+  canvas: React.RefObject<HTMLCanvasElement | null>,
+  state: OrbState,
+  enabled: boolean,
+) {
   const first = useRef(true);
   useEffect(() => {
     const el = video.current;
@@ -145,15 +157,35 @@ function useSegmentPlayer(video: React.RefObject<HTMLVideoElement | null>, state
     first.current = false;
     let segment: Segment = state === "completed" && isFirst ? "calm" : STATE_SEGMENT[state];
     let frame = 0;
+    let fade = 0;
+
+    const freeze = () => {
+      const c = canvas.current;
+      if (!c || isFirst || el.readyState < 2) return;
+      c.width = el.videoWidth;
+      c.height = el.videoHeight;
+      c.getContext("2d")?.drawImage(el, 0, 0);
+      c.style.transition = "none";
+      c.style.opacity = "1";
+      window.clearTimeout(fade);
+      fade = window.setTimeout(() => {
+        c.style.transition = `opacity ${CROSSFADE_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+        c.style.opacity = "0";
+      }, 30);
+    };
     const start = () => {
+      freeze();
       el.currentTime = SEGMENTS[segment][0];
       void el.play().catch(() => undefined); // autoplay can be refused (power saving): the poster stays visible
     };
     const tick = () => {
       const [from, to] = SEGMENTS[segment];
-      if (el.currentTime >= to - 0.05 || el.currentTime < from - 0.25) {
-        if (segment === "completed") segment = "calm";
-        el.currentTime = SEGMENTS[segment][0];
+      if (el.currentTime >= to - 1 / 48 || el.currentTime < from - 0.25) {
+        if (segment === "completed") {
+          segment = "calm";
+          freeze();
+        }
+        el.currentTime = SEGMENTS[segment][0]; // seamless: the loop's last frame flows into its first
       }
       frame = requestAnimationFrame(tick);
     };
@@ -167,11 +199,29 @@ function useSegmentPlayer(video: React.RefObject<HTMLVideoElement | null>, state
     frame = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(frame);
+      window.clearTimeout(fade);
       el.removeEventListener("loadedmetadata", start);
       el.removeEventListener("ended", onEnded);
     };
-  }, [video, state, enabled]);
+  }, [video, canvas, state, enabled]);
 }
+
+/** A stable per-instance phase so several orbs on screen never breathe in sync. */
+function usePhase(): number {
+  const [phase] = useState(() => Math.random());
+  return phase;
+}
+
+const HALO: Record<OrbState, { opacity: number; breathe: number }> = {
+  idle: { opacity: 0.16, breathe: 7 },
+  thinking: { opacity: 0.28, breathe: 3.6 },
+  working: { opacity: 0.36, breathe: 2.8 },
+  waiting: { opacity: 0.26, breathe: 4.4 },
+  clarification: { opacity: 0.28, breathe: 3.6 },
+  completed: { opacity: 0.24, breathe: 5.5 },
+  listening: { opacity: 0.3, breathe: 3.2 },
+  speaking: { opacity: 0.34, breathe: 2.6 },
+};
 
 const SPHERE_MASK = "radial-gradient(circle closest-side, #000 92.5%, transparent 94.5%)";
 
@@ -201,10 +251,12 @@ export function NovaOrb({
   const useVideo = size >= 44 && !reduce;
   const look = useLook(state, !reduce && !useVideo);
   const video = useRef<HTMLVideoElement>(null);
-  useSegmentPlayer(video, state, useVideo);
+  const freezeFrame = useRef<HTMLCanvasElement>(null);
+  useSegmentPlayer(video, freezeFrame, state, useVideo);
+  const phase = usePhase();
 
   const haloColor = state === "waiting" ? "245 158 11" : state === "clarification" ? "168 85 247" : palette.glow;
-  const haloOpacity = state === "working" || state === "speaking" ? 0.4 : state === "idle" ? 0.16 : 0.28;
+  const halo = HALO[state];
   const restingLook: OrbLook = state === "completed" ? "calme" : CHOREOGRAPHY[state].looks[0] ?? "veille";
 
   return (
@@ -216,17 +268,24 @@ export function NovaOrb({
       style={{ width: size, height: size }}
       data-orb-state={state}
     >
-      <motion.span
-        className="absolute rounded-full"
-        style={{ inset: -size * (size >= 44 ? 0.24 : 0.18), background: `radial-gradient(circle, rgb(${haloColor} / ${haloOpacity}), transparent 68%)` }}
-        animate={reduce ? undefined : { scale: [0.94, 1.1, 0.94], opacity: [0.9, 0.5, 0.9] }}
-        transition={{ duration: state === "working" ? 1.4 : state === "idle" ? 6 : 2.6, repeat: Infinity, ease: "easeInOut" }}
-      />
+      {/* Halo: its color crossfades between states; it breathes slowly, out of phase with other orbs. */}
+      <AnimatePresence initial={false}>
+        <motion.span
+          key={haloColor}
+          className="absolute rounded-full"
+          style={{ inset: -size * (size >= 44 ? 0.24 : 0.18), background: `radial-gradient(circle, rgb(${haloColor} / 1), transparent 68%)` }}
+          initial={{ opacity: 0 }}
+          animate={reduce ? { opacity: halo.opacity } : { opacity: [halo.opacity, halo.opacity * 0.62, halo.opacity], scale: [0.97, 1.05, 0.97] }}
+          exit={{ opacity: 0, transition: { duration: 0.9 } }}
+          transition={{ duration: halo.breathe, repeat: Infinity, ease: "easeInOut", delay: -phase * halo.breathe, opacity: { duration: halo.breathe, repeat: Infinity, ease: "easeInOut" } }}
+        />
+      </AnimatePresence>
       <motion.span
         className="relative block size-full"
         style={{ filter: palette.filter === "none" ? undefined : palette.filter }}
-        animate={reduce || useVideo ? undefined : { scale: state === "idle" ? [1, 1.015, 1] : [1, 1.035, 1] }}
-        transition={{ duration: state === "idle" ? 6 : 2, repeat: Infinity, ease: "easeInOut" }}
+        // Small orbs (stills) drift a little so they never look frozen; the footage moves on its own.
+        animate={reduce || useVideo ? undefined : { rotate: [-2.5, 2.5, -2.5], scale: [1, 1.02, 1] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: -phase * 9 }}
       >
         {useVideo ? (
           <video
@@ -242,6 +301,14 @@ export function NovaOrb({
             className="size-full object-cover"
             style={{ maskImage: SPHERE_MASK, WebkitMaskImage: SPHERE_MASK }}
           />
+        ) : null}
+        {useVideo ? (
+          <canvas
+            ref={freezeFrame}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 size-full opacity-0"
+            style={{ maskImage: SPHERE_MASK, WebkitMaskImage: SPHERE_MASK }}
+          />
         ) : (
           <AnimatePresence initial={false}>
             { }
@@ -254,7 +321,7 @@ export function NovaOrb({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.45 }}
+              transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1] }}
             />
           </AnimatePresence>
         )}

@@ -13,6 +13,16 @@ os.environ.setdefault("NOVA_DATABASE_URL", f"sqlite+aiosqlite:///{_DB}")
 os.environ.setdefault("NOVA_AUTH_MODE", "dev")
 os.environ.setdefault("NOVA_CELERY_TASK_ALWAYS_EAGER", "true")
 os.environ.setdefault("NOVA_LLM_MODEL", "test-model")
+# Tests never call external services, whatever the developer's .env enables (environment beats .env).
+os.environ.update(
+    {
+        "NOVA_VOICE_TTS_PROVIDER": "selfhosted",
+        "NOVA_VOICE_STT_PROVIDER": "selfhosted",
+        "NOVA_ELEVENLABS_API_KEY": "",
+        "NOVA_VOICE_URL": "",
+        "NOVA_LLM_API_KEY": "",
+    }
+)
 
 import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402
