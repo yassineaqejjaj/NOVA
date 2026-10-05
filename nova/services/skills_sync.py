@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import get_settings
@@ -18,9 +18,15 @@ class SkillVersionError(Exception):
     pass
 
 
+SYNC_LOCK = 4_617_001  # pg advisory lock key: one process syncs at a time (API workers, Celery start together)
+
+
 async def sync_skills(session: AsyncSession, registry: SkillRegistry) -> dict[str, int]:
     created = updated = 0
     problems = []
+    if session.get_bind().dialect.name == "postgresql":
+        # Held until the transaction ends; the next process then sees the rows already written.
+        await session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": SYNC_LOCK})
     for spec in registry.all():
         version = await session.scalar(
             select(SkillVersion).where(SkillVersion.skill_id == spec.id, SkillVersion.version == spec.version)
