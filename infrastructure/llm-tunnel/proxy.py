@@ -1,4 +1,4 @@
-"""Authenticated proxy in front of the local Ollama (OpenAI-compatible API) for the NOVA demo tunnel.
+"""Authenticated proxy in front of a local OpenAI-compatible server (LM Studio, Ollama…) for the NOVA demo tunnel.
 
 * Requires `Authorization: Bearer <key>` (constant-time comparison); everything else gets 401.
 * Only /v1/chat/completions and /v1/models are forwarded.
@@ -19,7 +19,8 @@ from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Route
 
 KEY = Path(os.environ["PROXY_KEY_FILE"]).read_text().strip()
-UPSTREAM = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
+# LM Studio: http://127.0.0.1:1234 · Ollama: http://127.0.0.1:11434
+UPSTREAM = os.environ.get("LLM_UPSTREAM_URL") or os.environ.get("OLLAMA_URL", "http://127.0.0.1:1234")
 client = httpx.AsyncClient(base_url=UPSTREAM, timeout=httpx.Timeout(900.0, connect=10.0))
 
 
@@ -71,7 +72,7 @@ async def chat(request: Request):
                 else json.dumps({"error": {"status": r.status_code, "message": r.text[:500]}}).encode()
             )
         except Exception as exc:  # upstream unreachable
-            yield json.dumps({"error": {"message": f"Ollama unavailable: {exc}"}}).encode()
+            yield json.dumps({"error": {"message": f"Local LLM server unavailable: {exc}"}}).encode()
 
     return StreamingResponse(keepalive(), media_type="application/json")
 

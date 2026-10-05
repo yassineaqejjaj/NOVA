@@ -36,21 +36,21 @@ NOVA's Postgres holds conversations, executions, Artifacts and **references** (O
 excerpts actually served, FORGE run ids). It never stores ORBIT's knowledge base or FORGE's traces.
 Back it up like any OLTP database; LangGraph checkpoint tables (`checkpoints*`) live in the same database.
 
-## Demo LLM from a laptop (authenticated tunnel)
+## Demo LLM from a laptop (LM Studio or Ollama, authenticated tunnel)
 
-For demos without a GPU server, the laptop's Ollama can serve the deployed NOVA. Ollama has no
-authentication, so `infrastructure/llm-tunnel/proxy.py` sits in front of it: it requires
+For demos without a GPU server, the laptop's LM Studio (server on port 1234) or Ollama (11434) can serve the
+deployed NOVA. Neither requires authentication, so `infrastructure/llm-tunnel/proxy.py` sits in front of it: it requires
 `Authorization: Bearer <key>`, forwards only `/v1/chat/completions` and `/v1/models`, and keeps slow
 non-streamed completions alive past the tunnel's time-to-first-byte limit.
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(40))" > ~/.nova-llm-key && chmod 600 ~/.nova-llm-key
-PROXY_KEY_FILE=~/.nova-llm-key uv run --with httpx --with starlette --with uvicorn \
+LLM_UPSTREAM_URL=http://127.0.0.1:1234 PROXY_KEY_FILE=~/.nova-llm-key uv run --with httpx --with starlette --with uvicorn \
   uvicorn proxy:app --app-dir infrastructure/llm-tunnel --host 127.0.0.1 --port 11500
 cloudflared tunnel --no-autoupdate --url http://127.0.0.1:11500      # prints https://<random>.trycloudflare.com
 ```
 
 Then set on `api`, `worker` and `beat`: `NOVA_LLM_PROVIDER=openai_compatible`,
-`NOVA_LLM_BASE_URL=https://<random>.trycloudflare.com/v1`, `NOVA_LLM_MODEL=qwen3:8b`,
+`NOVA_LLM_BASE_URL=https://<random>.trycloudflare.com/v1`, `NOVA_LLM_MODEL=<model id from GET /v1/models>`,
 `NOVA_LLM_API_KEY=<key>`, `NOVA_LLM_TIMEOUT_SECONDS=900`. The quick-tunnel URL changes on every restart and
 the laptop must stay awake: use a GPU vLLM server for real production.

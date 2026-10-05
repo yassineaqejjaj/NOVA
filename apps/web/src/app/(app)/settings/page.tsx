@@ -57,6 +57,8 @@ const M = defineMessages({
     s_thinking: "Thinking",
     s_working: "Working",
     s_waiting: "Waiting for you",
+    s_clarification: "Needs clarification",
+    s_completed: "Completed",
   },
   fr: {
     title: "Paramètres",
@@ -98,10 +100,12 @@ const M = defineMessages({
     s_thinking: "Réfléchit",
     s_working: "Travaille",
     s_waiting: "Vous attend",
+    s_clarification: "Précision",
+    s_completed: "Terminé",
   },
 });
 
-const PREVIEW_STATES: OrbState[] = ["idle", "thinking", "working", "waiting"];
+const PREVIEW_STATES: OrbState[] = ["idle", "thinking", "working", "waiting", "clarification", "completed"];
 
 export default function SettingsPage() {
   const t = useT(M);
@@ -156,11 +160,17 @@ export default function SettingsPage() {
         <div className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-center">
           <div className="flex flex-col items-center gap-3 rounded-[20px] bg-surface-2/70 px-8 py-6">
             <NovaOrb state={previewState} size={84} reflection title={t("preview")} />
-            <div className="mt-2 flex gap-1" role="group" aria-label={t("preview")}>
+            <div className="mt-2 flex max-w-[260px] flex-wrap justify-center gap-1" role="group" aria-label={t("preview")}>
               {PREVIEW_STATES.map((s) => (
                 <button
                   key={s}
-                  onClick={() => setPreviewState(s)}
+                  onClick={() => {
+                    // "Completed" is a live transition: replay it from a calm orb.
+                    if (s === "completed") {
+                      setPreviewState("idle");
+                      setTimeout(() => setPreviewState("completed"), 80);
+                    } else setPreviewState(s);
+                  }}
                   aria-pressed={previewState === s}
                   className={cn("rounded-full px-2.5 py-1 text-[11.5px]", previewState === s ? "bg-surface text-text shadow-sm" : "text-subtle hover:text-text")}
                 >
