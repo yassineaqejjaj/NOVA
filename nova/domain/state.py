@@ -99,6 +99,9 @@ class NovaState(BaseModel):
     attachments: list[dict[str, str]] = Field(default_factory=list)  # {name, text}
     provided_context: list[ContextItem] = Field(default_factory=list)  # FORGE protocol context
     preferences: dict[str, Any] = Field(default_factory=dict)
+    # Lessons of the agents' policies applied to this execution ({profile: AgentLearning}), snapshotted at start
+    learning: dict[str, Any] = Field(default_factory=dict)
+    agent_scope: str | None = None  # restricts planning to one specialist agent's Skills (FORGE training runs)
     subject: str | None = None  # names the deliverables (a goal's title), instead of deriving it from the request
 
     # Understanding & context

@@ -8,6 +8,7 @@ the FAP response with inline events (no OTLP export for these runs: no double co
 from __future__ import annotations
 
 import asyncio
+import re
 import secrets
 import uuid
 from typing import Annotated, Any
@@ -23,7 +24,7 @@ from nova.config import get_settings
 from nova.domain.artifacts import ArtifactContent
 from nova.domain.enums import AutonomyMode, ExecutionOrigin, TaskStatus
 from nova.infra.db import get_session, session_scope
-from nova.infra.models import Artifact, ArtifactVersion, ExecutionEvent, SkillExecution, Task
+from nova.infra.models import AgentPolicy, Artifact, ArtifactVersion, ExecutionEvent, SkillExecution, Task
 from nova.integrations.forge import mapper
 from nova.integrations.forge.schemas import FapError, FapEvent, FapUsage, NovaRunRequest, NovaRunResponse
 from nova.services.executions import run_task
@@ -51,11 +52,21 @@ async def run(
     token = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
     if not token or not secrets.compare_digest(token, settings.forge_inbound_token):
         return _error(401, "UNAUTHORIZED", "Jeton NOVA invalide")
-    if nova_agent_id != mapper.NOVA_AGENT_ID:
+    profile = mapper.profile_of(nova_agent_id)
+    if nova_agent_id != mapper.NOVA_AGENT_ID and profile is None:
         return _error(404, "NOT_FOUND", f"Agent NOVA inconnu : {nova_agent_id}")
     prompt = body.input.text().strip()
     if not prompt:
         return _error(400, "EXECUTION_ERROR", "Entrée vide")
+    skills = get_skill_registry()
+    skill_id = body.input.nova_skill
+    if skill_id and (not skills.has(skill_id) or (profile and skills.get(skill_id).agent != profile)):
+        return _error(400, "EXECUTION_ERROR", f"Compétence inconnue pour cet agent : {skill_id}")
+    policy_id = str(body.options.get("policy_id") or "") or None
+    if policy_id:
+        policy = await session.get(AgentPolicy, _uuid(policy_id))
+        if policy is None or (profile and policy.agent != profile.value):
+            return _error(400, "EXECUTION_ERROR", f"Version apprise inconnue pour cet agent : {policy_id}")
     if body.constraints:
         prompt += "\n\nConstraints:\n" + "\n".join(f"- {c}" for c in body.constraints)
 
@@ -67,6 +78,9 @@ async def run(
         "context_mode": "none",
         "provided_context": [i.model_dump(mode="json") for i in mapper.provided_context(body)],
         "preferences": {"nova_name": "NOVA", "max_workflow_steps": min(body.budget.max_steps or 8, 8)},
+        "skill_refs": [skill_id] if skill_id else [],
+        "agent_scope": profile.value if profile else None,
+        "learning_policy_id": policy_id,
     }
     task = Task(
         user_id=user.id,
@@ -86,10 +100,30 @@ async def run(
         status = await asyncio.wait_for(run_task(task_id, "start", traceparent=carrier), timeout=timeout)
     except TimeoutError:
         return _error(200, "TIMEOUT", "Délai dépassé côté NOVA")
-    return await _response(task_id, status)
+    return await _response(task_id, status, nova_agent_id)
 
 
-async def _response(task_id: str, status: TaskStatus) -> NovaRunResponse:
+def _uuid(value: str) -> uuid.UUID | None:
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        return None
+
+
+CITATION = re.compile(r"\[(S\d{1,3})\]")
+
+
+def forge_citations(text: str, provided: list[dict[str, Any]]) -> str:
+    """NOVA's ``[S1]`` labels → ``[source: <FORGE document id>]``, the form FORGE's citation rules recognise.
+
+    ``S<n>`` is the n-th document FORGE provided (``mapper.provided_context``), so the mapping is exact; unknown
+    labels are left as they are. Only the FORGE view is rewritten: NOVA's Artifacts keep their own citations.
+    """
+    refs = {str(i.get("citation")): str(i.get("ref_id")) for i in provided if i.get("citation") and i.get("ref_id")}
+    return CITATION.sub(lambda m: f"[source: {refs[m.group(1)]}]" if m.group(1) in refs else m.group(0), text)
+
+
+async def _response(task_id: str, status: TaskStatus, nova_agent_id: str = mapper.NOVA_AGENT_ID) -> NovaRunResponse:
     tid = uuid.UUID(task_id)
     async with session_scope() as session:
         task = await session.get(Task, tid)
@@ -133,8 +167,9 @@ async def _response(task_id: str, status: TaskStatus) -> NovaRunResponse:
         answer = next((t for t in reversed(texts) if t), "")
         usage = task.usage or {}
         skills = get_skill_registry()
+        provided = list((task.input or {}).get("provided_context") or [])
         response = NovaRunResponse(
-            output="\n\n".join(outputs) or answer,
+            output=forge_citations("\n\n".join(outputs) or answer, provided),
             output_json=output_json or None,
             events=fap,
             usage=FapUsage(
@@ -151,6 +186,12 @@ async def _response(task_id: str, status: TaskStatus) -> NovaRunResponse:
                 "skills": [{"id": ex.skill_id, "version": ex.skill_version} for ex in executions],
                 "skill_catalog": skills.catalog_digest(),
                 "artifact_types": [a.type for a in artifacts],
+                "nova_agent_id": nova_agent_id,
+                # Policies (learned lessons) applied to this run, per agent: what FORGE actually evaluated
+                "policies": {
+                    agent: {"id": p.get("policy_id"), "version": p.get("version")}
+                    for agent, p in ((task.input or {}).get("learning") or {}).items()
+                },
             },
         )
         if status == TaskStatus.failed:

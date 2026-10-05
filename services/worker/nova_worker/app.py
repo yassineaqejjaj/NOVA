@@ -42,6 +42,7 @@ celery_app.conf.update(
         "requeue-stale-work": {"task": "nova.requeue_stale", "schedule": 120.0, "options": {"queue": "maintenance"}},
         "refresh-evaluations": {"task": "nova.refresh_evaluations", "schedule": 300.0, "options": {"queue": "maintenance"}},
         "retention": {"task": "nova.retention", "schedule": 86400.0, "options": {"queue": "maintenance"}},
+        "advance-training": {"task": "nova.advance_training", "schedule": 120.0, "options": {"queue": "maintenance"}},
     },
 )
 

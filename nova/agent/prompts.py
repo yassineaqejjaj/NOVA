@@ -15,6 +15,7 @@ from nova.domain.agents import AGENTS, AgentProfile, agent_instructions
 from nova.domain.artifacts import ArtifactType, SectionContent
 from nova.domain.context import ContextItem
 from nova.domain.enums import SectionKind
+from nova.domain.learning import skill_lessons, standards_lines
 from nova.domain.llm import LLMMessage
 from nova.domain.outputs import ToolResult
 from nova.domain.skills import SkillSpec, SkillStep
@@ -232,10 +233,12 @@ def skill_step_messages(
     """``full``: sections of ``produced`` sent whole (a revision fixes them); the others are only outlined."""
     principles = "\n".join(f"- {p}" for p in skill.methodology.principles)
     skill_text = (
-        f"{agent_instructions(skill.agent)}\n\n"
+        f"{agent_instructions(skill.agent, standards_lines(state.learning, skill.agent))}\n\n"
         f"SKILL: {skill.name} v{skill.version} — {skill.purpose}\n"
         f"METHOD: {skill.methodology.name}\n{principles}\n\nSKILL INSTRUCTIONS:\n{skill.instructions}"
     )
+    if lessons := skill_lessons(state.learning, skill.agent, skill.id):
+        skill_text += "\n\nLESSONS FROM PAST EVALUATIONS OF THIS SKILL (apply them):\n" + "\n".join(f"- {x}" for x in lessons)
     tools_text = ""
     if tools_allowed:
         tools_text = (
@@ -343,6 +346,9 @@ def review_messages(
     failed_checks: list[str],
 ) -> list[LLMMessage]:
     criteria = "\n".join(f"- {c.get('key')}: {c.get('question')}" for c in skill.evaluation.criteria) or "- none"
+    learned = standards_lines(state.learning, skill.agent) + skill_lessons(state.learning, skill.agent, skill.id)
+    if learned:  # what FORGE taught the agent is also what the Validation agent checks
+        criteria += "\n" + "\n".join(f"- learned: {x}" for x in learned)
     keys = "\n".join(f"- {key}: {d.title}" for key in sections if (d := artifact_type.section(key)))
     lang = state.classification.response_language if state.classification else "en"
     instructions = (

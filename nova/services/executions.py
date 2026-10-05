@@ -24,7 +24,7 @@ from nova.domain.state import NovaState
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import get_publisher
 from nova.infra.models import Task, WorkflowExecution
-from nova.services import providers
+from nova.services import learning, providers
 from nova.services.access import effective_permissions
 from nova.services.execution_store import SqlExecutionStore, emit_event
 from nova.services.users import get_user, principal_for
@@ -128,6 +128,11 @@ async def _run_segment(
         if await session.scalar(select(WorkflowExecution).where(WorkflowExecution.task_id == tid)) is None:
             session.add(WorkflowExecution(task_id=tid, thread_id=task_id))
         user_id, project_id, origin, initial_input = str(task.user_id), task.project_id, task.origin, dict(task.input)
+        if mode != "resume" and "learning" not in initial_input:
+            # Lessons the agents learned from FORGE, frozen for the whole execution (services/learning.py)
+            initial_input["learning"] = await learning.snapshot(session, initial_input.get("learning_policy_id"))
+            task.input = {**task.input, "learning": initial_input["learning"]}  # kept for retries and FORGE metadata
+        initial_input.pop("learning_policy_id", None)
         message_id = str(task.message_id) if task.message_id else None
         await emit_event(session, get_publisher(), tid, EventType.task, {"status": "running"})
 

@@ -2,7 +2,7 @@
 
 import { Skeleton } from "@nova/ui";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, GraduationCap, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 import { AgentAvatar } from "@/components/agents/sub-agents";
@@ -31,6 +31,7 @@ const M = defineMessages({
     support: "Behind every task",
     checked: (v: { n: number; r: number }) => `${v.n} deliverables checked · ${v.r} revised`,
     research: (v: { n: number }) => `${v.n} tasks with project context`,
+    training: "Training with FORGE",
   },
   fr: {
     title: "Votre équipe produit",
@@ -45,6 +46,7 @@ const M = defineMessages({
     support: "Derrière chaque tâche",
     checked: (v: { n: number; r: number }) => `${v.n} livrable${v.n > 1 ? "s" : ""} contrôlé${v.n > 1 ? "s" : ""} · ${v.r} révisé${v.r > 1 ? "s" : ""}`,
     research: (v: { n: number }) => `${v.n} tâche${v.n > 1 ? "s" : ""} avec contexte projet`,
+    training: "Entraînement avec FORGE",
   },
 });
 
@@ -55,7 +57,15 @@ export default function TeamPage() {
   const byId = new Map(data?.agents.map((a) => [a.id, a]));
   return (
     <Page>
-      <PageHeader title={t("title")} description={t("description")} />
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        actions={
+          <Link href="/team/training" className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-3 text-[13px] hover:bg-surface-3">
+            <GraduationCap className="size-4" aria-hidden /> {t("training")}
+          </Link>
+        }
+      />
       <div className="flex flex-col items-center text-center">
         <NovaOrb state={data?.agents.some((a) => a.working.length) ? "working" : "idle"} size={96} />
         <div className="mt-2 text-[17px] font-semibold">NOVA</div>

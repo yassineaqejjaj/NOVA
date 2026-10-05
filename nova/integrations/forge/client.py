@@ -64,3 +64,30 @@ class ForgeClient:
 
     async def human_evaluation(self, run_id: str, body: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", f"/runs/{run_id}/human-evaluations", json=body)
+
+    # --- Training loop -------------------------------------------------------------------------------
+
+    async def find_scenario(self, slug: str) -> dict[str, Any] | None:
+        page = await self._request("GET", "/scenarios", params={"q": slug, "page_size": 50})
+        return next((s for s in page.get("items", []) if s.get("slug") == slug), None)
+
+    async def run_feedback(self, run_id: str) -> dict[str, Any] | None:
+        """Latest FeedbackReport of a run (``None`` while FORGE has not produced one)."""
+        try:
+            return await self._request("GET", f"/runs/{run_id}/feedback")
+        except ForgeError as exc:
+            if exc.status == 404:
+                return None
+            raise
+
+    async def create_experiment(self, body: dict[str, Any]) -> dict[str, Any]:
+        return await self._request("POST", "/experiments", json=body)
+
+    async def get_experiment(self, experiment_id: str) -> dict[str, Any]:
+        return await self._request("GET", f"/experiments/{experiment_id}")
+
+    async def experiment_comparison(self, experiment_id: str) -> dict[str, Any]:
+        return await self._request("GET", f"/experiments/{experiment_id}/comparison")
+
+    async def cancel_experiment(self, experiment_id: str) -> None:
+        await self._request("POST", f"/experiments/{experiment_id}/cancel")

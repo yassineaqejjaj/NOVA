@@ -43,6 +43,8 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
     )
     if not candidates:
         candidates = router.candidates(c.goal, hinted=c.candidate_skill_ids) or []
+    if state.agent_scope:  # one specialist evaluated alone (FORGE training run): only its own Skills
+        candidates = [cand for cand in candidates if cand.skill.agent == state.agent_scope]
     if not candidates:
         raise NodeFailure("no_skill", "NOVA has no Skill for this request yet.")
     can_ask = state.origin == ExecutionOrigin.interactive

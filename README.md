@@ -125,13 +125,14 @@ skills/             64 Skills (skill.yaml, instructions.md, input/output JSON Sc
 artifacts/types/    38 Artifact types
 packages/schemas    item-kind JSON Schemas shared by API and editor
 infrastructure/     docker, keycloak realm, kubernetes manifests
-docs/               integration-analysis.md, ARCHITECTURE.md, SKILLS.md, OPERATIONS.md
+docs/               integration-analysis.md, ARCHITECTURE.md, SKILLS.md, OPERATIONS.md, TRAINING.md
 tests/              unit, integration, support (test doubles)
 ```
 
 ## Documentation
 
 * [Integration analysis](docs/integration-analysis.md) — ORBIT & FORGE contracts, gaps, differences with the brief
+* [Training with FORGE](docs/TRAINING.md) — every specialist agent re-trained on all its Skills, validated by FORGE experiments
 * [Architecture](docs/ARCHITECTURE.md) — execution model, Skills, Artifacts, data model, API, security
 * [Skills](docs/SKILLS.md) — writing and versioning Skills
 * [Deployment](docs/DEPLOYMENT.md) — Railway + Vercel production setup, releases, FORGE/ORBIT connection

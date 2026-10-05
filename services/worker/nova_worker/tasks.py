@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from nova.services import maintenance
+from nova.services import maintenance, training
 from nova.services.executions import RetryableExecutionError, run_task
 from nova_worker.app import celery_app, run
 
@@ -48,3 +48,9 @@ def refresh_evaluations() -> int:
 @celery_app.task(name="nova.retention")
 def retention() -> dict[str, int]:
     return run(maintenance.apply_retention())
+
+
+@celery_app.task(name="nova.advance_training")
+def advance_training() -> int:
+    """FORGE training loop: start due cycles and advance open ones (services/training.py)."""
+    return run(training.tick())

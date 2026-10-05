@@ -25,6 +25,12 @@ os.environ.update(
         "NOVA_LLM_BASE_URL": "http://127.0.0.1:9/v1",
         "NOVA_SMTP_HOST": "",  # codes go to the in-memory outbox
         "NOVA_SMTP_FROM": "",
+        # FORGE and its training loop are faked (tests/integration/test_training.py)
+        "NOVA_FORGE_API_KEY": "",
+        "NOVA_FORGE_CREDENTIAL_ID": "",
+        "NOVA_FORGE_NOVA_ENDPOINT": "",
+        "NOVA_TRAINING_MAX_SKILLS": "0",
+        "NOVA_TRAINING_INTERVAL_DAYS": "0",
     }
 )
 

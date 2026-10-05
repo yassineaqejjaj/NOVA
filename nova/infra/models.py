@@ -508,3 +508,57 @@ class LearnedSkill(Base):
     lang: Mapped[str] = mapped_column(String(5), default="en")
     uses: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AgentPolicy(Base):
+    """A versioned set of lessons an agent learned from FORGE (domain/learning.py, docs/TRAINING.md).
+
+    ``status``: ``candidate`` (under experiment) → ``active`` (applied to every execution) → ``retired``;
+    or ``rejected`` when FORGE did not validate it. One ``active`` policy per agent at most.
+    """
+
+    __tablename__ = "agent_policies"
+    __table_args__ = (UniqueConstraint("agent", "version"), Index("ix_agent_policies_agent_status", "agent", "status"))
+    id: Mapped[uuid.UUID] = _pk()
+    agent: Mapped[str] = mapped_column(String(20))
+    version: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), default="candidate")
+    standards: Mapped[list] = mapped_column(JSONType, default=list)
+    skills: Mapped[dict] = mapped_column(JSONType, default=dict)  # {skill_id: [lesson]}
+    recommendations: Mapped[list] = mapped_column(JSONType, default=list)  # FORGE advice a prompt cannot apply
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    cycle_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    forge_agent_version_id: Mapped[str | None] = mapped_column(String(64))
+    # Fingerprint of the FORGE version body: a new model, Skill catalog or budget registers a new version
+    forge_version_key: Mapped[str | None] = mapped_column(String(64))
+    score: Mapped[float | None] = mapped_column(Float)  # FORGE composite score when it was validated
+    summary: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = _created()
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class TrainingCycle(Base):
+    """One FORGE training cycle of an agent over all of its Skills (services/training.py).
+
+    ``queued`` → ``evaluating`` (baseline runs) → ``experimenting`` (baseline vs candidate) →
+    ``promoted`` | ``rejected`` | ``no_change`` | ``failed`` | ``cancelled``.
+    """
+
+    __tablename__ = "training_cycles"
+    __table_args__ = (Index("ix_training_cycles_agent_created", "agent", "created_at"),)
+    id: Mapped[uuid.UUID] = _pk()
+    agent: Mapped[str] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(String(20), default="queued")
+    trigger: Mapped[str] = mapped_column(String(20), default="manual")  # manual | scheduled
+    requested_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    baseline_policy_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    candidate_policy_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    skills: Mapped[list] = mapped_column(JSONType, default=list)  # [{id, version, scenario_id}]
+    baseline_runs: Mapped[list] = mapped_column(JSONType, default=list)  # [{run_id, skill_id}]
+    forge_experiment_id: Mapped[str | None] = mapped_column(String(64))
+    result: Mapped[dict] = mapped_column(JSONType, default=dict)  # baseline scores, decision, deltas
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

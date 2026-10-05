@@ -94,6 +94,21 @@ class Settings(BaseSettings):
     forge_capture_policy: Literal["off", "on_feedback", "sampled", "all"] = "on_feedback"
     forge_capture_sample_rate: float = 0.1
     forge_timeout_seconds: float = 20.0
+    # FORGE `nova` credential (Settings → Credentials) whose secret is NOVA_FORGE_INBOUND_TOKEN: FORGE uses it to
+    # authenticate when it calls NOVA back. Agent versions registered by NOVA reference it.
+    forge_credential_id: str = ""
+    # NOVA API as reachable *from FORGE* (agent version endpoint). Empty: derived from NOVA_PUBLIC_URL.
+    forge_nova_endpoint: str = ""
+
+    # --- Training loop (docs/TRAINING.md): FORGE evaluates each agent on all its Skills, NOVA learns ----------
+    training_enabled: bool = True  # needs NOVA_FORGE_API_KEY (role editor) and NOVA_FORGE_CREDENTIAL_ID
+    training_interval_days: int = Field(default=0, ge=0, le=90)  # 0 = cycles started by an admin; N = every N days
+    training_repetitions: int = Field(default=1, ge=1, le=5)  # runs per Skill and per arm
+    training_max_skills: int = Field(default=0, ge=0, le=100)  # 0 = every Skill of the agent
+    training_cycle_timeout_hours: int = Field(default=24, ge=1, le=168)
+    # Time FORGE gives one training run (a multi-step Skill on a small model needs more than FORGE's 120 s default)
+    training_run_timeout_seconds: int = Field(default=600, ge=60, le=3600)
+    training_auto_promote: bool = True  # promote a candidate policy when FORGE validates it
 
     # --- Voice (self-hosted speech-to-text / text-to-speech service) ---------------------------------
     voice_url: str = ""  # self-hosted voice service (empty: not deployed)

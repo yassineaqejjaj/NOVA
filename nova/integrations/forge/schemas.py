@@ -21,6 +21,7 @@ class FapMessage(_In):
 class FapInput(_In):
     prompt: str | None = None
     messages: list[FapMessage] = Field(default_factory=list)
+    nova_skill: str | None = None  # training scenarios force the Skill under evaluation (FORGE passes input through)
 
     def text(self) -> str:
         if self.prompt:

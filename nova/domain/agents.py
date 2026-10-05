@@ -70,7 +70,11 @@ AGENTS: dict[AgentProfile, AgentSpec] = {
 }
 
 
-def agent_instructions(profile: AgentProfile) -> str:
+def agent_instructions(profile: AgentProfile, learned: list[str] | None = None) -> str:
+    """Persona and quality bar of a specialist; ``learned`` = standards validated by FORGE (domain/learning.py)."""
     spec = AGENTS[profile]
     standards = "\n".join(f"- {s}" for s in spec.standards)
-    return f"SUB-AGENT: you are NOVA's {spec.name} — it {spec.mission}.\nPROFESSIONAL STANDARDS:\n{standards}"
+    text = f"SUB-AGENT: you are NOVA's {spec.name} — it {spec.mission}.\nPROFESSIONAL STANDARDS:\n{standards}"
+    if learned:
+        text += "\nLEARNED STANDARDS (validated by FORGE evaluations):\n" + "\n".join(f"- {s}" for s in learned)
+    return text
