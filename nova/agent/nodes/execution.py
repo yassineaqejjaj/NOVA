@@ -29,11 +29,18 @@ from nova.agent.validation import (
 from nova.artifacts.registry import NormalizationReport
 from nova.artifacts.render import render_section
 from nova.domain.agents import AGENTS
-from nova.domain.artifacts import ArtifactReference, Citation, apply_section_updates, empty_content
+from nova.domain.artifacts import (
+    ArtifactContent,
+    ArtifactReference,
+    Citation,
+    SectionContent,
+    apply_section_updates,
+    empty_content,
+)
 from nova.domain.blocks import Block
 from nova.domain.context import ContextBundle
 from nova.domain.enums import BlockType, NovaPhase, SectionKind, StepStatus
-from nova.domain.llm import LLMError
+from nova.domain.llm import LLMError, LLMMessage
 from nova.domain.outputs import ToolRequest, ToolResult
 from nova.domain.permissions import AutonomyPolicy, action_permission
 from nova.domain.skills import SkillStep
@@ -93,6 +100,25 @@ async def _optional[T](call: Awaitable[T], what: str) -> T | None:
         return None
 
 
+EMPTY_STEP_NUDGE = (
+    "Every section must have content. When the input data is missing, say so in the section: write what is missing, "
+    "the assumptions you make, or the questions to answer to complete it."
+)
+
+
+def _has_content(raw: Any) -> bool:
+    return isinstance(raw, dict) and any(raw.get(k) for k in ("items", "blocks"))
+
+
+def merge_revision(original: SectionContent | None, revised: SectionContent) -> SectionContent:
+    """A revision returns only the items it changes or adds: replace them by id, keep the others in place."""
+    if original is None or revised.kind != SectionKind.items:
+        return revised  # text sections are returned whole
+    by_id = {item.id: item for item in revised.items}
+    kept = [by_id.pop(item.id, item) for item in original.items]
+    return revised.model_copy(update={"items": kept + list(by_id.values())})
+
+
 def _count(sections: dict, keys: list[str]) -> str:
     items = sum(len(sections[k].items) for k in keys if k in sections and sections[k].kind == SectionKind.items)
     return f"{items} item{'s' if items != 1 else ''}" if items else f"{len(keys)} section{'s' if len(keys) != 1 else ''}"
@@ -150,6 +176,15 @@ async def execute_skill(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
         edit_instruction=state.intent if is_edit else None,
     )
     result = await d.llm.structured_output(messages, RawStepOutput, json_schema=schema)
+    if not is_edit and not result.value.tool_requests and not any(map(_has_content, result.value.sections.values())):
+        # Neither tools nor content (sections are optional when tools may be requested, and a concise model may
+        # leave a section empty when input data is missing): ask once more, explicitly, for every section.
+        strict = d.artifacts.output_schema(artifact_type, fills, with_tools=False)
+        nudge = LLMMessage(role="user", content=EMPTY_STEP_NUDGE)
+        retry = await d.llm.structured_output([*messages, nudge], RawStepOutput, json_schema=strict)
+        result = retry.model_copy(
+            update={"usage": result.usage.add(retry.usage), "latency_ms": result.latency_ms + retry.latency_ms}
+        )
     raw = result.value
     out.usage = out.usage.add(result.usage)
     out.duration_ms += result.latency_ms
@@ -293,18 +328,22 @@ async def validate_step(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
             usage, model = usage.add(revised.usage), revised.model
             out.usage = out.usage.add(revised.usage)
             out.duration_ms += revised.latency_ms
-            id_scope = set(out.id_scope)
+            # Item ids of the revised sections stay reusable, so a corrected item keeps its id and replaces it.
+            revised_ids = {item.id for k in targets if k in out.sections for item in out.sections[k].items}
+            id_scope = set(out.id_scope) - revised_ids
             sections = d.artifacts.normalize_sections(
                 artifact_type,
                 revised.value.sections,
                 allowed_keys=targets,
                 citation_index=citation_index(state),
-                existing=None,
+                existing=ArtifactContent(type=artifact_type.type, title="", sections=out.sections),
                 report=NormalizationReport(),
                 id_scope=id_scope,
             )
-            out.sections = {**out.sections, **{k: v for k, v in sections.items() if not v.is_empty()}}
-            out.id_scope = sorted(id_scope)
+            for k, section in sections.items():
+                if not section.is_empty():
+                    out.sections[k] = merge_revision(out.sections.get(k), section)
+            out.id_scope = sorted(id_scope | revised_ids)
             out.revisions += 1
             await progress(d, state, revise_key, "Revising after review", "completed", _count(out.sections, targets))
             results = checks()

@@ -29,13 +29,13 @@ class CheckResult(BaseModel):
 class CriterionVerdict(BaseModel):
     key: str = Field(description="Criterion key, exactly as listed")
     passed: bool
-    comment: str = Field(default="", description="One short sentence, in the user's language")
+    comment: str = Field(default="", description="Only when not passed: ≤ 15 words, in the user's language")
 
 
 class ReviewIssue(BaseModel):
     section: str = Field(description="Section key, exactly as listed")
-    problem: str = Field(description="What is wrong, one sentence in the user's language")
-    fix: str = Field(description="What the specialist must change, one sentence in the user's language")
+    problem: str = Field(description="What is wrong, ≤ 20 words, in the user's language")
+    fix: str = Field(description="What the specialist must change, ≤ 20 words, in the user's language")
 
 
 class ValidationReview(BaseModel):
@@ -44,7 +44,7 @@ class ValidationReview(BaseModel):
     verdict: Literal["pass", "revise"] = Field(description="revise only for a problem that matters to the user")
     criteria: list[CriterionVerdict] = Field(default_factory=list, max_length=8)
     issues: list[ReviewIssue] = Field(default_factory=list, max_length=4)
-    summary: str = Field(default="", description="One sentence for the user, in the user's language")
+    summary: str = Field(default="", description="One sentence for the user (≤ 25 words), in the user's language")
 
 
 class StepValidation(BaseModel):
@@ -147,4 +147,9 @@ def revision_feedback(checks: list[CheckResult], review: ValidationReview | None
     lines = [f"- Check failed: {c.label} ({c.detail})" for c in checks if not c.passed]
     if review and review.verdict == "revise":
         lines += [f"- {i.section}: {i.problem} → {i.fix}" for i in review.issues]
-    return "REVISION REQUESTED BY NOVA'S VALIDATION AGENT. Fix exactly these points, keep everything else:\n" + "\n".join(lines)
+    return (
+        "REVISION REQUESTED BY NOVA'S VALIDATION AGENT. Fix exactly these points, keep everything else:\n"
+        + "\n".join(lines)
+        + "\nFor list sections return ONLY the items you change or add, with their existing id: items you omit are kept"
+        " as they are. Text sections are returned whole."
+    )

@@ -204,7 +204,8 @@ def skill_step_messages(
         tools_text = (
             "\nTOOLS you may request (set tool_requests, then you will get the results): "
             + ", ".join(tools_allowed)
-            + ". Request tools only if the context is insufficient for this step; otherwise leave tool_requests empty."
+            + ". The project context below was already retrieved: request a tool only for a specific fact it lacks,"
+            " and then leave sections empty (you will write them with the results). Otherwise leave tool_requests empty."
         )
     section_help = "\n".join(
         f"- {key}: {d.title} ({d.kind}{', items of kind ' + d.item_kind if d.item_kind else ''})"
@@ -243,7 +244,11 @@ def skill_step_messages(
     parts.append(
         f"CURRENT STEP — {step.title}:\n{step.instruction}\n\nSECTIONS TO FILL:\n{section_help}\n"
         f"Write in the language of the user's request ('{state.classification.response_language if state.classification else 'en'}'), "
-        "even when the context is in another language."
+        "even when the context is in another language.\n"
+        "Be concise: no filler, no repetition of the request or of other sections, no restating the context. "
+        "Item descriptions: 1–2 sentences. Rationale only when not obvious (≤ 15 words). Summary ≤ 20 words. "
+        "Fill an optional field only when it adds information. Respect the counts given in the step: prefer fewer, "
+        "complete items to many thin ones."
     )
     return [system_message(state, skill_text + tools_text), LLMMessage(role="user", content="\n\n".join(parts))]
 
@@ -296,8 +301,10 @@ def review_messages(
     lang = state.classification.response_language if state.classification else "en"
     instructions = (
         f"{VALIDATION_AGENT}\n\nReview the {artifact_type.name} produced by NOVA's {AGENTS[skill.agent].name} "
-        f"with the Skill {skill.name} ({skill.methodology.name}). Grade every criterion; verdict 'revise' only when "
-        f"an issue matters. At most 4 issues. Write comments, problems, fixes and summary in '{lang}'."
+        f"with the Skill {skill.name} ({skill.methodology.name}). Grade every criterion; comment only the "
+        "ones that fail. Verdict 'revise' only for an issue that matters AND that the specialist can fix with the "
+        "request and the context given; missing input data (no backlog, no metrics…) is not fixable by a revision: "
+        f"mention it in the summary and pass. At most 3 issues. Be brief. Write in '{lang}'."
     )
     parts = [
         f"USER GOAL: {state.classification.goal if state.classification else state.intent}",

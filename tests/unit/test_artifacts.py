@@ -38,10 +38,14 @@ def test_prd_has_the_23_required_sections():
 
 
 def test_output_schema_is_valid_json_schema_and_constrains_sections():
-    schema = registry.output_schema(prd, ["summary", "functional_requirements"], with_tools=True)
+    schema = registry.output_schema(prd, ["summary", "functional_requirements"])
     Draft202012Validator.check_schema(schema)
     assert schema["properties"]["sections"]["required"] == ["summary", "functional_requirements"]
     assert schema["properties"]["sections"]["additionalProperties"] is False
+    # When tools may be requested, sections are optional: the model asks for tools without writing the step twice.
+    with_tools = registry.output_schema(prd, ["summary", "functional_requirements"], with_tools=True)
+    Draft202012Validator.check_schema(with_tools)
+    assert with_tools["properties"]["sections"]["required"] == [] and "tool_requests" in with_tools["properties"]
 
 
 def test_normalization_drops_unserved_citations_and_invalid_attributes():

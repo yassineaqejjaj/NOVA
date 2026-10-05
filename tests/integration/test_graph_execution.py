@@ -256,9 +256,43 @@ async def test_a_failed_revision_keeps_the_deliverable_with_reservations(user, p
     assert len(revisions) == 1  # no node retry storm
 
 
+async def test_an_empty_step_is_asked_again_instead_of_failing_the_task(user, project, llm):
+    """A concise model may return an empty section when input data is missing: NOVA asks once more, explicitly."""
+    from nova.agent.nodes.execution import EMPTY_STEP_NUDGE
+
+    llm.intent = lambda m: IntentClassification(kind="run_workflow", goal="Brief", candidate_skill_ids=["design-brief"])
+    llm.plan = lambda m: PlanOutput(objective="Brief", steps=[{"id": "a", "title": "Brief", "skill_id": "design-brief"}])
+
+    def step(raw, messages):
+        if messages[-1].content == EMPTY_STEP_NUDGE:
+            return raw
+        return {**raw, "sections": {k: {key: [] for key in v} for k, v in raw["sections"].items()}}
+
+    llm.step_override = step
+    task_id, _ = await _start(user, project, "Design brief for onboarding", autonomy="execute_automatically")
+    assert await run_task(task_id, "start") == "completed"
+    assert any(m[-1].content == EMPTY_STEP_NUDGE for name, m in llm.calls if name == "RawStepOutput")
+
+
 async def test_explicit_skill_asks_its_question_in_the_users_language(user, project, llm):
     llm.intent = lambda m: IntentClassification(kind="run_workflow", goal="Un epic", response_language="fr")
     task_id, message_id = await _start(user, project, "/epic-definition")
     assert await run_task(task_id, "start") == "waiting_user"
     question = (await _blocks(message_id))["questions"]["questions"][0]["question"]
     assert question == get_skill_registry().get("epic-definition").translations["fr"]["inputs"]["epic"]["question"]
+
+
+def test_a_revision_replaces_only_the_items_it_returns():
+    from nova.agent.nodes.execution import merge_revision
+    from nova.domain.artifacts import ArtifactItem, SectionContent
+    from nova.domain.enums import SectionKind
+
+    original = SectionContent(
+        kind=SectionKind.items, items=[ArtifactItem(id=i, kind="story", title=i.upper()) for i in ("s1", "s2", "s3")]
+    )
+    revised = SectionContent(
+        kind=SectionKind.items,
+        items=[ArtifactItem(id="s2", kind="story", title="S2 fixed"), ArtifactItem(id="s4", kind="story", title="S4")],
+    )
+    merged = merge_revision(original, revised)
+    assert [(i.id, i.title) for i in merged.items] == [("s1", "S1"), ("s2", "S2 fixed"), ("s3", "S3"), ("s4", "S4")]
