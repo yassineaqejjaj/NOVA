@@ -10,9 +10,11 @@ import json
 from typing import Any
 
 from nova.agent.ports import ArtifactOutline, ArtifactSnapshot
+from nova.artifacts.render import render_section
 from nova.domain.agents import AGENTS, AgentProfile, agent_instructions
 from nova.domain.artifacts import ArtifactType, SectionContent
 from nova.domain.context import ContextItem
+from nova.domain.enums import SectionKind
 from nova.domain.llm import LLMMessage
 from nova.domain.outputs import ToolResult
 from nova.domain.skills import SkillSpec, SkillStep
@@ -26,6 +28,8 @@ precise, testable language; write in the user's language."""
 
 MAX_CONTEXT_CHARS = 14000
 MAX_PREVIOUS_CHARS = 6000
+OUTLINE_TEXT_CHARS = 400  # text sections already produced: an abridged view is enough to stay consistent
+OUTLINE_DESC_CHARS = 90
 
 
 def _identity(state: NovaState) -> str:
@@ -92,17 +96,20 @@ def history_block(state: NovaState) -> str:
 # --- understand_intent ---------------------------------------------------------------------------
 
 
+def _artifact_line(o: ArtifactOutline, *, focused: bool) -> str:
+    """Item ids in full only for the artifacts the user points to; the others get a few, to recognise them."""
+    line = f"- id={o.artifact_id} type={o.type} title={o.title!r} v{o.version} sections={','.join(o.sections)}"
+    items = o.items[:40] if focused else o.items[:6]
+    if items:
+        line += " items=" + "; ".join(f"{i['id']}:{i['title'][: 60 if focused else 40]}" for i in items)
+    return line
+
+
 def intent_messages(
     state: NovaState, catalog: list[SkillSpec], outlines: list[ArtifactOutline], artifact_types: list[str]
 ) -> list[LLMMessage]:
-    artifacts = (
-        "\n".join(
-            f"- id={o.artifact_id} type={o.type} title={o.title!r} v{o.version} sections={','.join(o.sections)}"
-            + (" items=" + "; ".join(f"{i['id']}:{i['title'][:60]}" for i in o.items[:40]) if o.items else "")
-            for o in outlines
-        )
-        or "none"
-    )
+    referenced = {state.active_artifact_id, *state.artifact_refs}
+    artifacts = "\n".join(_artifact_line(o, focused=o.artifact_id in referenced) for o in outlines) or "none"
     active = f"\nThe user is currently viewing artifact id={state.active_artifact_id}." if state.active_artifact_id else ""
     skills = "\n".join(s.catalog_line() for s in catalog)
     instructions = """\
@@ -179,6 +186,34 @@ def _sections_json(sections: dict[str, SectionContent], keys: list[str] | None =
     return json.dumps(data, ensure_ascii=False)
 
 
+def _sections_outline(sections: dict[str, SectionContent]) -> str:
+    """Compact view of sections produced by earlier steps: the ids and titles later steps reference, text abridged.
+
+    Sending them whole as JSON made each step re-read everything before it (≈ 60 % of a PRD's input tokens).
+    """
+    lines: list[str] = []
+    for key, section in sections.items():
+        lines.append(f"[{key}]")
+        if section.kind == SectionKind.rich_text:
+            text = " ".join(b.text for b in section.blocks)
+            lines.append(text[:OUTLINE_TEXT_CHARS] + ("…" if len(text) > OUTLINE_TEXT_CHARS else ""))
+            continue
+        for item in section.items:
+            parent = f" (parent {item.parent_id})" if item.parent_id else ""
+            desc = item.description[:OUTLINE_DESC_CHARS] + ("…" if len(item.description) > OUTLINE_DESC_CHARS else "")
+            lines.append(f"- {item.id}{parent}: {item.title}" + (f" — {desc}" if desc else ""))
+    return "\n".join(lines)
+
+
+def _sections_text(sections: dict[str, SectionContent], artifact_type: ArtifactType) -> str:
+    """Sections rendered as Markdown under their keys (for reading, not for editing): far smaller than JSON."""
+    lines: list[str] = []
+    for key, section in sections.items():
+        definition = artifact_type.section(key)
+        lines += [f"#### {key}: {definition.title if definition else key}", *render_section(section)]
+    return "\n".join(lines)
+
+
 def skill_step_messages(
     state: NovaState,
     skill: SkillSpec,
@@ -192,7 +227,9 @@ def skill_step_messages(
     tool_results: list[ToolResult],
     tools_allowed: list[str],
     edit_instruction: str | None = None,
+    full: list[str] | None = None,
 ) -> list[LLMMessage]:
+    """``full``: sections of ``produced`` sent whole (a revision fixes them); the others are only outlined."""
     principles = "\n".join(f"- {p}" for p in skill.methodology.principles)
     skill_text = (
         f"{agent_instructions(skill.agent)}\n\n"
@@ -204,8 +241,9 @@ def skill_step_messages(
         tools_text = (
             "\nTOOLS you may request (set tool_requests, then you will get the results): "
             + ", ".join(tools_allowed)
-            + ". The project context below was already retrieved: request a tool only for a specific fact it lacks,"
-            " and then leave sections empty (you will write them with the results). Otherwise leave tool_requests empty."
+            + ". The project context below was already retrieved: request a tool only for a fact this step cannot do"
+            " without (it costs a whole extra call), and then leave sections empty — you will write them with the"
+            " results. Otherwise leave tool_requests empty and write every section."
         )
     section_help = "\n".join(
         f"- {key}: {d.title} ({d.kind}{', items of kind ' + d.item_kind if d.item_kind else ''})"
@@ -235,7 +273,15 @@ def skill_step_messages(
             + _sections_json(existing.content.sections, fills)
         )
     if produced:
-        parts.append("ALREADY PRODUCED IN THIS SKILL (keep consistent, reference ids as parent_id):\n" + _sections_json(produced))
+        whole = [k for k in full or [] if k in produced]
+        outlined = {k: v for k, v in produced.items() if k not in whole}
+        if outlined:
+            parts.append(
+                "ALREADY PRODUCED IN THIS SKILL (outline — keep consistent, reference these ids as parent_id):\n"
+                + _sections_outline(outlined)
+            )
+        if whole:
+            parts.append("SECTIONS UNDER REVISION (full content):\n" + _sections_json(produced, whole))
     parts.append(context_block(state.context_items))
     if tool_results:
         parts.append(tool_results_block(tool_results))
@@ -311,7 +357,7 @@ def review_messages(
         f"STEP GOAL: {step_goal or skill.summary}",
         f"CRITERIA:\n{criteria}",
         f"SECTIONS (keys):\n{keys}",
-        "DELIVERABLE:\n" + _sections_json(sections)[: MAX_PREVIOUS_CHARS * 2],
+        "DELIVERABLE:\n" + _sections_text(sections, artifact_type)[: MAX_PREVIOUS_CHARS * 2],
     ]
     if failed_checks:
         parts.append("AUTOMATED CHECKS THAT FAILED:\n" + "\n".join(f"- {c}" for c in failed_checks))

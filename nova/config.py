@@ -119,7 +119,7 @@ class Settings(BaseSettings):
     context_reference_retention_days: int = 180
     execution_event_retention_days: int = 90
     max_workflow_steps: int = 8
-    max_tool_iterations: int = 2
+    max_tool_iterations: int = 1  # tool rounds per Skill step (the project context is retrieved beforehand)
     validation_review: bool = True  # the Validation agent grades each deliverable with the model (else checks only)
     max_revisions: int = 1  # revisions NOVA may ask a specialist agent for after validation
 

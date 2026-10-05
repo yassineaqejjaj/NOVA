@@ -134,8 +134,10 @@ class ArtifactRegistry:
         required = ["summary", "sections"]
         if with_tools:
             # Requesting tools must not force the model to write the whole step first: it writes it with the results.
-            properties["sections"]["required"] = []
-            properties["sections"]["description"] = "Leave empty when you request tools; fill every section otherwise"
+            sections = properties["sections"]
+            sections["required"] = []
+            sections["properties"] = {k: {**v, "required": []} for k, v in sections["properties"].items()}  # {} is valid
+            sections["description"] = "Leave empty when you request tools; fill every section otherwise"
             properties["tool_requests"] = {
                 "type": "array",
                 "maxItems": 3,

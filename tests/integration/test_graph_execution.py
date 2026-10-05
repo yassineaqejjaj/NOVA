@@ -274,6 +274,29 @@ async def test_an_empty_step_is_asked_again_instead_of_failing_the_task(user, pr
     assert any(m[-1].content == EMPTY_STEP_NUDGE for name, m in llm.calls if name == "RawStepOutput")
 
 
+async def test_a_tool_round_happens_only_when_the_step_is_incomplete(user, project, llm):
+    """A tool round regenerates the step: NOVA skips it when every section is already written, runs it otherwise."""
+    llm.intent = lambda m: IntentClassification(kind="run_workflow", goal="Brief", candidate_skill_ids=["design-brief"])
+    llm.plan = lambda m: PlanOutput(objective="Brief", steps=[{"id": "a", "title": "Brief", "skill_id": "design-brief"}])
+    asked = {"n": 0}
+
+    def step(raw, messages):
+        request = [{"tool": "search_orbit", "arguments": {"query": "onboarding research"}, "reason": "evidence"}]
+        if "TOOL RESULTS" in messages[1].content:
+            return raw
+        asked["n"] += 1
+        if asked["n"] == 1:  # first sub-step: complete → the tool request is ignored
+            return {**raw, "tool_requests": request}
+        return {**raw, "sections": {}, "tool_requests": request}  # later sub-steps: nothing written yet → tools run
+
+    llm.step_override = step
+    task_id, _ = await _start(user, project, "Design brief for onboarding", autonomy="execute_automatically")
+    assert await run_task(task_id, "start") == "completed"
+    with_results = [m for name, m in llm.calls if name == "RawStepOutput" and "TOOL RESULTS" in m[1].content]
+    sub_steps = len(get_skill_registry().get("design-brief").steps)
+    assert len(with_results) == sub_steps - 1  # every sub-step but the first went through one tool round
+
+
 async def test_explicit_skill_asks_its_question_in_the_users_language(user, project, llm):
     llm.intent = lambda m: IntentClassification(kind="run_workflow", goal="Un epic", response_language="fr")
     task_id, message_id = await _start(user, project, "/epic-definition")

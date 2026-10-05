@@ -190,7 +190,8 @@ async def execute_skill(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
     out.duration_ms += result.latency_ms
     usage = state.usage.add(result.usage)
 
-    if raw.tool_requests and tools_allowed:
+    # A tool round regenerates the step: skip it when the model already delivered every section anyway.
+    if raw.tool_requests and tools_allowed and not all(_has_content(raw.sections.get(k)) for k in fills):
         await progress(
             d, state, progress_key, sub.title, "running", "Using tools: " + ", ".join(r.tool for r in raw.tool_requests)
         )
@@ -314,6 +315,7 @@ async def validate_step(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
                     tool_results=[],
                     tools_allowed=[],
                     edit_instruction=revision_feedback(results, review),
+                    full=targets,
                 ),
                 RawStepOutput,
                 json_schema=schema,
