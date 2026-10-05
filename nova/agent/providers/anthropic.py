@@ -37,6 +37,7 @@ class AnthropicProvider(OpenAICompatibleProvider):
         timeout: float = 120.0,
         default_temperature: float = 0.2,
         default_max_tokens: int = 4096,
+        reasoning_tokens: int = 0,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         if not api_key:

@@ -96,7 +96,12 @@ NOVA supports three providers behind one interface (`NOVA_LLM_PROVIDER`):
 | Provider | Variables |
 |---|---|
 | `anthropic` (Claude API) | `NOVA_LLM_API_KEY` (required), `NOVA_LLM_MODEL` (default `claude-sonnet-5-5`) |
-| `vllm` / `openai_compatible` (self-hosted) | `NOVA_LLM_BASE_URL`, `NOVA_LLM_MODEL`, optional `NOVA_LLM_API_KEY` |
+| `vllm` / `openai_compatible` (self-hosted: vLLM, LM Studio, Ollama…) | `NOVA_LLM_BASE_URL`, `NOVA_LLM_MODEL`, optional `NOVA_LLM_API_KEY` |
+
+Current production setup: **Gemma 4 12B (QAT) served by LM Studio** on the product owner's Mac
+(`NOVA_LLM_MODEL=google/gemma-4-12b-qat`), reached through the authenticated tunnel. Gemma 4 reasons before
+answering and its reasoning counts against `max_tokens`: `NOVA_LLM_REASONING_TOKENS=2048` adds that headroom.
+Throughput is about 10 tokens/s on the laptop, so long deliverables (a full PRD) take several minutes.
 
 With the Claude API, the ORBIT context of each request is sent to Anthropic. `NOVA_POLICY_MAX_CLASSIFICATION`
 (0–3) caps what ORBIT returns to NOVA: set it to `1` to keep Confidential (C2) and Secret (C3) context out of

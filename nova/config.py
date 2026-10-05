@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     llm_api_key: str = ""  # optional (vLLM --api-key)
     llm_timeout_seconds: float = 120.0
     llm_max_tokens: int = 4096
+    # Extra completion budget for reasoning models (Gemma 4, Qwen 3…): their hidden reasoning counts against max_tokens.
+    llm_reasoning_tokens: int = Field(default=0, ge=0, le=32768)
     llm_temperature: float = 0.2
 
     # --- ORBIT --------------------------------------------------------------------------------

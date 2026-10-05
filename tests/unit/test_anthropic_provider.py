@@ -77,3 +77,25 @@ async def test_streaming_yields_text_deltas_and_overload_is_retryable():
 def test_missing_key_is_refused():
     with pytest.raises(LLMError):
         AnthropicProvider("", "", api_key="")
+
+
+async def test_reasoning_budget_is_added_to_max_tokens_for_reasoning_models():
+    from nova.agent.providers.openai_compatible import OpenAICompatibleProvider
+
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["max_tokens"] = json.loads(request.content)["max_tokens"]
+        return httpx.Response(
+            200, json={"model": "google/gemma-4-12b-qat", "choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}]}
+        )
+
+    provider = OpenAICompatibleProvider(
+        "http://lmstudio.test/v1",
+        "google/gemma-4-12b-qat",
+        default_max_tokens=4096,
+        reasoning_tokens=2048,
+        transport=httpx.MockTransport(handler),
+    )
+    assert (await provider.generate([LLMMessage(role="user", content="Hi")])).text == "ok"
+    assert seen["max_tokens"] == 4096 + 2048

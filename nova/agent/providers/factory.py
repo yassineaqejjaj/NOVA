@@ -27,4 +27,5 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
         timeout=settings.llm_timeout_seconds,
         default_temperature=settings.llm_temperature,
         default_max_tokens=settings.llm_max_tokens,
+        reasoning_tokens=settings.llm_reasoning_tokens,
     )

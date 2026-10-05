@@ -52,8 +52,10 @@ class OpenAICompatibleProvider:
         timeout: float = 120.0,
         default_temperature: float = 0.2,
         default_max_tokens: int = 4096,
+        reasoning_tokens: int = 0,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        self.reasoning_tokens = reasoning_tokens
         if not model:
             raise LLMError("No model configured (NOVA_LLM_MODEL)")
         self.base_url = base_url.rstrip("/")
@@ -82,7 +84,7 @@ class OpenAICompatibleProvider:
             "model": self._model,
             "messages": [m.model_dump() for m in messages],
             "temperature": self.default_temperature if temperature is None else temperature,
-            "max_tokens": max_tokens or self.default_max_tokens,
+            "max_tokens": (max_tokens or self.default_max_tokens) + self.reasoning_tokens,
             **extra,
         }
 
