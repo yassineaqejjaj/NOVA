@@ -233,19 +233,32 @@ function elapsed(iso: string): string {
 }
 
 /** NOVA's presence: what it is doing right now, even when the work runs in the background. */
-export function PresencePill({ className }: { className?: string }) {
+export function PresencePill({ className, compact = false }: { className?: string; compact?: boolean }) {
   const t = useT(M);
   const label = useSystemLabel();
   const { data } = usePresence();
   if (!data) return null;
   const orb: OrbState = data.state === "working" ? "working" : data.state === "waiting" ? "waiting" : "idle";
+  const status = data.mission ? t("presenceWorking", { title: data.mission.title }) : data.waiting ? t("presenceWaiting", { n: data.waiting }) : t("presenceIdle");
+  const href = data.mission?.href ?? (data.waiting ? "/inbox" : null);
+  if (compact) {
+    // Collapsed menu: the orb alone, its status in a tooltip.
+    const orbOnly = (
+      <span className="flex justify-center" data-testid="presence" data-state={data.state} aria-label={status}>
+        <NovaOrb state={orb} size={26} />
+      </span>
+    );
+    return (
+      <Tooltip content={status} side="right">
+        {href ? <Link href={href} className={cn("block rounded-[12px] py-2 hover:bg-surface-2", className)}>{orbOnly}</Link> : <div className={cn("py-2", className)}>{orbOnly}</div>}
+      </Tooltip>
+    );
+  }
   const body = (
     <span className="flex min-w-0 items-center gap-2.5" data-testid="presence" data-state={data.state}>
       <NovaOrb state={orb} size={26} />
       <span className="min-w-0">
-        <span className="block truncate text-[12.5px] font-medium text-text">
-          {data.mission ? t("presenceWorking", { title: data.mission.title }) : data.waiting ? t("presenceWaiting", { n: data.waiting }) : t("presenceIdle")}
-        </span>
+        <span className="block truncate text-[12.5px] font-medium text-text">{status}</span>
         {data.mission ? (
           <span className="block truncate text-[11.5px] text-subtle">
             {data.mission.activity ? label(data.mission.activity) : null} · {elapsed(data.mission.started_at)}
@@ -254,7 +267,6 @@ export function PresencePill({ className }: { className?: string }) {
       </span>
     </span>
   );
-  const href = data.mission?.href ?? (data.waiting ? "/inbox" : null);
   return href ? (
     <Link href={href} className={cn("block rounded-[12px] px-2 py-2 hover:bg-surface-2", className)}>{body}</Link>
   ) : (

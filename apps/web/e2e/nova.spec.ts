@@ -432,3 +432,19 @@ test("Voice never reads C2/C3 answers aloud: it says the answer is on screen", a
   expect(spoken.every((text) => text === "On it." || text.includes("confidential information"))).toBeTruthy();
   await page.getByRole("button", { name: "Close" }).click();
 });
+
+test("the menu collapses to icons, keeps its state and toggles with ⌘\\", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/");
+  const menu = page.locator("aside");
+  await page.getByRole("button", { name: "Collapse the menu" }).click();
+  await expect(menu).toHaveAttribute("data-collapsed", "true");
+  await expect(menu.getByText("Goals", { exact: true })).toHaveClass(/sr-only/); // labels move to tooltips
+  await menu.getByRole("link", { name: "Goals" }).click(); // still navigable by name
+  await expect(page).toHaveURL(/\/goals/);
+  await page.reload();
+  await expect(menu).toHaveAttribute("data-collapsed", "true"); // remembered
+  await page.keyboard.press("ControlOrMeta+Backslash");
+  await expect(menu).not.toHaveAttribute("data-collapsed", "true");
+  await expect(page.getByRole("button", { name: "Collapse the menu" })).toBeVisible();
+});

@@ -10,9 +10,29 @@ import {
   Kbd,
   Tooltip,
 } from "@nova/ui";
-import { FolderKanban, History, Inbox, Library, ListTodo, LogOut, Moon, Orbit, Radar, Repeat, Search, Settings, Sparkles, Sun, Target, Users } from "lucide-react";
+import {
+  FolderKanban,
+  History,
+  Inbox,
+  Library,
+  ListTodo,
+  LogOut,
+  Moon,
+  Orbit,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Radar,
+  Repeat,
+  Search,
+  Settings,
+  Sparkles,
+  Sun,
+  Target,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { M as MM } from "@/components/missions/missions.messages";
 import { PresencePill } from "@/components/missions/ui";
@@ -44,6 +64,8 @@ const M = defineMessages({
     accountMenu: "Account menu",
     search: "Search",
     searchAria: "Search (⌘K)",
+    collapse: "Collapse the menu",
+    expand: "Expand the menu",
   },
   fr: {
     home: "Accueil",
@@ -64,6 +86,8 @@ const M = defineMessages({
     accountMenu: "Menu du compte",
     search: "Rechercher",
     searchAria: "Rechercher (⌘K)",
+    collapse: "Réduire le menu",
+    expand: "Déplier le menu",
   },
 });
 type Label = keyof typeof M.en;
@@ -164,10 +188,40 @@ function useNavLabel() {
   return (label: NavItem["label"]) => (label in MM.en ? tm(label as MissionLabel) : t(label as Label));
 }
 
-function InboxBadge() {
+function InboxBadge({ compact = false }: { compact?: boolean }) {
   const { data } = useInbox();
   const n = (data?.counts.decision ?? 0) + (data?.counts.validation ?? 0) + (data?.counts.anomaly ?? 0);
-  return n ? <span className="ml-auto min-w-5 rounded-full bg-accent px-1.5 text-center text-[11px] font-semibold leading-5 text-white" data-testid="inbox-badge">{n}</span> : null;
+  if (!n) return null;
+  return (
+    <span
+      data-testid="inbox-badge"
+      className={cn(
+        "rounded-full bg-accent text-center font-semibold text-white",
+        compact ? "absolute -right-0.5 -top-0.5 min-w-4 px-1 text-[10px] leading-4" : "ml-auto min-w-5 px-1.5 text-[11px] leading-5",
+      )}
+    >
+      {n}
+    </span>
+  );
+}
+
+/** The collapsed state lives in localStorage: apply it after mount so server and client render the same first. */
+function useCollapsed(): [boolean, () => void] {
+  const stored = useUi((s) => s.sidebarCollapsed);
+  const toggle = useUi((s) => s.toggleSidebar);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "\\") {
+        e.preventDefault();
+        toggle();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toggle]);
+  return [mounted && stored, toggle];
 }
 
 export function Sidebar() {
@@ -177,55 +231,84 @@ export function Sidebar() {
   const pathname = usePathname();
   const running = useNovaState((s) => s.running);
   const current = Object.values(running)[0];
+  const [collapsed, toggle] = useCollapsed();
+  const itemClass = (active: boolean) =>
+    cn(
+      "relative flex h-9 items-center rounded-[10px] text-[14px] transition-colors",
+      collapsed ? "justify-center" : "gap-3 px-3",
+      active ? "bg-surface-2 font-medium text-text" : "text-muted hover:bg-surface-2/70 hover:text-text",
+    );
+  // Collapsed: the label moves to a tooltip (and stays readable by screen readers).
+  const withTip = (key: string, tip: React.ReactNode, node: React.ReactElement) =>
+    collapsed || tip !== null ? (
+      <Tooltip key={key} content={tip} side="right">
+        {node}
+      </Tooltip>
+    ) : (
+      node
+    );
+  const toggleLabel = collapsed ? t("expand") : t("collapse");
   return (
-    <aside className="sticky top-0 hidden h-screen w-[224px] shrink-0 flex-col border-r border-border bg-surface px-3 py-5 md:flex">
-      <Link href="/" className="mb-4 px-2">
-        <NovaLogo height={26} />
-      </Link>
-      <PresencePill className="mb-4" />
-      <nav className="flex flex-col gap-4 overflow-y-auto" aria-label={t("main")}>
-        {NAV_GROUPS.map((group) => (
+    <aside
+      data-collapsed={collapsed || undefined}
+      className={cn(
+        "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-surface py-5 transition-[width] duration-200 md:flex",
+        collapsed ? "w-[64px] px-2" : "w-[224px] px-3",
+      )}
+    >
+      <div className={cn("mb-4 flex items-center", collapsed ? "flex-col gap-3" : "justify-between pl-2")}>
+        <Link href="/" aria-label="NOVA">
+          {collapsed ? <NovaMark size={26} /> : <NovaLogo height={26} />}
+        </Link>
+        <Tooltip content={<span>{toggleLabel} <Kbd className="ml-1">{"⌘\\"}</Kbd></span>} side="right">
+          <button
+            onClick={toggle}
+            aria-label={toggleLabel}
+            aria-expanded={!collapsed}
+            className="flex size-8 items-center justify-center rounded-[10px] text-subtle transition-colors hover:bg-surface-2 hover:text-text"
+          >
+            {collapsed ? <PanelLeftOpen className="size-[18px]" /> : <PanelLeftClose className="size-[18px]" />}
+          </button>
+        </Tooltip>
+      </div>
+      <PresencePill className="mb-4" compact={collapsed} />
+      <nav className="flex flex-col gap-4 overflow-y-auto overflow-x-hidden" aria-label={t("main")}>
+        {NAV_GROUPS.map((group, index) => (
           <div key={group.label}>
-            <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-subtle">{navLabel(group.label)}</div>
+            {collapsed ? (
+              index ? <div className="mx-2 mb-2 h-px bg-border" /> : null
+            ) : (
+              <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-subtle">{navLabel(group.label)}</div>
+            )}
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => {
                 const active = isActive(pathname, item.href);
+                const name = navLabel(item.label);
+                const phase = item.icon === "orb" && current ? (current.label ? label(current.label) : PHASE_LABEL[current.phase]) : null;
                 const link = (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "flex h-9 items-center gap-3 rounded-[10px] px-3 text-[14px] transition-colors",
-                      active ? "bg-surface-2 font-medium text-text" : "text-muted hover:bg-surface-2/70 hover:text-text",
-                    )}
-                  >
+                  <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={itemClass(active)}>
                     <NavIcon icon={item.icon} active={active} phase={item.icon === "orb" ? current?.phase : undefined} />
-                    {navLabel(item.label)}
-                    {item.badge === "inbox" ? <InboxBadge /> : null}
+                    <span className={collapsed ? "sr-only" : undefined}>{name}</span>
+                    {item.badge === "inbox" ? <InboxBadge compact={collapsed} /> : null}
                   </Link>
                 );
-                return item.icon === "orb" && current ? (
-                  <Tooltip key={item.href} content={current.label ? label(current.label) : PHASE_LABEL[current.phase]} side="right">{link}</Tooltip>
-                ) : (
-                  link
-                );
+                const tip = collapsed ? (phase ? `${name} · ${phase}` : name) : phase;
+                return withTip(item.href, tip, link);
               })}
             </div>
           </div>
         ))}
       </nav>
       <div className="mt-auto space-y-0.5">
-        <Link
-          href="/settings"
-          className={cn(
-            "flex h-9 items-center gap-3 rounded-[10px] px-3 text-[14px] transition-colors",
-            pathname.startsWith("/settings") ? "bg-surface-2 font-medium text-text" : "text-muted hover:bg-surface-2/70 hover:text-text",
-          )}
-        >
-          <Settings className="size-[18px] text-subtle" /> {t("settings")}
-        </Link>
-        <UserMenu />
+        {withTip(
+          "settings",
+          collapsed ? t("settings") : null,
+          <Link href="/settings" className={itemClass(pathname.startsWith("/settings"))}>
+            <Settings className="size-[18px] text-subtle" />
+            <span className={collapsed ? "sr-only" : undefined}>{t("settings")}</span>
+          </Link>,
+        )}
+        <UserMenu compact={collapsed} />
       </div>
     </aside>
   );
