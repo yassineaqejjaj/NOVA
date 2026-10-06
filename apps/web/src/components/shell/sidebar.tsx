@@ -250,6 +250,7 @@ export function Sidebar() {
   const toggleLabel = collapsed ? t("expand") : t("collapse");
   return (
     <aside
+      data-testid="sidebar"
       data-collapsed={collapsed || undefined}
       className={cn(
         "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-surface py-5 transition-[width] duration-200 md:flex",
