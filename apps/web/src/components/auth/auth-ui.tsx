@@ -45,94 +45,217 @@ export function Planet({ size = 260, className }: { size?: number; className?: s
   );
 }
 
-export function LanguageSwitch({ className }: { className?: string }) {
+export function LanguageSwitch({ className, tone = "dark" }: { className?: string; tone?: "dark" | "light" }) {
   const lang = useLang();
   const t = useT(M);
   const setLang = useUi((s) => s.setLang);
+  const light = tone === "light";
   return (
-    <div role="radiogroup" aria-label={t("language")} className={cn("flex items-center gap-0.5 rounded-full border border-white/10 bg-white/5 p-0.5 text-[11.5px] font-medium", className)}>
-      {LANGS.map((l) => (
-        <button
-          key={l.value}
-          role="radio"
-          aria-checked={lang === l.value}
-          onClick={() => setLang(l.value as Lang)}
-          className={cn("rounded-full px-2.5 py-1 uppercase tracking-wide transition-colors", lang === l.value ? "bg-white/90 text-black" : "text-current opacity-70 hover:opacity-100")}
-        >
-          {l.value}
-        </button>
-      ))}
+    <div
+      role="radiogroup"
+      aria-label={t("language")}
+      className={cn(
+        "flex items-center gap-0.5 rounded-full border font-medium",
+        light ? "border-border bg-surface p-1 text-[13px] shadow-[0_4px_14px_-8px_rgb(30_20_18/0.25)]" : "border-white/10 bg-white/5 p-0.5 text-[11.5px]",
+        className,
+      )}
+    >
+      {LANGS.map((l) => {
+        const active = lang === l.value;
+        return (
+          <button
+            key={l.value}
+            role="radio"
+            aria-checked={active}
+            onClick={() => setLang(l.value as Lang)}
+            className={cn(
+              "rounded-full uppercase tracking-wide transition-colors",
+              light ? "px-3.5 py-1.5" : "px-2.5 py-1",
+              light
+                ? active ? "bg-accent-soft text-accent" : "text-muted hover:text-text"
+                : active ? "bg-white/90 text-black" : "text-current opacity-70 hover:opacity-100",
+            )}
+          >
+            {l.value}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-/** Auth screens: a cosmic hero (always dark) and the form panel (follows the theme). */
+/** Auth screens: the cosmic hero (always dark) and the form card on the right (follows the theme). */
 export function AuthShell({ children }: { children: React.ReactNode }) {
   const t = useT(M);
   return (
-    <div className="flex min-h-dvh flex-col bg-background font-[family-name:var(--font-montserrat)] text-text lg:flex-row">
-      <aside className="relative isolate flex shrink-0 flex-col overflow-hidden bg-[#07070b] px-6 pb-8 pt-6 text-white lg:min-h-dvh lg:w-[46%] lg:px-12 lg:pb-10 lg:pt-10">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_30%_20%,rgb(248_72_94/0.22),transparent_55%),radial-gradient(ellipse_at_80%_110%,rgb(248_72_94/0.18),transparent_50%)]" />
-        <Stars />
+    <div className="flex min-h-dvh flex-col bg-background font-[family-name:var(--font-dm-sans)] text-text lg:flex-row">
+      <aside className="relative isolate flex shrink-0 flex-col overflow-hidden bg-[#07020a] px-6 pb-7 pt-6 text-white lg:min-h-dvh lg:w-[52%] lg:px-[3.75rem] lg:pb-14 lg:pt-14">
+        <Nebula />
         <div className="flex items-center justify-between">
-          <NovaLogo height={26} className="brightness-0 invert" />
+          <NovaLogo height={52} className="h-9 w-auto lg:h-[52px]" />
           <LanguageSwitch className="lg:hidden" />
         </div>
-        <div className="mx-auto mt-6 hidden lg:mt-16 lg:block">
-          <Planet size={240} />
+        <div className="relative hidden flex-1 place-items-center lg:grid">
+          <HeroOrb />
         </div>
-        <div className="mt-4 max-w-md lg:mt-auto">
-          <h1 className="whitespace-pre-line text-[28px] font-medium leading-[1.12] tracking-tight lg:text-[44px]">{t("heroTitle")}</h1>
-          <p className="mt-3 text-[14px] leading-relaxed text-white/65 lg:text-[16px]">{t("heroText")}</p>
-        </div>
-        <div className="mt-8 hidden items-end justify-between text-[11.5px] text-white/50 lg:flex">
-          <div>
-            <NovaLogo height={14} className="brightness-0 invert opacity-80" />
-            <div className="mt-1">{t("poweredBy")}</div>
+        <div className="mt-6 flex items-end justify-between gap-6 lg:mt-0">
+          <div className="max-w-[420px]">
+            <h1 className="whitespace-pre-line text-[28px] font-normal leading-[1.12] tracking-tight lg:text-[44px]">{t("heroTitle")}</h1>
+            <p className="mt-3 text-[14px] leading-relaxed text-white/80 lg:mt-4 lg:text-[17px]">{t("heroText")}</p>
           </div>
-          <div className="whitespace-pre-line text-right">{t("footerTagline")}</div>
+          <p className="hidden shrink-0 whitespace-pre-line text-right text-[15px] leading-snug text-white/85 lg:block">{t("footerTagline")}</p>
         </div>
       </aside>
       <main className="relative flex flex-1 flex-col px-4 py-8 sm:px-8 lg:py-10">
-        <div className="absolute right-6 top-6 hidden lg:block">
-          <LanguageSwitch className="border-border bg-surface-2 text-text [&_[aria-checked=true]]:bg-text [&_[aria-checked=true]]:text-background" />
+        <div className="absolute right-6 top-6 hidden lg:block lg:right-9 lg:top-9">
+          <LanguageSwitch tone="light" />
         </div>
-        <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center">{children}</div>
+        <div className="mx-auto flex w-full max-w-[512px] flex-1 flex-col justify-center">{children}</div>
       </main>
     </div>
   );
 }
 
-function Stars() {
-  // Deterministic sky (no hydration mismatch).
-  const stars = Array.from({ length: 46 }, (_, i) => ({ x: (i * 37) % 100, y: (i * 61) % 100, s: (i % 3) + 1, o: 0.15 + ((i * 13) % 50) / 100 }));
+/** NOVA's orb over the nebula, with the glowing orbit that crosses in front of it. */
+function HeroOrb() {
+  const reduce = useReducedMotion();
   return (
-    <svg className="absolute inset-0 -z-10 h-full w-full" aria-hidden>
-      {stars.map((star, i) => <circle key={i} cx={`${star.x}%`} cy={`${star.y}%`} r={star.s * 0.45} fill="white" opacity={star.o} />)}
+    <div className="relative aspect-square w-[min(76%,600px)]" aria-hidden>
+      <div className="absolute -inset-[18%] rounded-full bg-[radial-gradient(circle,rgb(255_120_150/0.45),rgb(248_72_94/0.18)_45%,transparent_70%)] blur-2xl" />
+      <Orbit side="back" />
+      <motion.img
+        src="/brand/nova-orb-hero.webp"
+        alt=""
+        draggable={false}
+        className="relative size-full select-none drop-shadow-[0_0_40px_rgb(255_140_170/0.55)]"
+        animate={reduce ? undefined : { y: [0, -8, 0], rotate: [0, 1.5, 0] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <Orbit side="front" />
+    </div>
+  );
+}
+
+/** Two tilted rings, split in a back half (behind the orb) and a front half. */
+function Orbit({ side }: { side: "back" | "front" }) {
+  const id = useId();
+  const front = side === "front";
+  // Unit square of the orb (100×100); the rings overflow it on both sides.
+  const rings = [
+    { rx: 74, ry: 19, tilt: 22, width: 1.25, opacity: 1 },
+    { rx: 66, ry: 14, tilt: 28, width: 0.5, opacity: 0.7 },
+  ];
+  return (
+    <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id={`${id}-ring`} x1="0" x2="1">
+          <stop offset="0" stopColor="#ff9fb8" stopOpacity="0.15" />
+          <stop offset="0.35" stopColor="#ffe3ea" stopOpacity="0.95" />
+          <stop offset="0.7" stopColor="#ff7ab8" stopOpacity="0.85" />
+          <stop offset="1" stopColor="#c86bff" stopOpacity="0.3" />
+        </linearGradient>
+        <filter id={`${id}-glow`} x="-20%" y="-50%" width="140%" height="200%">
+          <feGaussianBlur stdDeviation="1.1" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {rings.map((r, i) => (
+        <path
+          key={i}
+          // the upper arc passes behind the orb, the lower arc in front of it
+          d={front ? `M ${50 + r.rx} 50 A ${r.rx} ${r.ry} 0 0 1 ${50 - r.rx} 50` : `M ${50 - r.rx} 50 A ${r.rx} ${r.ry} 0 0 1 ${50 + r.rx} 50`}
+          transform={`rotate(${r.tilt} 50 50)`}
+          fill="none"
+          stroke={`url(#${id}-ring)`}
+          strokeWidth={r.width}
+          strokeLinecap="round"
+          opacity={front ? r.opacity : r.opacity * 0.55}
+          filter={`url(#${id}-glow)`}
+        />
+      ))}
     </svg>
+  );
+}
+
+/** The nebula: crimson and violet clouds (fractal noise shaped by gradients), stars and two far galaxies. */
+function Nebula() {
+  const id = useId();
+  // Deterministic sky (no hydration mismatch): golden-angle spread, a few bright stars.
+  const stars = Array.from({ length: 150 }, (_, i) => ({
+    x: (i * 61.803) % 100,
+    y: (i * 38.197 + (i % 7) * 9.1) % 100,
+    r: i % 17 === 0 ? 1.5 : i % 5 === 0 ? 0.9 : 0.5,
+    o: 0.25 + ((i * 29) % 70) / 100,
+  }));
+  return (
+    <div className="absolute inset-0 -z-10" aria-hidden>
+      <div className="absolute inset-0 bg-[radial-gradient(7%_5%_at_85%_9%,rgb(255_236_210/0.95),transparent_75%),radial-gradient(18%_12%_at_84%_10%,rgb(255_120_100/0.75),transparent_72%),radial-gradient(34%_24%_at_80%_14%,rgb(235_45_105/0.7),transparent_72%),radial-gradient(52%_36%_at_70%_17%,rgb(150_40_165/0.6),transparent_72%),radial-gradient(60%_22%_at_40%_3%,rgb(95_35_140/0.55),transparent_72%),radial-gradient(30%_40%_at_0%_42%,rgb(238_36_78/0.9),transparent_72%),radial-gradient(26%_22%_at_5%_61%,rgb(140_52_195/0.62),transparent_72%),radial-gradient(46%_30%_at_12%_83%,rgb(205_24_62/0.85),transparent_72%),radial-gradient(48%_32%_at_90%_87%,rgb(228_30_72/0.8),transparent_72%),radial-gradient(28%_24%_at_99%_58%,rgb(150_50_185/0.5),transparent_72%)]" />
+      {/* bright crimson cloud banks at the edges */}
+      <svg className="absolute inset-0 size-full mix-blend-screen">
+        <filter id={`${id}-clouds`}>
+          <feTurbulence type="fractalNoise" baseFrequency="0.0042 0.0065" numOctaves="5" seed="7" />
+          <feColorMatrix values="0 0 0 0 1  0 0 0 0 0.13  0 0 0 0 0.28  0 0 0 4.2 -2.15" />
+        </filter>
+        <radialGradient id={`${id}-vignette`} cx="50%" cy="44%" r="72%">
+          <stop offset="0.3" stopColor="black" />
+          <stop offset="0.8" stopColor="white" />
+        </radialGradient>
+        <mask id={`${id}-edges`}>
+          <rect width="100%" height="100%" fill={`url(#${id}-vignette)`} />
+        </mask>
+        <rect width="100%" height="100%" filter={`url(#${id}-clouds)`} mask={`url(#${id}-edges)`} />
+      </svg>
+      {/* dark violet shadows inside the clouds: depth instead of haze */}
+      <svg className="absolute inset-0 size-full mix-blend-multiply">
+        <filter id={`${id}-shadows`}>
+          <feTurbulence type="fractalNoise" baseFrequency="0.006 0.009" numOctaves="4" seed="23" />
+          <feColorMatrix values="0 0 0 0 0.12  0 0 0 0 0.02  0 0 0 0 0.16  0 0 0 3.6 -1.6" />
+        </filter>
+        <rect width="100%" height="100%" filter={`url(#${id}-shadows)`} />
+      </svg>
+      <svg className="absolute inset-0 size-full">
+        <defs>
+          <radialGradient id={`${id}-galaxy`}>
+            <stop offset="0" stopColor="#fff4e8" stopOpacity="0.95" />
+            <stop offset="0.25" stopColor="#ffb3c8" stopOpacity="0.55" />
+            <stop offset="1" stopColor="#9b5cff" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <ellipse cx="27%" cy="20%" rx="34" ry="11" fill={`url(#${id}-galaxy)`} transform="rotate(-24)" style={{ transformBox: "fill-box", transformOrigin: "center" }} />
+        <ellipse cx="87%" cy="72%" rx="38" ry="12" fill={`url(#${id}-galaxy)`} transform="rotate(-30)" style={{ transformBox: "fill-box", transformOrigin: "center" }} />
+        {stars.map((star, i) => (
+          <circle key={i} cx={`${star.x}%`} cy={`${star.y}%`} r={star.r} fill={i % 9 === 0 ? "#ffd6e0" : "white"} opacity={star.o} />
+        ))}
+      </svg>
+      {/* keeps the title readable over the clouds */}
+      <div className="absolute inset-x-0 bottom-0 h-[45%] bg-[linear-gradient(to_top,rgb(7_2_10/0.88),rgb(7_2_10/0.35)_55%,transparent)]" />
+    </div>
   );
 }
 
 export function Tabs({ value, onChange, items }: { value: string; onChange: (v: string) => void; items: { value: string; label: string }[] }) {
   return (
-    <div role="tablist" className="grid grid-cols-2 border-b border-border">
+    <div role="tablist" className="grid grid-cols-2">
       {items.map((item) => (
         <button
           key={item.value}
           role="tab"
           aria-selected={value === item.value}
           onClick={() => onChange(item.value)}
-          className={cn("relative pb-3 pt-1 text-[14px] transition-colors", value === item.value ? "font-medium text-text" : "text-muted hover:text-text")}
+          className={cn("relative pb-3.5 pt-1 text-[16px] transition-colors", value === item.value ? "font-semibold text-text" : "font-medium text-muted hover:text-text")}
         >
           {item.label}
-          {value === item.value ? <motion.span layoutId="auth-tab" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-accent" /> : null}
+          {value === item.value ? <motion.span layoutId="auth-tab" className="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-accent" /> : null}
         </button>
       ))}
     </div>
   );
 }
 
-/** Field with a leading icon and its label inside the box (as in NOVA's sign-in design). */
+/** Outlined field: leading icon, label set on the top border (as in NOVA's sign-in design). */
 export function Field({
   icon: Icon,
   label,
@@ -144,21 +267,20 @@ export function Field({
   const id = useId();
   return (
     <div className={className}>
-      <label
-        htmlFor={id}
+      <div
         className={cn(
-          "flex items-center gap-3 rounded-[12px] border border-border bg-surface px-3.5 py-2 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/15",
+          "relative flex h-[52px] items-center gap-3 rounded-[10px] border border-border-strong bg-surface px-3.5 transition-colors focus-within:border-accent/60 focus-within:ring-2 focus-within:ring-accent/15",
           input.readOnly && "bg-surface-2/60",
         )}
       >
-        <Icon className="size-[18px] shrink-0 text-subtle" strokeWidth={1.6} />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[11.5px] text-subtle">{label}</span>
-          <input id={id} aria-label={label} className="block w-full bg-transparent text-[14.5px] text-text outline-none placeholder:text-subtle/60 read-only:text-muted" {...input} />
-        </span>
+        <label htmlFor={id} className="absolute -top-[9px] left-3 rounded-sm bg-surface px-1.5 text-[12.5px] leading-[18px] text-muted">
+          {label}
+        </label>
+        <Icon className="size-[19px] shrink-0 text-muted" strokeWidth={1.6} />
+        <input id={id} className="block h-full w-full min-w-0 bg-transparent text-[15px] text-text outline-none placeholder:text-subtle read-only:text-muted" {...input} />
         {trailing}
-      </label>
-      {hint ? <p className="mt-1 px-1 text-[11.5px] text-subtle">{hint}</p> : null}
+      </div>
+      {hint ? <p className="mt-1.5 px-1 text-[11.5px] text-subtle">{hint}</p> : null}
     </div>
   );
 }

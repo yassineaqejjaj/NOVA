@@ -277,7 +277,7 @@ test("Accounts: sign up with a @devoteam.com address confirmed by an e-mailed co
   const email = `camille.${Date.now()}@devoteam.com`;
   const password = "Orbit-and-forge-2026";
   await page.goto("/login?tab=signup");
-  await expect(page.getByRole("heading", { name: /Join\s+NOVA/ })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Sign up" })).toHaveAttribute("aria-selected", "true"); // the card opens on the sign-up tab
   await expect(page.getByRole("button", { name: /Google/ })).toBeDisabled();
   await expect(page.getByText("Soon").first()).toBeVisible();
 

@@ -25,7 +25,7 @@ export default function LogoutPage() {
     }
   };
   return (
-    <div className="relative isolate flex min-h-dvh flex-col items-center overflow-hidden bg-[#07070b] px-4 font-[family-name:var(--font-montserrat)] text-white">
+    <div className="relative isolate flex min-h-dvh flex-col items-center overflow-hidden bg-[#07070b] px-4 font-[family-name:var(--font-dm-sans)] text-white">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_30%,rgb(248_72_94/0.16),transparent_55%)]" />
       {/* horizon */}
       <div className="absolute left-1/2 top-[80vh] -z-10 h-[220vw] w-[220vw] -translate-x-1/2 rounded-full bg-[#0c0c13] shadow-[0_-40px_140px_-30px_rgb(248_72_94/0.7)] ring-1 ring-[#f8485e]/50 sm:h-[160vw] sm:w-[160vw]" />

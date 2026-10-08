@@ -74,7 +74,7 @@ export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
     <div className="min-h-dvh bg-background font-[family-name:var(--font-montserrat)] text-text">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-4 py-6">
         <NovaLogo height={22} />
-        <LanguageSwitch className="border-border bg-surface-2 text-text [&_[aria-checked=true]]:bg-text [&_[aria-checked=true]]:text-background" />
+        <LanguageSwitch tone="light" />
       </header>
       <main className="mx-auto max-w-3xl px-4 pb-16">
         <Link href="/login" className="inline-flex items-center gap-1 text-[13px] text-muted hover:text-text"><ArrowLeft className="size-3.5" /> {d.back}</Link>

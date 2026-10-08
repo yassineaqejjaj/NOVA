@@ -3,13 +3,14 @@
 import { Button, cn, Tooltip } from "@nova/ui";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Building2, KeyRound, Layers, LineChart, Lock, Mail, Sparkles, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, KeyRound, Lock, Mail, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { M, ERRORS } from "@/components/auth/auth.messages";
 import { AuthShell, Checkbox, CodeInput, Field, GoogleIcon, PasswordField, PasswordRules, passwordRules, Tabs } from "@/components/auth/auth-ui";
+import { NovaLogo } from "@/components/shell/nova-mark";
 import { api, ApiError } from "@/lib/api/client";
 import { translate, useLang, useT } from "@/lib/i18n";
 
@@ -52,8 +53,8 @@ function useErrorText(domains: string[]) {
 
 function Submit({ pending, children }: { pending: boolean; children: React.ReactNode }) {
   return (
-    <Button type="submit" variant="primary" size="lg" className="h-12 w-full rounded-[12px] text-[15px]" disabled={pending}>
-      {children} <ArrowRight className="!size-4" />
+    <Button type="submit" variant="primary" size="lg" className="h-[52px] w-full rounded-[10px] text-[16px] font-semibold" disabled={pending}>
+      {children} <ArrowRight className="!size-[18px]" />
     </Button>
   );
 }
@@ -70,21 +71,36 @@ function Providers({ config }: { config: AuthConfig }) {
   const t = useT(M);
   return (
     <>
-      <div className="my-5 flex items-center gap-3 text-[12.5px] text-subtle">
-        <span className="h-px flex-1 bg-border" />
+      <div className="my-5 flex items-center gap-4 text-[14px] text-subtle">
+        <span className="h-px flex-1 bg-border-strong" />
         {t("orContinue")}
-        <span className="h-px flex-1 bg-border" />
+        <span className="h-px flex-1 bg-border-strong" />
       </div>
-      {config.providers.map((p) => (
-        <Tooltip key={p.id} content={t("googleSoon")}>
-          <span className="block">
-            <button type="button" disabled={!p.available} aria-disabled={!p.available} className="flex h-12 w-full items-center justify-center gap-2.5 rounded-[12px] border border-border bg-surface text-[15px] font-medium text-text disabled:cursor-not-allowed disabled:opacity-60">
-              <GoogleIcon className="size-5" /> {p.name}
-              {!p.available ? <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">{t("soon")}</span> : null}
-            </button>
-          </span>
-        </Tooltip>
-      ))}
+      {config.providers.map((p) => {
+        const button = (
+          <button
+            type="button"
+            disabled={!p.available}
+            aria-disabled={!p.available}
+            className="relative flex h-[52px] w-full items-center justify-center gap-3 rounded-[10px] border border-border-strong bg-surface text-[15px] text-text transition-colors enabled:hover:bg-surface-2 disabled:cursor-not-allowed"
+          >
+            <GoogleIcon className="size-5" />
+            <span>
+              {t("continueWith")} <span className="font-semibold">{p.name}</span>
+            </span>
+            {!p.available ? (
+              <span className="absolute right-3 rounded-full bg-violet-500/12 px-2.5 py-0.5 text-[12px] font-medium text-violet-600 dark:text-violet-300">{t("soon")}</span>
+            ) : null}
+          </button>
+        );
+        return p.available ? (
+          <div key={p.id}>{button}</div>
+        ) : (
+          <Tooltip key={p.id} content={t("googleSoon")}>
+            <span className="block">{button}</span>
+          </Tooltip>
+        );
+      })}
     </>
   );
 }
@@ -111,7 +127,7 @@ function SignIn({ config, next, onForgot, onUnverified, notice }: { config: Auth
     }
   };
   return (
-    <form onSubmit={submit} className="space-y-3.5" aria-label={t("signIn")}>
+    <form onSubmit={submit} className="space-y-5" aria-label={t("signIn")}>
       {notice ? <Notice tone="success">{notice}</Notice> : null}
       <Field icon={Mail} label={t("workEmail")} type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("emailPlaceholder")} />
       <PasswordField icon={Lock} label={t("password")} value={password} onChange={setPassword} autoComplete="current-password" />
@@ -166,7 +182,7 @@ function SignUp({ config, onSent }: { config: AuthConfig; onSent: (email: string
     }
   };
   return (
-    <form onSubmit={submit} className="space-y-3" aria-label={t("signUp")}>
+    <form onSubmit={submit} className="space-y-5" aria-label={t("signUp")}>
       <Field icon={Mail} label={anyDomain ? t("email") : t("workEmail")} type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={anyDomain ? t("anyEmailPlaceholder") : t("emailPlaceholder")} hint={anyDomain ? undefined : t("companyHint", { domains })} />
       <Field icon={User} label={t("fullName")} autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} />
       {anyDomain ? null : <Field icon={Building2} label={t("company")} readOnly tabIndex={-1} value={companyOf(email, config.signup.domains)} placeholder="—" />}
@@ -182,8 +198,8 @@ function SignUp({ config, onSent }: { config: AuthConfig; onSent: (email: string
         </Checkbox>
       </div>
       {error ? <Notice>{error}</Notice> : null}
-      <Button type="submit" variant="primary" size="lg" className="h-12 w-full rounded-[12px] text-[15px]" disabled={pending || !ready}>
-        {t("createAccount")} <ArrowRight className="!size-4" />
+      <Button type="submit" variant="primary" size="lg" className="h-[52px] w-full rounded-[10px] text-[16px] font-semibold" disabled={pending || !ready}>
+        {t("createAccount")} <ArrowRight className="!size-[18px]" />
       </Button>
       <Providers config={config} />
     </form>
@@ -271,7 +287,7 @@ function Forgot({ config, initial, onSent, onBack }: { config: AuthConfig; initi
     }
   };
   return (
-    <form onSubmit={submit} className="space-y-4" aria-label={t("forgotTitle")}>
+    <form onSubmit={submit} className="space-y-5" aria-label={t("forgotTitle")}>
       <p className="text-[14px] leading-relaxed text-muted">{t("forgotText")}</p>
       <Field icon={Mail} label={t("workEmail")} type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("emailPlaceholder")} />
       {error ? <Notice>{error}</Notice> : null}
@@ -303,7 +319,7 @@ function Reset({ config, email, onDone, onBack }: { config: AuthConfig; email: s
     }
   };
   return (
-    <form onSubmit={submit} className="space-y-4" aria-label={t("resetTitle")}>
+    <form onSubmit={submit} className="space-y-5" aria-label={t("resetTitle")}>
       <p className="text-[14px] leading-relaxed text-muted">{t("resetText", { email })}</p>
       <CodeInput value={code} onChange={setCode} />
       {config.dev_outbox && dev.data?.code ? <Notice tone="info">{t("devCode", { code: dev.data.code })}</Notice> : null}
@@ -318,12 +334,6 @@ function Reset({ config, email, onDone, onBack }: { config: AuthConfig; email: s
   );
 }
 
-const FEATURES = [
-  { icon: Sparkles, key: "featureAgents" },
-  { icon: Layers, key: "featureOrbit" },
-  { icon: LineChart, key: "featureForge" },
-] as const;
-
 function AuthFlow() {
   const t = useT(M);
   const params = useSearchParams();
@@ -336,31 +346,25 @@ function AuthFlow() {
   const [email, setEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const isEntry = step === "signin" || step === "signup";
-  const heading =
-    step === "signup" ? null : step === "verify" ? t("verifyTitle") : step === "forgot" ? t("forgotTitle") : step === "reset" ? t("resetTitle") : null;
+  const heading = step === "verify" ? t("verifyTitle") : step === "forgot" ? t("forgotTitle") : step === "reset" ? t("resetTitle") : null;
 
   return (
     <AuthShell>
-      {step === "signup" ? (
-        <div className="mb-6">
-          <div className="text-[11.5px] font-medium uppercase tracking-[0.14em] text-subtle">{t("createEyebrow")}</div>
-          <h2 className="mt-2 text-[34px] font-light leading-tight tracking-tight">
-            {t("joinTitle")} <span className="font-bold">NOVA</span>
-          </h2>
-          <p className="mt-1.5 text-[14.5px] text-muted">{t("joinText")}</p>
+      <div className="rounded-[22px] border border-border bg-surface px-6 pb-8 pt-6 shadow-[0_30px_80px_-40px_rgb(30_20_18/0.3)] sm:px-9 lg:pt-9">
+        {/* on phones the cosmic banner above already carries the logo */}
+        <div className="hidden justify-center lg:flex">
+          <NovaLogo height={50} />
         </div>
-      ) : heading ? (
-        <div className="mb-6">
-          {step === "verify" ? <div className="text-[11.5px] font-medium uppercase tracking-[0.14em] text-subtle">{t("verifyEyebrow")}</div> : null}
-          <h2 className="mt-2 text-[28px] font-medium tracking-tight">{heading}</h2>
-        </div>
-      ) : null}
-      <div className={cn("rounded-[20px]", isEntry && "border border-border bg-surface/70 p-5 shadow-[0_24px_60px_-30px_rgb(0_0_0/0.35)] backdrop-blur sm:p-6")}>
         {isEntry ? (
-          <div className="mb-5">
+          <div className="mb-7 lg:mt-8">
             <Tabs value={step} onChange={(v) => { setNotice(null); setStep(v as Step); }} items={[{ value: "signin", label: t("signIn") }, { value: "signup", label: t("signUp") }]} />
           </div>
-        ) : null}
+        ) : (
+          <div className="mb-6 text-center lg:mt-7">
+            {step === "verify" ? <div className="text-[11.5px] font-medium uppercase tracking-[0.14em] text-subtle">{t("verifyEyebrow")}</div> : null}
+            <h2 className="mt-1.5 text-[24px] font-semibold tracking-tight">{heading}</h2>
+          </div>
+        )}
         {!config ? (
           <div className="h-64" />
         ) : (
@@ -381,16 +385,6 @@ function AuthFlow() {
           </AnimatePresence>
         )}
       </div>
-      {step === "signup" ? (
-        <ul className="mt-8 grid grid-cols-3 gap-3 text-center text-[12px] text-muted">
-          {FEATURES.map(({ icon: Icon, key }) => (
-            <li key={key} className="flex flex-col items-center gap-2">
-              <Icon className="size-5 text-accent" strokeWidth={1.6} />
-              <span className="whitespace-pre-line">{t(key)}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </AuthShell>
   );
 }
