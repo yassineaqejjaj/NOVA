@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from nova.domain.artifacts import ArtifactContent
 from nova.domain.blocks import Block, ProgressLine
-from nova.domain.context import ContextBundle, ContextItem
+from nova.domain.context import ContextBundle, ContextItem, SnapshotRef
 from nova.domain.enums import NovaPhase, StepStatus
 from nova.domain.outputs import EvaluationReference, ExecutionPlan, TokenUsage, ToolRequest, ToolResult
 from nova.domain.skills import SkillSpec
@@ -68,6 +68,8 @@ class ExecutionStore(Protocol):
     async def record_context(
         self, *, task_id: str, user_id: str, conversation_id: str | None, query: str, bundle: ContextBundle
     ) -> str: ...
+    async def get_snapshot_reference(self, user_id: str, project_slug: str) -> SnapshotRef | None: ...
+
     async def get_context_references(self, ref_ids: list[str], user_id: str) -> list[StoredContextReference]: ...
 
     # Skills & tools

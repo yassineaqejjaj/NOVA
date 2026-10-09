@@ -8,8 +8,9 @@ from langgraph.runtime import Runtime
 
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import deps, node, progress, set_phase, upsert
+from nova.agent.snapshots import retrieve_with_reference
 from nova.domain.blocks import Block, warning_block
-from nova.domain.context import ContextBundle, ContextError, ContextItem, ContextQuery
+from nova.domain.context import ContextBundle, ContextError, ContextItem, ContextQuery, SnapshotRef
 from nova.domain.enums import CLASSIFICATION_LABELS, BlockType, ExecutionOrigin, IntentKind, NovaPhase
 from nova.domain.permissions import action_permission
 from nova.domain.state import ContextIssue, NovaState
@@ -65,6 +66,7 @@ def context_sources_block(
     reference_id: str | None,
     warnings: list[str],
     excluded: int,
+    snapshot: SnapshotRef | None = None,
 ) -> Block:
     return Block(
         key="context",
@@ -74,6 +76,7 @@ def context_sources_block(
             "retrieval_id": retrieval_id,
             "reference_id": reference_id,
             "excluded_count": excluded,
+            "snapshot": snapshot.model_dump() if snapshot else None,
             "warnings": warnings,
             "max_classification": max((i.classification for i in state_items), default=0),
             "items": [
@@ -141,6 +144,7 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
     warnings: list[str] = []
     excluded = 0
     retrieval_id = None
+    snapshot_ref = None
 
     # Explicit context pinned by the user ("Add context") is re-used from what ORBIT served before.
     if state.pinned_context_ref_ids:
@@ -166,7 +170,8 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
             purpose = PURPOSE_BY_CATEGORY.get(c.category.value if c and c.category else "general", "general")
             query = (c.context_query if c and c.context_query else state.intent)[:7000]
             try:
-                bundle = await d.context.retrieve(
+                bundle = await retrieve_with_reference(
+                    d,
                     ContextQuery(
                         user_id=state.user_id,
                         project_slug=state.project_slug,
@@ -175,12 +180,13 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
                         token_budget=d.settings.orbit_default_token_budget,
                         session_id=state.conversation_id,
                         max_classification=d.settings.policy_max_classification,
-                    )
+                    ),
                 )
                 items += bundle.items
                 warnings += bundle.warnings
                 excluded = bundle.excluded_count
                 retrieval_id = bundle.retrieval_id
+                snapshot_ref = bundle.snapshot
             except ContextError as exc:
                 title, message = ERROR_COPY.get(exc.code, ERROR_COPY["unavailable"])
                 await upsert(d, state, warning_block(title, message, ERROR_ACTIONS.get(exc.code, []), key="context_warning"))
@@ -196,7 +202,12 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
 
     if items:
         bundle = ContextBundle(
-            retrieval_id=retrieval_id, project_slug=state.project_slug, items=items, warnings=warnings, excluded_count=excluded
+            retrieval_id=retrieval_id,
+            project_slug=state.project_slug,
+            items=items,
+            warnings=warnings,
+            excluded_count=excluded,
+            snapshot=snapshot_ref,
         )
         reference_id = await d.store.record_context(
             task_id=state.task_id,
@@ -217,6 +228,7 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
                 reference_id=reference_id,
                 warnings=warnings,
                 excluded=excluded,
+                snapshot=snapshot_ref,
             ),
         )
         flagged = sum(1 for i in items if i.flagged_injection)

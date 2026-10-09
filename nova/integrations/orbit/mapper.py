@@ -10,13 +10,19 @@ from nova.domain.context import (
     ContextItem,
     ContextProjectInfo,
     ContextQuery,
+    ContextSnapshot,
+    ContextSnapshotInfo,
+    ContextSnapshotItem,
     SearchResult,
+    SnapshotRef,
 )
 from nova.integrations.orbit.schemas import (
     OrbitChangeEvent,
     OrbitContextPackage,
     OrbitProject,
     OrbitSearchHit,
+    OrbitSnapshot,
+    OrbitSnapshotListEntry,
 )
 
 KIND = {"chunk": "document", "memory": "memory", "session": "session"}
@@ -36,6 +42,10 @@ def context_request(query: ContextQuery, *, on_behalf_of: str | None) -> dict[st
         body["max_classification"] = query.max_classification
     if query.session_id:
         body["session_id"] = query.session_id[:200]
+    if query.base_snapshot:
+        body["base_snapshot"] = {"name": query.base_snapshot.name}
+        if query.base_snapshot.version is not None:
+            body["base_snapshot"]["version"] = query.base_snapshot.version
     if on_behalf_of:
         body["on_behalf_of"] = on_behalf_of
     return body
@@ -80,6 +90,7 @@ def context_bundle(package: dict[str, Any], project_slug: str, orbit_public_url:
         excluded_count=sum(pkg.exclusion_summary.values()),
         candidates_count=pkg.candidates_count,
         tokens_used=pkg.tokens_used,
+        snapshot=SnapshotRef(name=pkg.snapshot.name, version=pkg.snapshot.version) if pkg.snapshot else None,
         latency_ms=total if isinstance(total := pkg.timings.get("total"), int | float) else None,
     )
 
@@ -149,3 +160,29 @@ def text_document(title: str, content: str, external_id: str, classification: in
         "classification": max(0, min(3, classification)),
         "tags": ["nova", "artifact"],
     }
+
+
+def snapshot_info(raw: dict[str, Any]) -> ContextSnapshotInfo:
+    e = OrbitSnapshotListEntry.model_validate(raw)
+    return ContextSnapshotInfo(
+        name=e.name,
+        latest_version=e.latest_version,
+        versions=e.versions,
+        updated_at=e.updated_at,
+        last_task=e.last_task or "",
+    )
+
+
+def snapshot(raw: dict[str, Any]) -> ContextSnapshot:
+    s = OrbitSnapshot.model_validate(raw)
+    return ContextSnapshot(
+        name=s.name,
+        version=s.version,
+        task=s.task,
+        intent=s.intent,
+        token_count=s.token_count,
+        content=s.content,
+        items=[ContextSnapshotItem(**i.model_dump()) for i in s.items],
+        created_by_label=s.created_by_label,
+        created_at=s.created_at,
+    )

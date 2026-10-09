@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nova.agent.ports import ArtifactOutline, ArtifactSnapshot, StoredContextReference
 from nova.domain.artifacts import ArtifactContent
 from nova.domain.blocks import Block, ProgressLine
-from nova.domain.context import ContextBundle, ContextItem
+from nova.domain.context import ContextBundle, ContextItem, SnapshotRef
 from nova.domain.enums import BlockType, EventType, NovaPhase, ProjectRole, StepStatus, role_at_least
 from nova.domain.outputs import EvaluationReference, ExecutionPlan, TokenUsage, ToolRequest, ToolResult
 from nova.domain.permissions import Principal
@@ -236,10 +236,17 @@ class SqlExecutionStore:
                 items=[i.model_dump(mode="json") for i in bundle.items],
                 warnings=bundle.warnings,
                 max_classification=bundle.max_classification,
+                snapshot_name=bundle.snapshot.name if bundle.snapshot else None,
+                snapshot_version=bundle.snapshot.version if bundle.snapshot else None,
             )
             session.add(ref)
             await session.flush()
             return str(ref.id)
+
+    async def get_snapshot_reference(self, user_id: str, project_slug: str) -> SnapshotRef | None:
+        from nova.services.orbit_snapshots import get_reference
+
+        return await get_reference(user_id, project_slug)
 
     async def get_context_references(self, ref_ids: list[str], user_id: str) -> list[StoredContextReference]:
         ids = [i for i in (_uuid(r) for r in ref_ids) if i]

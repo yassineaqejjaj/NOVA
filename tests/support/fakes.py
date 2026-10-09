@@ -19,6 +19,9 @@ from nova.domain.context import (
     ContextOverview,
     ContextProjectInfo,
     ContextQuery,
+    ContextSnapshot,
+    ContextSnapshotInfo,
+    ContextSnapshotItem,
     SearchResult,
 )
 from nova.domain.evaluation import ExecutionRecord, FeedbackRecord
@@ -157,13 +160,39 @@ class FakeContextProvider:
         self.feedback: list[tuple[str, bool]] = []
         self.changes: list[ContextChange] = []
         self.proposals: list[dict] = []
+        self.snapshots: list[ContextSnapshotInfo] = [
+            ContextSnapshotInfo(name="release-plan", latest_version=2, versions=2, last_task="Release plan v2")
+        ]
+        self.snapshot_error: ContextError | None = None
         self._ids = itertools.count(1)
+
+    async def list_snapshots(self, user_id: str, project_slug: str) -> list[ContextSnapshotInfo]:
+        if self.snapshot_error:
+            raise self.snapshot_error
+        return list(self.snapshots)
+
+    async def get_snapshot(self, user_id: str, project_slug: str, name: str, version: int | None = None) -> ContextSnapshot:
+        if self.snapshot_error:
+            raise self.snapshot_error
+        if name not in {s.name for s in self.snapshots}:
+            raise ContextError("not_found", "Snapshot not found")
+        return ContextSnapshot(
+            name=name,
+            version=version or 2,
+            task="Release plan v2",
+            token_count=160,
+            content="- Q4 Objectives [S1]",
+            items=[ContextSnapshotItem(key="chunk:1", citation="S1", title="Q4 Objectives")],
+        )
 
     async def retrieve(self, query: ContextQuery) -> ContextBundle:
         self.queries.append(query)
         if self.error:
             raise self.error
+        if query.base_snapshot and self.snapshot_error:
+            raise self.snapshot_error
         return ContextBundle(
+            snapshot=query.base_snapshot,
             retrieval_id=f"orbit-req-{next(self._ids)}",
             project_slug=query.project_slug,
             items=list(self.items),

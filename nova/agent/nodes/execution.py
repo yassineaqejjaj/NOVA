@@ -457,7 +457,10 @@ async def execute_tools(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
             new_items = scan(relabel([i for i in _items_from(result.output)], len(context_items) + 1))
             if new_items:
                 bundle = ContextBundle(
-                    retrieval_id=result.output.get("retrieval_id"), project_slug=state.project_slug, items=new_items
+                    retrieval_id=result.output.get("retrieval_id"),
+                    project_slug=state.project_slug,
+                    items=new_items,
+                    snapshot=result.output.get("snapshot"),
                 )
                 ref = await d.store.record_context(
                     task_id=state.task_id,

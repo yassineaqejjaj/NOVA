@@ -46,6 +46,36 @@ ITEMS = [
 ]
 
 
+def _snap_item(i: int, title: str, forgotten: bool = False) -> dict[str, Any]:
+    return {"key": f"chunk:{i}", "citation": f"S{i}", "candidate_type": "chunk", "id": str(uuid.uuid5(uuid.NAMESPACE_URL, title)),
+            "title": title, "excerpt": f"Pinned excerpt of {title}", "source_kind": "document", "forgotten": forgotten}  # fmt: skip
+
+
+# name -> versions (ascending). Test fixture data only.
+SNAPSHOTS: dict[str, list[dict[str, Any]]] = {
+    "release-plan": [
+        {"version": 1, "task": "Release plan draft", "items": [_snap_item(1, "Q4 Objectives")]},
+        {"version": 2, "task": "Release plan v2", "items": [_snap_item(1, "Q4 Objectives"), _snap_item(2, "Sprint 19 Backlog")]},
+    ],
+}
+LAST_CONTEXT_BODY: dict[str, Any] = {}  # last body received by POST /context (assertion hook for tests)
+
+
+def _snapshot(slug: str, name: str, version: str) -> dict[str, Any]:
+    _project(slug)
+    versions = SNAPSHOTS.get(name)
+    if not versions:
+        raise HTTPException(404, {"detail": "Snapshot introuvable", "code": "not_found"})
+    found = versions[-1] if version == "latest" else next((v for v in versions if str(v["version"]) == version), None)
+    if found is None:
+        raise HTTPException(404, {"detail": "Version de snapshot introuvable", "code": "not_found"})
+    content = "\n".join(f"- {i['title']} [{i['citation']}]" for i in found["items"])
+    return {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"{name}@{found['version']}")), "name": name, "version": found["version"],
+            "parent_version": None, "task": found["task"], "intent": "general", "token_count": 80 * len(found["items"]),
+            "items_count": len(found["items"]), "content_hash": "h", "created_by_label": "Test PM",
+            "created_at": datetime.now(UTC).isoformat(), "content": content, "items": found["items"], "request_id": str(uuid.uuid4())}  # fmt: skip
+
+
 def _token() -> str:
     claims = (
         base64.urlsafe_b64encode(json.dumps({"sub": USER["id"], "exp": int(time.time()) + 3600}).encode()).decode().rstrip("=")
@@ -93,10 +123,25 @@ async def context(slug: str, request: Request) -> dict[str, Any]:
     extra = set(body) - allowed
     if extra:  # ORBIT input models forbid unknown fields
         raise HTTPException(422, {"detail": f"Champs inconnus : {sorted(extra)}", "code": "validation_error"})
-    items = []
+    LAST_CONTEXT_BODY.clear()
+    LAST_CONTEXT_BODY.update(body)
+    items: list[dict[str, Any]] = []
+    applied = None
+    base = body.get("base_snapshot")
+    if base:
+        snap = _snapshot(slug, base["name"], str(base.get("version") or "latest"))  # 404 when it no longer exists
+        applied = {"id": snap["id"], "name": snap["name"], "version": snap["version"]}
+        for it in snap["items"]:
+            if it["forgotten"]:
+                continue
+            items.append({"citation": f"S{len(items) + 1}", "candidate_type": it["key"].split(":")[0], "id": it["id"], "title": it["title"],
+                          "source_kind": it["source_kind"], "excerpt": it["excerpt"], "tokens": 40, "scores": {"final": 1.0},
+                          "classification": 1, "pii_redacted": False, "reason_code": "INCLUDED_PINNED"})  # fmt: skip
     for i, (title, ctype, source_kind, memory_kind, excerpt, classification) in enumerate(ITEMS, 1):
+        if title in {x["title"] for x in items}:
+            continue
         items.append({
-            "citation": f"S{i}", "candidate_type": ctype, "id": str(uuid.uuid5(uuid.NAMESPACE_URL, title)),
+            "citation": f"S{len(items) + 1}", "candidate_type": ctype, "id": str(uuid.uuid5(uuid.NAMESPACE_URL, title)),
             "document_id": str(uuid.uuid5(uuid.NAMESPACE_DNS, title)) if ctype == "chunk" else None,
             "memory_item_id": str(uuid.uuid5(uuid.NAMESPACE_OID, title)) if ctype == "memory" else None,
             "title": title, "source_kind": source_kind, "memory_kind": memory_kind, "excerpt": excerpt, "tokens": 40,
@@ -106,7 +151,7 @@ async def context(slug: str, request: Request) -> dict[str, Any]:
     return {"request_id": str(uuid.uuid4()), "trace_id": uuid.uuid4().hex, "task": body["task"], "intent": body.get("intent", "general"),
             "created_at": datetime.now(UTC).isoformat(), "context": "", "items": items, "excluded": [], "exclusion_summary": {"EXCLUDED_ACL": 1},
             "tokens_used": 120, "token_budget": body.get("token_budget", 4000), "candidates_count": 4, "timings": {"total": 42.0},
-            "snapshot": None, "config": {"reranker": "heuristic", "embedding_model": "hash"},
+            "snapshot": applied, "config": {"reranker": "heuristic", "embedding_model": "hash"},
             "warnings": ["Le contexte contient des informations classifiées C2 (Confidentiel)."]}  # fmt: skip
 
 
@@ -154,3 +199,17 @@ async def memory(slug: str, request: Request) -> dict[str, Any]:
 async def document(slug: str, request: Request) -> dict[str, Any]:
     _auth(request)
     return {"id": str(uuid.uuid4()), "status": "pending"}
+
+
+@app.get("/api/v1/projects/{slug}/snapshots")
+async def snapshots(slug: str, request: Request) -> list[dict[str, Any]]:
+    _auth(request)
+    _project(slug)
+    return [{"name": n, "latest_version": v[-1]["version"], "versions": len(v), "updated_at": datetime.now(UTC).isoformat(),
+             "last_task": v[-1]["task"]} for n, v in SNAPSHOTS.items()]  # fmt: skip
+
+
+@app.get("/api/v1/projects/{slug}/snapshots/{name}/{version}")
+async def snapshot(slug: str, name: str, version: str, request: Request) -> dict[str, Any]:
+    _auth(request)
+    return _snapshot(slug, name, version)

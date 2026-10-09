@@ -55,7 +55,7 @@ steps:
     instruction: >
       List cross-epic dependencies, delivery risks with mitigation, and open questions for the team.
     fills: [dependencies, risks, questions]
-tools: [search_orbit, retrieve_orbit_context]
+tools: [search_orbit, retrieve_orbit_context, list_orbit_snapshots, get_orbit_snapshot]
 outputs:
   artifact_type: backlog
   mode: create

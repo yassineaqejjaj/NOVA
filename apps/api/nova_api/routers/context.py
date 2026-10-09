@@ -11,11 +11,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import get_settings
-from nova.domain.context import ContextError, ContextQuery
+from nova.domain.context import ContextError, ContextQuery, SnapshotRef
 from nova.domain.enums import CLASSIFICATION_LABELS
 from nova.infra.db import get_session
 from nova.infra.models import ContextRetrievalReference, Project, ProjectReference
-from nova.services import providers
+from nova.services import orbit_snapshots, providers
 from nova.services.access import AccessDenied, project_role
 from nova.services.execution_store import SqlExecutionStore
 from nova_api.auth import CurrentPrincipal
@@ -77,6 +77,7 @@ async def overview(principal: CurrentPrincipal, session: SessionDep) -> dict[str
                 "query": r.query[:200],
                 "count": len(r.items),
                 "max_classification": r.max_classification,
+                "snapshot": {"name": r.snapshot_name, "version": r.snapshot_version} if r.snapshot_name else None,
                 "created_at": r.created_at.isoformat(),
                 "items": [_item_view(i) for i in r.items[:6]],
             }
@@ -104,6 +105,57 @@ async def project_context(project_id: str, principal: CurrentPrincipal, session:
         "documents": [c.model_dump(mode="json") for c in documents[:10]],
         "changes": [c.model_dump(mode="json") for c in changes[:20]],
     }
+
+
+class SnapshotRefIn(BaseModel):
+    project_id: str
+    name: str = Field(min_length=1, max_length=200)
+    version: int | None = Field(default=None, ge=1)  # None: follow the latest version
+
+
+def _reference_view(ref: SnapshotRef | None) -> dict[str, Any] | None:
+    return ref.model_dump(mode="json") if ref else None
+
+
+@router.get("/snapshots")
+async def list_snapshots(principal: CurrentPrincipal, session: SessionDep, project_id: str) -> dict[str, Any]:
+    """Snapshots ORBIT lists for the project (with the user's own rights) + the reference snapshot NOVA applies."""
+    slug = await _orbit_slug(session, principal.user_id, project_id)
+    found = await providers.context().list_snapshots(principal.user_id, slug)
+    return {
+        "orbit_slug": slug,
+        "snapshots": [s.model_dump(mode="json") for s in found],
+        "reference": _reference_view(await orbit_snapshots.get_reference(principal.user_id, slug)),
+    }
+
+
+@router.get("/snapshots/{name}")
+async def get_snapshot(
+    name: str, principal: CurrentPrincipal, session: SessionDep, project_id: str, version: int | None = Query(default=None, ge=1)
+) -> dict[str, Any]:
+    """One snapshot version read live from ORBIT (nothing is stored in NOVA); ``version`` omitted = latest."""
+    slug = await _orbit_slug(session, principal.user_id, project_id)
+    snap = await providers.context().get_snapshot(principal.user_id, slug, name, version)
+    return {"orbit_slug": slug, "snapshot": snap.model_dump(mode="json")}
+
+
+@router.put("/snapshots/reference")
+async def set_snapshot_reference(body: SnapshotRefIn, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """ "Use for agents": the snapshot becomes ``base_snapshot`` of this user's retrievals on the project."""
+    slug = await _orbit_slug(session, principal.user_id, body.project_id)
+    ref = SnapshotRef(name=body.name, version=body.version)
+    await providers.context().get_snapshot(
+        principal.user_id, slug, ref.name, ref.version
+    )  # must exist and be readable by the user
+    await orbit_snapshots.set_reference(principal.user_id, slug, ref)
+    return {"orbit_slug": slug, "reference": _reference_view(ref)}
+
+
+@router.delete("/snapshots/reference")
+async def clear_snapshot_reference(principal: CurrentPrincipal, session: SessionDep, project_id: str) -> dict[str, Any]:
+    slug = await _orbit_slug(session, principal.user_id, project_id)
+    await orbit_snapshots.clear_reference(principal.user_id, slug)
+    return {"orbit_slug": slug, "reference": None}
 
 
 @router.get("/search")
