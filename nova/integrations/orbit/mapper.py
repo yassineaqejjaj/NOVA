@@ -80,7 +80,7 @@ def context_bundle(package: dict[str, Any], project_slug: str, orbit_public_url:
         excluded_count=sum(pkg.exclusion_summary.values()),
         candidates_count=pkg.candidates_count,
         tokens_used=pkg.tokens_used,
-        latency_ms=pkg.timings.get("total"),
+        latency_ms=total if isinstance(total := pkg.timings.get("total"), int | float) else None,
     )
 
 
