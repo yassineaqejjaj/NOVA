@@ -141,3 +141,40 @@ async def test_models_that_reject_temperature_are_retried_without_it_and_remembe
     assert "temperature" in bodies[0] and "temperature" not in bodies[1]
     await provider.generate([LLMMessage(role="user", content="again")])
     assert len(bodies) == 3 and "temperature" not in bodies[2]  # remembered: no more failing first attempt
+
+
+async def test_models_that_cannot_be_forced_to_call_a_tool_get_an_instruction_instead():
+    bodies: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        bodies.append(body)
+        if body["tool_choice"]["type"] in ("tool", "any"):
+            return httpx.Response(
+                400,
+                json={
+                    "type": "error",
+                    "error": {
+                        "type": "invalid_request_error",
+                        "message": 'tool_choice: type "tool" and "any" are not supported for this model.',
+                    },
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "model": "m",
+                "content": [{"type": "tool_use", "name": STRUCTURED_TOOL, "input": {"title": "t", "score": 3}}],
+                "usage": {},
+            },
+        )
+
+    provider = _provider(handler)
+    result = await provider.structured_output(
+        [LLMMessage(role="system", content="Be exact."), LLMMessage(role="user", content="go")], Answer
+    )
+    assert result.value == Answer(title="t", score=3)
+    assert bodies[0]["tool_choice"]["type"] == "tool" and bodies[1]["tool_choice"] == {"type": "auto"}
+    assert "MUST answer by calling" in bodies[1]["system"] and bodies[1]["system"].startswith("Be exact.")
+    await provider.structured_output([LLMMessage(role="user", content="again")], Answer)
+    assert len(bodies) == 3 and bodies[2]["tool_choice"] == {"type": "auto"}  # remembered
