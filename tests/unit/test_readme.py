@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from itertools import pairwise
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -446,7 +447,7 @@ def test_heading_hierarchy_is_consistent(text: str) -> None:
     assert headings
     assert headings[0] == 1
     assert headings.count(1) == 1, "exactly one H1"
-    for previous, current in zip(headings, headings[1:], strict=False):
+    for previous, current in pairwise(headings):
         assert current <= previous + 1, "heading levels must not be skipped"
 
 
