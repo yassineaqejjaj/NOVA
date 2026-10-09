@@ -23,7 +23,8 @@ deploy** — pausing only where a human decision is wanted.
 | 13 | **Deploy hook** — trigger your deployment webhook (explicit action) | deploy | ✅ v1 |
 | 14 | **Bug-fix mode** — root-cause analysis first, regression test required | operate | ✅ v1 |
 | 15 | **Autonomy levels** — *Guided* (approve the plan and the merge) or *Autopilot* (only the merge) | governance | ✅ v1 |
-| 16 | **Audit & safety rails** — every external write audited; `.github/workflows`, secrets, lock files and path traversal refused; branch-only writes; classification warning when an external model is used | governance | ✅ v1 |
+| 16 | **Run evaluation** — success rate, merged rate, CI green first time, CI repairs and review fixes per run, your interventions, tokens and time per run, where runs stop, by model (Engineering → Performance, `GET /api/v1/sdlc/metrics`) | governance | ✅ |
+| 17 | **Audit & safety rails** — every external write audited; `.github/workflows`, secrets, lock files and path traversal refused; branch-only writes; classification warning when an external model is used | governance | ✅ v1 |
 
 ## Roadmap
 
@@ -33,7 +34,7 @@ deploy** — pausing only where a human decision is wanted.
 | **v1.1** | Sandbox | Run tests/linters in an isolated container before pushing; stack-aware (npm, pytest, go) so CI is confirmed, not only awaited |
 | **v1.2** | More forges & trackers | GitLab and Bitbucket, Jira/Linear issue import and status sync, Slack notifications |
 | **v1.3** | Operate | Incident intake from Sentry/Datadog alerts → bug-fix run, post-mortem artifact, deploy verification and automatic rollback proposal |
-| **v2.0** | Team-scale delivery | Multi-repo changes, monorepo awareness, parallel runs, per-team budgets and model routing, FORGE evaluation of runs (success rate, review findings, cost) |
+| **v2.0** | Team-scale delivery | Multi-repo changes, monorepo awareness, parallel runs, per-team budgets and model routing, FORGE ingestion of runs (see below) |
 
 ## How it works
 
@@ -59,3 +60,17 @@ Intent / issue ─► Spec ─► Design ─(approve, guided)─► Implement �
 * **Classification.** With an external model the repository excerpts and any context are sent to that provider.
   Do not run NOVA on C2 (confidential) or C3 (secret) code with an external provider key: Settings shows this warning
   and the API requires explicit acknowledgement when a key is saved.
+
+## Evaluating runs
+
+Each run carries its own evaluation, computed from the run record (`nova/services/sdlc_metrics.py`): outcome, merged,
+CI green first time, CI repair rounds, review fix rounds, blocking findings, human interventions (approvals, retries),
+tokens, model calls and duration. `GET /api/v1/sdlc/metrics?days=30` aggregates them per user: success rate (finished
+runs, cancelled ones excluded), merged rate, first-pass CI rate, average repairs, average tokens and time to deliver,
+failures by stage and results by model. Cost is expressed in tokens: provider prices change, so NOVA does not guess
+a currency amount.
+
+**FORGE.** FORGE evaluates runs it orchestrates and cannot ingest observed production executions yet (gap G-F1 in
+`integration-analysis.md`); replaying an SDLC run through the NOVA Agent Protocol would re-run it against a real
+repository. The figures therefore stay in NOVA and are exportable as JSON; forwarding them to FORGE needs the
+`observed` run origin proposed in G-F1.

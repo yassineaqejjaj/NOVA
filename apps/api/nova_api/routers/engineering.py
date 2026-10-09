@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import timedelta
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -12,12 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.domain.llm import LLMError
 from nova.infra.crypto import decrypt
-from nova.infra.db import get_session
+from nova.infra.db import get_session, utcnow
 from nova.infra.models import SdlcRun
 from nova.integrations.github.client import GitHubError
 from nova.services import github_accounts, llm_config, sdlc
 from nova.services.audit import audit
 from nova.services.dispatch import dispatch_sdlc
+from nova.services.sdlc_metrics import aggregate
 from nova_api.auth import CurrentPrincipal
 from nova_api.errors import ApiError
 
@@ -198,6 +200,18 @@ def _guard(exc: Exception) -> ApiError:
     if isinstance(exc, GitHubError):
         return _github_error(exc)
     return ApiError(422, "run_error", str(exc))
+
+
+@router.get("/sdlc/metrics")
+async def run_metrics(
+    principal: CurrentPrincipal, session: SessionDep, days: int = Query(default=30, ge=1, le=365)
+) -> dict[str, Any]:
+    """Evaluation of the user's runs over the last ``days`` days: success rate, CI repairs, cost per run."""
+    since = utcnow() - timedelta(days=days)
+    rows = await session.scalars(
+        select(SdlcRun).where(SdlcRun.user_id == uuid.UUID(principal.user_id), SdlcRun.created_at >= since)
+    )
+    return {"days": days, **aggregate(list(rows))}
 
 
 @router.get("/sdlc/runs")
