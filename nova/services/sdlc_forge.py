@@ -79,6 +79,28 @@ async def _scenario(client: ForgeClient) -> str:
     return str(scenario["id"])
 
 
+async def _evaluation_config(client: ForgeClient) -> str | None:
+    """The rules-only evaluation config (created once; needs the FORGE maintainer role). Without it FORGE falls back to its
+    default configuration, whose LLM judges would also grade the SDLC criteria."""
+    if cached := await _cached("evaluation_config", "sdlc", mapping.CONFIG_KEY):
+        return cached
+    config = await client.find_evaluation_config(mapping.CONFIG_KEY)
+    if config is None:
+        try:
+            config = await client.create_evaluation_config(mapping.evaluation_config_body())
+        except ForgeError as exc:
+            if exc.status not in (403, 409, 422):
+                raise
+            log.warning(
+                "FORGE evaluation config %s could not be created (%s): using FORGE's default configuration",
+                mapping.CONFIG_KEY,
+                exc.message,
+            )
+            return None
+    await _remember("evaluation_config", "sdlc", mapping.CONFIG_KEY, str(config["id"]))
+    return str(config["id"])
+
+
 def _reference_data(forge_run: dict[str, Any], scenario_id: str) -> dict[str, Any]:
     run_id = str(forge_run.get("id"))
     return {
@@ -110,8 +132,9 @@ async def ingest(run_id: str) -> dict[str, Any] | None:
             return existing.data
     agent_version_id = await _agent_version(client, run.model)
     scenario_id = await _scenario(client)
+    config_id = await _evaluation_config(client)
     forge_run = await client.create_observed_run(
-        mapping.observed_run_body(run, agent_version_id=agent_version_id, scenario_id=scenario_id)
+        mapping.observed_run_body(run, agent_version_id=agent_version_id, scenario_id=scenario_id, evaluation_config_id=config_id)
     )
     data = _reference_data(forge_run, scenario_id)
     async with session_scope() as session:

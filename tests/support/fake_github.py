@@ -275,6 +275,8 @@ class FakeForge:
         self.score: float | None = None
         self.passed: bool | None = None
         self.status = "evaluating"
+        self.configs: dict[str, dict[str, Any]] = {}
+        self.maintainer = True
 
     def _check(self) -> None:
         from nova.integrations.forge.client import ForgeError
@@ -308,6 +310,19 @@ class FakeForge:
         self._check()
         self.scenarios[body["slug"]] = {"id": f"scenario-{len(self.scenarios) + 1}", **body}
         return self.scenarios[body["slug"]]
+
+    async def find_evaluation_config(self, key: str) -> dict[str, Any] | None:
+        self._check()
+        return self.configs.get(key)
+
+    async def create_evaluation_config(self, body: dict[str, Any]) -> dict[str, Any]:
+        from nova.integrations.forge.client import ForgeError
+
+        self._check()
+        if not self.maintainer:
+            raise ForgeError(403, "Rôle maintainer requis")
+        self.configs[body["key"]] = {"id": f"config-{len(self.configs) + 1}", **body}
+        return self.configs[body["key"]]
 
     async def create_observed_run(self, body: dict[str, Any]) -> dict[str, Any]:
         self._check()

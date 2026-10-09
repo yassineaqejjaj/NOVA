@@ -59,6 +59,13 @@ class ForgeClient:
     async def create_runs(self, body: dict[str, Any]) -> list[dict[str, Any]]:
         return await self._request("POST", "/runs", json=body)
 
+    async def create_evaluation_config(self, body: dict[str, Any]) -> dict[str, Any]:
+        return await self._request("POST", "/evaluation-configs", json=body)
+
+    async def find_evaluation_config(self, key: str) -> dict[str, Any] | None:
+        page = await self._request("GET", "/evaluation-configs", params={"page_size": 100})
+        return next((c for c in page.get("items", []) if c.get("key") == key), None)
+
     async def create_observed_run(self, body: dict[str, Any]) -> dict[str, Any]:
         """Ingest a run NOVA already executed (idempotent on ``external_id``); FORGE evaluates it."""
         return await self._request("POST", "/runs/observed", json=body)

@@ -404,10 +404,16 @@ async def test_runs_are_evaluated_and_aggregated(app, gh, model):
 # --- FORGE ingestion -----------------------------------------------------------------------------------------------
 
 
-@pytest.fixture
-def forge():
+@pytest_asyncio.fixture
+async def forge():
+    from sqlalchemy import delete
+
+    from nova.infra import db
+    from nova.infra.models import IntegrationReference
     from tests.support.fake_github import FakeForge
 
+    async with db.session_scope() as session:  # ids cached for a previous fake FORGE would not exist in this one
+        await session.execute(delete(IntegrationReference).where(IntegrationReference.system == "forge"))
     fake = FakeForge()
     providers.override("forge_client", fake)
     return fake
@@ -423,6 +429,14 @@ async def test_finished_runs_are_ingested_by_forge_without_any_code(app, gh, mod
     }  # fmt: skip
     assert run["forge"]["url"].endswith("/runs/run-1")
 
+    # The scenario is rule-scored on output_json and the rules-only config is created once (no LLM judge on SDLC runs)
+    assert [r["id"] for r in forge.scenarios["nova-sdlc-delivery"]["content"]["rules"]] == [
+        "delivered", "merged", "ci_first_pass", "no_review_fixes_needed", "autonomy",
+    ]  # fmt: skip
+    assert forge.configs["nova-delivery"]["pass_threshold"] == 70 and forge.bodies[0]["evaluation_config_id"] == "config-1"
+    assert {"outcome", "merged", "first_pass_ci", "review_fix_rounds", "human_interventions"} <= set(
+        forge.bodies[0]["output_json"]
+    )
     assert list(forge.agents) == ["nova-sdlc"] and forge.versions[0]["model"]["model"] == "fake-model"
     body = forge.bodies[0]
     assert body["external_id"] == f"nova-sdlc:{run['id']}" and body["execution_status"] == "completed"
@@ -489,3 +503,11 @@ async def test_an_older_forge_without_observed_runs_pauses_the_sync(app, gh, mod
     run = await start(client, autonomy="autopilot", auto_merge=True)
     assert run["status"] == "completed" and run["forge"] is None
     await sdlc_forge.sync()  # logs once, does not raise, does not hammer FORGE
+
+
+async def test_without_the_maintainer_role_forge_falls_back_to_its_default_config(app, gh, model, forge):
+    forge.maintainer = False
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot", auto_merge=True)
+    assert run["status"] == "completed" and run["forge"] is not None  # still ingested
+    assert forge.bodies[0]["evaluation_config_id"] is None and forge.configs == {}
