@@ -110,7 +110,9 @@ async def test_a_run_scored_below_the_threshold_teaches_the_agent_and_a_new_vers
     evidence = next(prompt for name, prompt in model.calls if name == "SdlcLessons")
     assert "quality.ci_first_pass" in evidence and "linters avant de pousser" in evidence  # FORGE's scores and recommendations
     assert "export function" not in evidence and "farewell(name" not in evidence  # never code
-    ref = await scalar(select(IntegrationReference).where(IntegrationReference.kind == "sdlc_run"))
+    ref = await scalar(
+        select(IntegrationReference).where(IntegrationReference.nova_id == first["id"])
+    )  # other tests' runs are in the database too
     assert ref is not None and ref.data["improvement"] == "improved" and ref.data["policy_version"] == 1
 
     # The next run starts with the lessons, at the stages they target, and FORGE gets it under the new agent version
@@ -145,7 +147,7 @@ async def test_nothing_actionable_means_no_new_version(app, world):
     await sdlc_forge.sync()
     active = (await client.get(f"{API}/sdlc/policy")).json()["active"]
     assert active["version"] == 0 and active["standards"] == [] and active["stages"] == {}  # still the starting version
-    ref = await scalar(select(IntegrationReference).where(IntegrationReference.kind == "sdlc_run"))
+    ref = await scalar(select(IntegrationReference).where(IntegrationReference.nova_id == first["id"]))
     assert ref is not None and ref.data["improvement"] == "no_change"
 
 
