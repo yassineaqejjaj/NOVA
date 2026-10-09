@@ -61,7 +61,7 @@ class OrbitContextPackage(_Out):
     tokens_used: int = 0
     token_budget: int = 0
     candidates_count: int = 0
-    timings: dict[str, float] = Field(default_factory=dict)
+    timings: dict[str, Any] = Field(default_factory=dict)  # ORBIT adds structured entries (e.g. per-round details)
     warnings: list[str] = Field(default_factory=list)
 
 
