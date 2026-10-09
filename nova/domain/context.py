@@ -11,6 +11,13 @@ from typing import Literal, Protocol
 from pydantic import BaseModel, Field
 
 
+class SnapshotRef(BaseModel):
+    """Reference to a versioned ORBIT snapshot (never its content). ``version=None`` follows the latest."""
+
+    name: str = Field(min_length=1, max_length=200)
+    version: int | None = Field(default=None, ge=1)
+
+
 class ContextQuery(BaseModel):
     """A request for governed context on behalf of a user."""
 
@@ -22,6 +29,7 @@ class ContextQuery(BaseModel):
     source_kinds: list[str] | None = None
     session_id: str | None = None
     max_classification: int | None = Field(default=None, ge=0, le=3)
+    base_snapshot: SnapshotRef | None = None
 
 
 class ContextItem(BaseModel):
@@ -58,6 +66,7 @@ class ContextBundle(BaseModel):
     candidates_count: int = 0
     tokens_used: int = 0
     latency_ms: float | None = None
+    snapshot: SnapshotRef | None = None  # base snapshot ORBIT actually applied to this retrieval
 
     @property
     def max_classification(self) -> int:
@@ -114,6 +123,40 @@ class SearchResult(BaseModel):
     updated_at: datetime | None = None
 
 
+class ContextSnapshotInfo(BaseModel):
+    """One snapshot of a project as listed by ORBIT."""
+
+    name: str
+    latest_version: int
+    versions: int = 1
+    updated_at: datetime | None = None
+    last_task: str = ""
+
+
+class ContextSnapshotItem(BaseModel):
+    key: str = ""
+    citation: str = ""
+    title: str = ""
+    excerpt: str = ""
+    source_kind: str | None = None
+    memory_kind: str | None = None
+    forgotten: bool = False
+
+
+class ContextSnapshot(BaseModel):
+    """A snapshot version read from ORBIT (read live; NOVA never persists it)."""
+
+    name: str
+    version: int
+    task: str = ""
+    intent: str = ""
+    token_count: int = 0
+    content: str = ""
+    items: list[ContextSnapshotItem] = Field(default_factory=list)
+    created_by_label: str = ""
+    created_at: datetime | None = None
+
+
 class ContextIdentity(BaseModel):
     linked: bool
     external_user_id: str | None = None
@@ -152,6 +195,10 @@ class ContextProvider(Protocol):
     async def overview(self, user_id: str, project_slug: str) -> ContextOverview: ...
 
     async def search(self, user_id: str, project_slug: str, query: str, limit: int = 10) -> list[SearchResult]: ...
+
+    async def list_snapshots(self, user_id: str, project_slug: str) -> list[ContextSnapshotInfo]: ...
+
+    async def get_snapshot(self, user_id: str, project_slug: str, name: str, version: int | None = None) -> ContextSnapshot: ...
 
     async def send_feedback(
         self, user_id: str, project_slug: str, retrieval_id: str, useful: bool, comment: str | None

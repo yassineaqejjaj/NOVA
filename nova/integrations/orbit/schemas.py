@@ -63,6 +63,7 @@ class OrbitContextPackage(_Out):
     candidates_count: int = 0
     timings: dict[str, Any] = Field(default_factory=dict)  # ORBIT adds structured entries (e.g. per-round details)
     warnings: list[str] = Field(default_factory=list)
+    snapshot: OrbitSnapshotRef | None = None
 
 
 class OrbitProjectStats(_Out):
@@ -110,6 +111,41 @@ class OrbitSearchHit(_Out):
     score: float = 0.0
     section: str | None = None
     source_updated_at: datetime | None = None
+
+
+class OrbitSnapshotListEntry(_Out):
+    name: str
+    latest_version: int
+    versions: int = 1
+    updated_at: datetime | None = None
+    last_task: str | None = None
+
+
+class OrbitSnapshotItem(_Out):
+    key: str = ""
+    citation: str = ""
+    title: str = ""
+    excerpt: str = ""
+    source_kind: str | None = None
+    memory_kind: str | None = None
+    forgotten: bool = False
+
+
+class OrbitSnapshot(_Out):
+    name: str
+    version: int
+    task: str = ""
+    intent: str = ""
+    token_count: int = 0
+    content: str = ""
+    items: list[OrbitSnapshotItem] = Field(default_factory=list)
+    created_by_label: str = ""
+    created_at: datetime | None = None
+
+
+class OrbitSnapshotRef(_Out):
+    name: str
+    version: int | None = None
 
 
 class OrbitMemoryItem(_Out):

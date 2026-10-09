@@ -13,6 +13,8 @@ import type { ChangeEvent, ContextSource, OrbitIdentity } from "@/lib/api/types"
 import { classificationLabel, dateTime, timeAgo } from "@/lib/format";
 import { defineMessages, useT } from "@/lib/i18n";
 
+import { SnapshotsSection } from "./snapshots-section";
+
 const M = defineMessages({
   en: {
     title: "ORBIT Context",
@@ -30,6 +32,7 @@ const M = defineMessages({
     items: (v: { n: number }) => `${v.n} item${v.n === 1 ? "" : "s"}`,
     openWork: "Open the work",
     nothingYet: "Nothing yet.",
+    snapshotBadge: "Snapshot",
     search: "Search sources in ORBIT",
     project: "Project",
     searchFailed: "ORBIT search failed",
@@ -56,6 +59,7 @@ const M = defineMessages({
     items: (v: { n: number }) => `${v.n} élément${v.n > 1 ? "s" : ""}`,
     openWork: "Ouvrir le travail",
     nothingYet: "Rien pour l’instant.",
+    snapshotBadge: "Snapshot",
     search: "Rechercher des sources dans ORBIT",
     project: "Projet",
     searchFailed: "La recherche ORBIT a échoué",
@@ -72,7 +76,7 @@ interface Overview {
   orbit_url: string;
   identity: OrbitIdentity;
   projects: { id: string; name: string; orbit_slug: string; orbit_url: string | null }[];
-  recent: { id: string; task_id: string | null; project_slug: string | null; query: string; count: number; max_classification: number; created_at: string; items: ContextSource[] }[];
+  recent: { id: string; task_id: string | null; project_slug: string | null; query: string; count: number; max_classification: number; snapshot?: { name: string; version: number | null } | null; created_at: string; items: ContextSource[] }[];
 }
 
 function ContextPage() {
@@ -134,6 +138,7 @@ function ContextPage() {
                 <details key={r.id} className="border-b border-border py-2 text-[13px]">
                   <summary className="flex cursor-pointer items-center gap-2 text-muted">
                     <span className="truncate">{r.query || t("contextFallback")}</span><ClassificationBadge level={r.max_classification} />
+                    {r.snapshot ? <Badge tone="accent" title={r.snapshot.name}>{t("snapshotBadge")}{r.snapshot.version ? ` v${r.snapshot.version}` : ""}</Badge> : null}
                     <span className="ml-auto shrink-0 text-[11.5px] text-subtle">{t("items", { n: r.count })} · {timeAgo(r.created_at)}</span>
                   </summary>
                   <ul className="mt-1.5 space-y-1 pl-2">
@@ -170,6 +175,7 @@ function ContextPage() {
               ) : null}
             </section>
             {projectContext.error instanceof ApiError ? <ErrorNotice title={t("projectContextFailed")} message={projectContext.error.message} /> : null}
+            {projectId ? <SnapshotsSection projectId={projectId} /> : null}
             <section>
               <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wider text-subtle">{t("decisions")}</h2>
               {projectContext.data?.decisions.length ? projectContext.data.decisions.map((d) => (

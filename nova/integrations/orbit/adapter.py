@@ -23,6 +23,8 @@ from nova.domain.context import (
     ContextOverview,
     ContextProjectInfo,
     ContextQuery,
+    ContextSnapshot,
+    ContextSnapshotInfo,
     SearchResult,
 )
 from nova.infra.crypto import decrypt, encrypt
@@ -147,6 +149,14 @@ class OrbitContextProvider:
     async def search(self, user_id: str, project_slug: str, query: str, limit: int = 10) -> list[SearchResult]:
         auth = await self._auth(user_id, project_slug, user_endpoint=True)
         return [mapper.search_result(raw, project_slug) for raw in await self.client.search(auth, project_slug, query, limit)]
+
+    async def list_snapshots(self, user_id: str, project_slug: str) -> list[ContextSnapshotInfo]:
+        auth = await self._auth(user_id, project_slug, user_endpoint=True)  # listing is a viewer-only (session) endpoint
+        return [mapper.snapshot_info(raw) for raw in await self.client.snapshots(auth, project_slug)]
+
+    async def get_snapshot(self, user_id: str, project_slug: str, name: str, version: int | None = None) -> ContextSnapshot:
+        auth = await self._auth(user_id, project_slug, user_endpoint=False)
+        return mapper.snapshot(await self.client.snapshot(auth, project_slug, name, version or "latest"))
 
     async def send_feedback(self, user_id: str, project_slug: str, retrieval_id: str, useful: bool, comment: str | None) -> None:
         auth = await self._auth(user_id, project_slug, user_endpoint=False)

@@ -90,6 +90,20 @@ class OrbitAccount(Base):
     linked_at: Mapped[datetime] = _created()
 
 
+class OrbitSnapshotReference(Base):
+    """The ORBIT snapshot a user wants NOVA's agents to use for a project. Reference only: never the content."""
+
+    __tablename__ = "orbit_snapshot_references"
+    __table_args__ = (UniqueConstraint("user_id", "project_slug"),)
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    project_slug: Mapped[str] = mapped_column(String(120))
+    snapshot_name: Mapped[str] = mapped_column(String(200))
+    pinned_version: Mapped[int | None] = mapped_column(Integer)  # None = follow the latest version
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
 class FigmaAccount(Base):
     """Figma link of a user: OAuth tokens (MCP) or a personal access token (REST, read-only). Encrypted."""
 
@@ -425,6 +439,8 @@ class ContextRetrievalReference(Base):
     items: Mapped[list] = mapped_column(JSONType, default=list)
     warnings: Mapped[list] = mapped_column(JSONType, default=list)
     max_classification: Mapped[int] = mapped_column(Integer, default=0)
+    snapshot_name: Mapped[str | None] = mapped_column(String(200))  # ORBIT base snapshot applied (reference only)
+    snapshot_version: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = _created()
 
 

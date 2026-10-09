@@ -17,6 +17,7 @@ from nova.agent.nodes.common import NodeFailure, deps, node, now_iso, plan_block
 from nova.agent.nodes.context import relabel, scan
 from nova.agent.nodes.interaction import new_approval
 from nova.agent.nodes.planning import EDIT_SKILL
+from nova.agent.snapshots import effective_tools
 from nova.agent.tools.registry import ToolContext, ToolDenied
 from nova.agent.validation import (
     CheckResult,
@@ -154,7 +155,7 @@ async def execute_skill(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
     else:
         sub = skill.steps[out.substep_index]
         fills = sub.fills
-    tools_allowed = skill.tools if state.tool_iterations < d.settings.max_tool_iterations else []
+    tools_allowed = effective_tools(skill.tools) if state.tool_iterations < d.settings.max_tool_iterations else []
 
     schema = d.artifacts.output_schema(artifact_type, fills, with_tools=bool(tools_allowed))
     if is_edit:
@@ -396,7 +397,7 @@ async def execute_tools(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
     needs_approval = []
     for request in state.pending_tool_requests:
         try:
-            tool = d.tools.authorize(request, allowed=skill.tools, permissions=d.permissions)
+            tool = d.tools.authorize(request, allowed=effective_tools(skill.tools), permissions=d.permissions)
         except ToolDenied as exc:
             results.append(ToolResult(tool=request.tool, status="denied", error=str(exc)))
             continue
@@ -457,7 +458,10 @@ async def execute_tools(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
             new_items = scan(relabel([i for i in _items_from(result.output)], len(context_items) + 1))
             if new_items:
                 bundle = ContextBundle(
-                    retrieval_id=result.output.get("retrieval_id"), project_slug=state.project_slug, items=new_items
+                    retrieval_id=result.output.get("retrieval_id"),
+                    project_slug=state.project_slug,
+                    items=new_items,
+                    snapshot=result.output.get("snapshot"),
                 )
                 ref = await d.store.record_context(
                     task_id=state.task_id,

@@ -462,3 +462,12 @@ export interface ExecutionEvent {
 }
 
 export interface ApiErrorBody { detail: string; code: string; actions: Action[] }
+
+/** ORBIT snapshots (versioned shared contexts). NOVA keeps only the reference, never the content. */
+export interface SnapshotRef { name: string; version: number | null }
+export interface SnapshotInfo { name: string; latest_version: number; versions: number; updated_at: string | null; last_task: string }
+export interface SnapshotDetail {
+  name: string; version: number; task: string; intent: string; token_count: number; content: string;
+  items: { key: string; citation: string; title: string; excerpt: string; forgotten: boolean }[];
+  created_by_label: string; created_at: string | null;
+}

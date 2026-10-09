@@ -6,9 +6,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from nova.agent.snapshots import retrieve_with_reference
 from nova.agent.tools.registry import RetryPolicy, ToolContext, ToolDefinition, ToolDenied, ToolRegistry
 from nova.artifacts.render import render_markdown
-from nova.domain.context import ContextItem, ContextQuery
+from nova.domain.context import ContextError, ContextItem, ContextQuery, SnapshotRef
 from nova.domain.design import (
     DesignError,
     DesignNode,
@@ -48,6 +49,43 @@ class RetrieveOut(BaseModel):
     retrieval_id: str | None
     items: list[ContextItem]
     warnings: list[str] = Field(default_factory=list)
+    snapshot: SnapshotRef | None = None
+
+
+class ListSnapshotsIn(BaseModel):
+    pass
+
+
+class SnapshotLine(BaseModel):
+    name: str
+    latest_version: int
+    versions: int
+    last_task: str = ""
+
+
+class ListSnapshotsOut(BaseModel):
+    snapshots: list[SnapshotLine]
+
+
+class GetSnapshotIn(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    version: int | None = Field(default=None, ge=1)
+
+
+class SnapshotItemLine(BaseModel):
+    citation: str
+    title: str
+    forgotten: bool = False
+
+
+class GetSnapshotOut(BaseModel):
+    name: str
+    version: int
+    task: str = ""
+    token_count: int = 0
+    content: str
+    items: list[SnapshotItemLine]
+    truncated: bool = False
 
 
 class ArtifactIn(BaseModel):
@@ -109,16 +147,52 @@ async def search_orbit(ctx: ToolContext, args: SearchIn) -> SearchOut:
 async def retrieve_orbit_context(ctx: ToolContext, args: RetrieveIn) -> RetrieveOut:
     """Targeted retrieval; the nodes merge the new items into the state with fresh labels."""
     slug = _require_project(ctx)
-    bundle = await ctx.deps.context.retrieve(
+    bundle = await retrieve_with_reference(
+        ctx.deps,
         ContextQuery(
             user_id=ctx.state.user_id,
             project_slug=slug,
             task=args.query,
             token_budget=args.token_budget,
             session_id=ctx.state.conversation_id,
-        )
+        ),
     )
-    return RetrieveOut(retrieval_id=bundle.retrieval_id, items=bundle.items, warnings=bundle.warnings)
+    return RetrieveOut(retrieval_id=bundle.retrieval_id, items=bundle.items, warnings=bundle.warnings, snapshot=bundle.snapshot)
+
+
+def _snapshot_denied(exc: ContextError) -> ToolDenied:
+    return ToolDenied(f"ORBIT snapshots unavailable ({exc.code}): {exc.message}"[:300])
+
+
+async def list_orbit_snapshots(ctx: ToolContext, args: ListSnapshotsIn) -> ListSnapshotsOut:
+    slug = _require_project(ctx)
+    try:
+        found = await ctx.deps.context.list_snapshots(ctx.state.user_id, slug)
+    except ContextError as exc:
+        raise _snapshot_denied(exc) from exc
+    return ListSnapshotsOut(
+        snapshots=[
+            SnapshotLine(name=s.name, latest_version=s.latest_version, versions=s.versions, last_task=s.last_task[:200])
+            for s in found[:50]
+        ]
+    )
+
+
+async def get_orbit_snapshot(ctx: ToolContext, args: GetSnapshotIn) -> GetSnapshotOut:
+    slug = _require_project(ctx)
+    try:
+        snap = await ctx.deps.context.get_snapshot(ctx.state.user_id, slug, args.name, args.version)
+    except ContextError as exc:
+        raise _snapshot_denied(exc) from exc
+    return GetSnapshotOut(
+        name=snap.name,
+        version=snap.version,
+        task=snap.task[:300],
+        token_count=snap.token_count,
+        content=snap.content[:12000],
+        items=[SnapshotItemLine(citation=i.citation, title=i.title, forgotten=i.forgotten) for i in snap.items[:100]],
+        truncated=len(snap.content) > 12000,
+    )
 
 
 async def get_artifact(ctx: ToolContext, args: ArtifactIn) -> ArtifactOut:
@@ -351,6 +425,32 @@ def register_builtin_tools(registry: ToolRegistry) -> None:
             permission=Permission.context_read,
             handler=retrieve_orbit_context,
             timeout_seconds=20,
+            retry=network_retry,
+            audit=True,
+        )
+    )
+    registry.register(
+        ToolDefinition(
+            name="list_orbit_snapshots",
+            description="List the project's ORBIT snapshots (versioned shared contexts): name, latest version, last task.",
+            input_model=ListSnapshotsIn,
+            output_model=ListSnapshotsOut,
+            permission=Permission.context_read,
+            handler=list_orbit_snapshots,
+            timeout_seconds=15,
+            retry=network_retry,
+            audit=True,
+        )
+    )
+    registry.register(
+        ToolDefinition(
+            name="get_orbit_snapshot",
+            description="Read one ORBIT snapshot version (markdown content with [S1] citations); 'version' omitted = latest.",
+            input_model=GetSnapshotIn,
+            output_model=GetSnapshotOut,
+            permission=Permission.context_read,
+            handler=get_orbit_snapshot,
+            timeout_seconds=15,
             retry=network_retry,
             audit=True,
         )

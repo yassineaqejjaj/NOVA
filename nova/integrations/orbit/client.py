@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal
+from urllib.parse import quote
 
 import httpx
 
@@ -91,6 +92,13 @@ class OrbitClient:
 
     async def search(self, auth: OrbitAuth, slug: str, query: str, limit: int) -> list[dict[str, Any]]:
         return (await self._request("GET", f"/projects/{slug}/search", auth, params={"q": query, "limit": limit})).json()
+
+    async def snapshots(self, auth: OrbitAuth, slug: str) -> list[dict[str, Any]]:
+        return (await self._request("GET", f"/projects/{slug}/snapshots", auth)).json()
+
+    async def snapshot(self, auth: OrbitAuth, slug: str, name: str, version: int | str = "latest") -> dict[str, Any]:
+        path = f"/projects/{slug}/snapshots/{quote(name, safe='')}/{version}"
+        return (await self._request("GET", path, auth)).json()
 
     async def create_memory(self, auth: OrbitAuth, slug: str, body: dict[str, Any]) -> dict[str, Any]:
         return (await self._request("POST", f"/projects/{slug}/memory", auth, json=body)).json()
