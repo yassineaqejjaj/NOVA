@@ -143,6 +143,29 @@ ORBIT payloads NOVA consumes, `extra="ignore"` on input so ORBIT can add fields)
 * **Errors**: `401` → "ORBIT session expired, reconnect"; `403/404` → "insufficient permissions"
   (NOVA offers *Request access*, *Choose another source*, *Retry*); network → retryable.
 
+#### 1.7.1 Snapshot synchronisation (reference snapshot)
+
+A **snapshot** is a versioned, immutable shared context created in ORBIT's Explorer. NOVA "synchronises" it by
+*reference*, never by copy:
+
+* **Page « Contexte ORBIT »** → section *Snapshots ORBIT*: list (`GET /projects/{slug}/snapshots`), preview of a
+  version (`GET …/snapshots/{name}/{version|latest}`, read live, nothing persisted) and the action
+  **Use for agents / Stop using**.
+* **Reference snapshot**: table `orbit_snapshot_references` holds `{user_id, project_slug, snapshot_name,
+  pinned_version|null, enabled, updated_at}` (one per user and project; `null` version = follow the latest). Only the
+  reference is stored. Recorded retrievals additionally keep `snapshot_name/version` so the page can show a *Snapshot* badge.
+* **Agents**: every ORBIT retrieval (the `retrieve_orbit_context` graph node, the `retrieve_orbit_context` tool) reads the
+  user's reference and sends it as `base_snapshot` on `POST /context`; ORBIT re-serves the snapshot items as
+  `INCLUDED_PINNED` (unless forgotten, superseded or no longer allowed) and completes with a fresh retrieval.
+  Agent tools `list_orbit_snapshots` / `get_orbit_snapshot` (read-only, `orbit.read` permission) are available to every
+  skill that already reads ORBIT.
+* **Degradation**: if ORBIT rejects the snapshot (deleted, unreadable) NOVA retries once without it and adds a warning
+  to the context bundle / timeline; the task is never blocked.
+* **Governance stays in ORBIT**: snapshots are read with the user's delegated session (or the project agent key +
+  `on_behalf_of`); ACL and clearance are applied by ORBIT at serve time, so a snapshot never exposes more than the user
+  can read. NOVA API: `GET /context/snapshots`, `GET /context/snapshots/{name}`, `PUT|DELETE /context/snapshots/reference`
+  (same membership checks and `orbit_*` error codes as the other context endpoints).
+
 ---
 
 ## 2. FORGE
