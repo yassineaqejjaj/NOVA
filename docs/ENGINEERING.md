@@ -86,3 +86,41 @@ keeps the link and the score and shows them on the run and in Performance (avera
 * **Resilience**: FORGE being down or older never affects a run; `nova.sdlc_forge_sync` (every 5 min) retries what was
   not sent and refreshes scores, and pauses while FORGE answers 404/405 on the endpoint.
 * Disable with `NOVA_FORGE_SDLC_INGEST=false`. Needs `NOVA_FORGE_API_KEY` (already used by the existing capture).
+
+## Continuous improvement of the engineering agent
+
+When FORGE scores a run **below its threshold** (its own pass/fail verdict, else `NOVA_SDLC_IMPROVEMENT_THRESHOLD`,
+70), NOVA improves its SDLC agent and deploys the result automatically. No model weights change: the agent's *policy* is
+a versioned set of short lessons injected into the stage prompts (`agent_policies`, agent `sdlc`).
+
+```
+run finished ─► FORGE scores it ─► below threshold? ─► evidence ─► lessons ─► policy v(N+1) deployed
+                                                          │                         │
+                                  FORGE scores · errors · recommendations           ├─ new runs start with v(N+1)
+                                  + NOVA facts (failed stage, repairs, findings)    ├─ FORGE gets them under agent version p(N+1)
+                                                                                    └─ guard: clearly worse than v(N)? roll back
+```
+
+1. **Evidence** (never code): FORGE's per-criterion scores, classified errors and feedback recommendations for the run,
+   plus NOVA's own facts — failed stage, CI/review repairs, interventions, blocking review findings (short, scanned for
+   injection). Pending runs are processed together (up to 8), every 5 minutes (`nova.sdlc_forge_sync`).
+2. **Lessons**: the run owner's model proposes at most 6 general, imperative lessons (≤ 240 characters) per pass, each for
+   one stage (`spec`, `design`, `implement`, `tests`, `pull_request`, `review`, `fix`, `release`) or for all of them.
+   Problems a prompt cannot fix (tooling, model, CI setup) become *advice for the team*.
+3. **Filters** — a lesson applies to **every user's runs**, so it must be general: no URL, file path, secret, repository
+   name or instruction-like text; duplicates and lessons already rejected by a rollback are dropped; at most 5 per stage and
+   8 general ones (the oldest makes room).
+4. **Deployment**: a new policy version is created and activated at once (`NOVA_SDLC_IMPROVEMENT_AUTO_DEPLOY=false` keeps it as
+   a candidate for an administrator). A run snapshots the active policy when it is created, so it keeps its lessons even if a
+   version is deployed meanwhile. FORGE receives the run under agent version `<nova>+p<N>+<model>` whose metadata lists the lessons:
+   FORGE's agent view compares the scores version by version.
+5. **Guard**: once the new version has ≥ 3 FORGE-scored runs (`NOVA_SDLC_IMPROVEMENT_ROLLBACK_MIN_RUNS`) and its average is more than
+   10 points (`…_ROLLBACK_DROP`) below its parent's, it is rejected and the parent is back; its lessons are never proposed again.
+   Administrators can also roll back or deploy a version by hand (Engineering → Continuous improvement, `POST /api/v1/sdlc/policy/...`).
+
+Every deployment and rollback is audited (`sdlc.policy.activate`). Disable the whole loop with `NOVA_SDLC_IMPROVEMENT=false`.
+
+**Why it is safe enough to be automatic.** Lessons are short sentences, filtered, bounded and reversible; the evidence is wrapped
+as untrusted data and cannot reach the prompts except through those filters; and a version is judged by FORGE on real runs,
+not by itself. What it cannot do: validate a lesson *before* deployment (an SDLC run cannot be replayed on a user's repository),
+so validation is by observation, and a bad version can cost a few runs before the guard reverts it.

@@ -19,6 +19,7 @@ from nova.domain.sdlc import (
     ReviewOutput,
     SpecOutput,
 )
+from nova.domain.sdlc_policy import SdlcLessons
 from nova.integrations.github.client import CheckSummary, GitHubError
 
 BASE_FILES = {
@@ -171,8 +172,10 @@ class SdlcLLM:
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
+        self.systems: list[tuple[str, str]] = []  # (schema, system prompt): where the lessons of the policy show up
         self.change_queue: list[ChangeSet] = []
         self.review_queue: list[ReviewOutput] = []
+        self.lessons = SdlcLessons()
         self.handlers: dict[str, Any] = {
             "SpecOutput": lambda: SpecOutput(
                 summary="Add a farewell function",
@@ -199,7 +202,10 @@ class SdlcLLM:
     async def structured_output(self, messages: list[Any], schema: type[BaseModel], **_: Any) -> StructuredResult:
         name = schema.__name__
         self.calls.append((name, messages[-1].content))
-        if name == "ChangeSet":
+        self.systems.append((name, messages[0].content))
+        if name == "SdlcLessons":
+            value = self.lessons
+        elif name == "ChangeSet":
             value = self.change_queue.pop(0) if self.change_queue else self._default_change(messages)
         elif name == "ReviewOutput":
             value = self.review_queue.pop(0) if self.review_queue else ReviewOutput(verdict="approve", summary="Looks good.")
@@ -276,6 +282,7 @@ class FakeForge:
         self.passed: bool | None = None
         self.status = "evaluating"
         self.configs: dict[str, dict[str, Any]] = {}
+        self.results: dict[str, tuple[float, bool]] = {}  # forge run id -> (composite score, passed), else score/passed above
         self.maintainer = True
 
     def _check(self) -> None:
@@ -331,7 +338,26 @@ class FakeForge:
 
     async def get_run(self, run_id: str) -> dict[str, Any]:
         self._check()
-        return {"id": run_id, "status": self.status, "composite_score": self.score, "passed": self.passed}
+        score, passed = self.results.get(run_id, (self.score, self.passed))
+        return {"id": run_id, "status": self.status, "composite_score": score, "passed": passed}
+
+    async def run_scores(self, run_id: str) -> dict[str, Any]:
+        self._check()
+        return {
+            "composite": {},
+            "scores": [
+                {"criterion_key": "quality.ci_first_pass", "value": 0.0, "explanation": "first_pass_ci vaut false"},
+                {"criterion_key": "quality.delivered", "value": 1.0, "explanation": "ok"},
+            ],
+        }
+
+    async def run_feedback(self, run_id: str) -> dict[str, Any] | None:
+        self._check()
+        return {
+            "recommendations": [
+                {"category": "rule", "priority": "p1", "text": "Réparer la CI plus tôt : lancer les linters avant de pousser."}
+            ]
+        }
 
 
 __all__ = ["SDLC_SCHEMAS", "FakeForge", "FakeGitHub", "Finding", "SdlcLLM", "sdlc_response"]

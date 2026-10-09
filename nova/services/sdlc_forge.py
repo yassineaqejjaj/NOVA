@@ -50,14 +50,14 @@ async def _remember(kind: str, nova_type: str, nova_id: str, external_id: str, d
         )
 
 
-async def _agent_version(client: ForgeClient, model: str) -> str:
+async def _agent_version(client: ForgeClient, model: str, policy: dict[str, Any] | None = None) -> str:
     settings = get_settings()
-    key = f"{settings.version}|{model}"
+    key = f"{settings.version}|{model}|p{int((policy or {}).get('version', 0))}"
     if cached := await _cached("agent_version", "sdlc_release", key):
         return cached
     agent = await client.find_agent(mapping.AGENT_SLUG) or await client.create_agent(mapping.agent_body())
     endpoint = settings.forge_nova_endpoint or settings.public_url
-    body = mapping.agent_version_body(nova_version=settings.version, model=model, endpoint=endpoint)
+    body = mapping.agent_version_body(nova_version=settings.version, model=model, endpoint=endpoint, policy=policy)
     try:
         version = await client.create_agent_version(str(agent["id"]), body)
     except ForgeError as exc:
@@ -114,6 +114,16 @@ def _reference_data(forge_run: dict[str, Any], scenario_id: str) -> dict[str, An
     }
 
 
+def below_threshold(data: dict[str, Any]) -> bool:
+    """FORGE finished scoring the run and it did not pass (its own verdict, else the configured threshold)."""
+    score = data.get("composite_score")
+    if score is None or data.get("status") not in ("completed", "failed"):
+        return False
+    if data.get("passed") is not None:
+        return data["passed"] is False
+    return float(score) < get_settings().sdlc_improvement_threshold
+
+
 async def ingest(run_id: str) -> dict[str, Any] | None:
     """Send one finished run to FORGE (once). Returns the stored reference data, or ``None`` when nothing was sent."""
     client = providers.forge_client()
@@ -130,7 +140,7 @@ async def ingest(run_id: str) -> dict[str, Any] | None:
         )
         if existing is not None:
             return existing.data
-    agent_version_id = await _agent_version(client, run.model)
+    agent_version_id = await _agent_version(client, run.model, (run.context or {}).get("policy"))
     scenario_id = await _scenario(client)
     config_id = await _evaluation_config(client)
     forge_run = await client.create_observed_run(
@@ -214,7 +224,15 @@ async def sync() -> int:
                     "passed": forge_run.get("passed"),
                     "synced_at": utcnow().isoformat(),
                 }
+                if "improvement" not in row.data and below_threshold(row.data):
+                    row.data = {**row.data, "improvement": "pending"}  # a lesson will be drawn from this run
         done += 1
+    from nova.services import sdlc_improvement
+
+    try:
+        await sdlc_improvement.improve()
+    except Exception:
+        log.warning("SDLC improvement pass failed", exc_info=True)
     return done
 
 

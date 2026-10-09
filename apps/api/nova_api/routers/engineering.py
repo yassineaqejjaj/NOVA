@@ -12,11 +12,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.domain.llm import LLMError
+from nova.domain.sdlc_policy import SDLC_AGENT
 from nova.infra.crypto import decrypt
 from nova.infra.db import get_session, utcnow
-from nova.infra.models import SdlcRun
+from nova.infra.models import AgentPolicy, SdlcRun
 from nova.integrations.github.client import GitHubError
 from nova.services import github_accounts, llm_config, sdlc
+from nova.services import sdlc_improvement as improvement
 from nova.services.audit import audit
 from nova.services.dispatch import dispatch_sdlc
 from nova.services.sdlc_forge import states as forge_states
@@ -218,6 +220,43 @@ async def run_metrics(
     )
     runs = list(rows)
     return {"days": days, **aggregate(runs, await forge_states(session, [r.id for r in runs]))}
+
+
+# --- Self-improvement of the SDLC agent -------------------------------------------------------------------------------
+
+
+@router.get("/sdlc/policy")
+async def sdlc_policy(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """The lessons the SDLC agent learned from runs FORGE scored below its threshold, version by version."""
+    return await improvement.overview(session)
+
+
+def _admin_only(principal: Any) -> None:
+    if not principal.is_admin:
+        raise ApiError(403, "forbidden", "Only an administrator can change the agent's policy.")
+
+
+@router.post("/sdlc/policy/rollback")
+async def rollback_policy(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    _admin_only(principal)
+    if await improvement.rollback(session, actor_id=principal.user_id, reason="manual rollback") is None:
+        raise ApiError(409, "conflict", "There is no previous version to go back to.")
+    await session.commit()
+    return await improvement.overview(session)
+
+
+@router.post("/sdlc/policy/{policy_id}/activate")
+async def activate_policy(policy_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    _admin_only(principal)
+    try:
+        policy = await session.get(AgentPolicy, uuid.UUID(policy_id))
+    except ValueError:
+        policy = None
+    if policy is None or policy.agent != SDLC_AGENT:
+        raise ApiError(404, "not_found", "Not found, or you don't have access.")
+    await improvement.activate(session, policy, actor_id=principal.user_id, reason="applied by an administrator")
+    await session.commit()
+    return await improvement.overview(session)
 
 
 @router.get("/sdlc/runs")
