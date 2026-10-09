@@ -389,6 +389,10 @@ SECRET_PATTERNS = [
     r"xox[baprs]-[A-Za-z0-9-]{10,}",
 ]
 
+# The only literal password values the README may contain: the public demo ones
+# (or the name of the variable that holds them).
+ALLOWED_PASSWORD_VALUES = {"NOVA_DEMO_PASSWORD", "nova-demo", "orbit-demo"}
+
 
 def test_readme_contains_no_secret(text: str) -> None:
     for pattern in SECRET_PATTERNS:
@@ -400,8 +404,17 @@ def test_readme_only_keeps_public_demo_credentials(text: str) -> None:
     assert "NOVA_DEMO_PASSWORD" in text
     for email in re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", text):
         assert email.endswith(".example"), f"real e-mail address in README: {email}"
-    for match in re.finditer(r"password[`*\s:=]+([^\s`]+)", text, flags=re.IGNORECASE):
-        assert match.group(1).strip("`") in {"NOVA_DEMO_PASSWORD", "/", "is", "by"} or True
+
+    # 1) prose: the word "password" followed by a quoted literal, e.g. password `NOVA_DEMO_PASSWORD`
+    quoted = re.findall(r"(?<!\w)password(?!\w)[\s:=*]*`([^`\n]+)`", text, flags=re.IGNORECASE)
+    assert quoted, "the README should state which demo password value to use"
+    for value in quoted:
+        assert value.strip() in ALLOWED_PASSWORD_VALUES, f"unexpected password value in README: {value!r}"
+
+    # 2) assignments such as `SOME_PASSWORD=value` or `password: value`
+    for match in re.finditer(r"[A-Za-z0-9_]*password[A-Za-z0-9_]*\s*[=:]\s*([^\s`]+)", text, flags=re.IGNORECASE):
+        value = match.group(1).strip("`'\"")
+        assert value in ALLOWED_PASSWORD_VALUES, f"literal password assignment in README: {match.group(0)!r}"
 
 
 # --------------------------------------------------------------------------- AC: production
