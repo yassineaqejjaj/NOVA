@@ -106,6 +106,12 @@ class Settings(BaseSettings):
     # authenticate when it calls NOVA back. Agent versions registered by NOVA reference it.
     # SDLC Autopilot runs are ingested by FORGE as observed runs (metrics and stage summaries, never code or diffs)
     forge_sdlc_ingest: bool = True
+    # Self-improvement of the SDLC agent: runs FORGE scores below the threshold produce lessons, deployed as a new policy
+    sdlc_improvement: bool = True
+    sdlc_improvement_auto_deploy: bool = True  # false: the candidate waits for an administrator
+    sdlc_improvement_threshold: float = Field(default=70.0, ge=0, le=100)  # used when FORGE gives no pass/fail verdict
+    sdlc_improvement_rollback_min_runs: int = Field(default=3, ge=2, le=50)
+    sdlc_improvement_rollback_drop: float = Field(default=10.0, ge=1, le=100)  # points below the previous version
     forge_credential_id: str = ""
     # NOVA API as reachable *from FORGE* (agent version endpoint). Empty: derived from NOVA_PUBLIC_URL.
     forge_nova_endpoint: str = ""

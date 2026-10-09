@@ -59,6 +59,10 @@ class ForgeClient:
     async def create_runs(self, body: dict[str, Any]) -> list[dict[str, Any]]:
         return await self._request("POST", "/runs", json=body)
 
+    async def run_scores(self, run_id: str) -> dict[str, Any]:
+        """Per-criterion scores and composite of an evaluated run."""
+        return await self._request("GET", f"/runs/{run_id}/scores")
+
     async def create_evaluation_config(self, body: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", "/evaluation-configs", json=body)
 

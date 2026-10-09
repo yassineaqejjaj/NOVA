@@ -30,7 +30,8 @@ def learning(policy: AgentPolicy) -> AgentLearning:
 
 
 async def active_policies(session: AsyncSession) -> dict[str, AgentPolicy]:
-    rows = (await session.scalars(select(AgentPolicy).where(AgentPolicy.status == "active"))).all()
+    # The SDLC agent's policy (agent "sdlc") has its own lifecycle (services/sdlc_improvement.py)
+    rows = (await session.scalars(select(AgentPolicy).where(AgentPolicy.status == "active", AgentPolicy.agent != "sdlc"))).all()
     return {p.agent: p for p in rows}
 
 

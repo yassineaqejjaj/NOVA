@@ -108,6 +108,29 @@ export interface RunMetrics {
   by_model: Record<string, { runs: number; success_rate: number | null; avg_tokens: number | null }>;
 }
 
+export interface PolicyVersion {
+  id: string;
+  version: number;
+  status: "active" | "candidate" | "retired" | "rejected";
+  summary: string;
+  standards: string[];
+  stages: Record<string, string[]>;
+  advice: string[];
+  created_at: string | null;
+  activated_at: string | null;
+  runs: number;
+  avg_score: number | null;
+  passed_rate: number | null;
+}
+
+export interface PolicyOverview {
+  enabled: boolean;
+  auto_deploy: boolean;
+  threshold: number;
+  active: PolicyVersion | null;
+  history: PolicyVersion[];
+}
+
 export interface LlmProviderInfo {
   id: string;
   label: string;
@@ -162,6 +185,7 @@ export const engKeys = {
   github: ["github"] as const,
   repos: ["github-repos"] as const,
   runs: ["sdlc-runs"] as const,
+  policy: ["sdlc-policy"] as const,
   metrics: (days: number) => ["sdlc-metrics", days] as const,
   run: (id: string) => ["sdlc-run", id] as const,
 };
@@ -181,6 +205,17 @@ export const useRuns = () =>
     queryFn: () => api.get<Run[]>("/sdlc/runs"),
     refetchInterval: (q) => (q.state.data?.some((r) => ACTIVE.includes(r.status)) ? 3000 : 20_000),
   });
+
+export const usePolicy = () => useQuery({ queryKey: engKeys.policy, queryFn: () => api.get<PolicyOverview>("/sdlc/policy"), refetchInterval: 60_000 });
+
+export function usePolicyActions() {
+  const client = useQueryClient();
+  const done = (next: PolicyOverview) => client.setQueryData(engKeys.policy, next);
+  return {
+    activate: useMutation({ mutationFn: (id: string) => api.post<PolicyOverview>(`/sdlc/policy/${id}/activate`), onSuccess: done }),
+    rollback: useMutation({ mutationFn: () => api.post<PolicyOverview>("/sdlc/policy/rollback"), onSuccess: done }),
+  };
+}
 
 export const useMetrics = (days: number) =>
   useQuery({ queryKey: engKeys.metrics(days), queryFn: () => api.get<RunMetrics>(`/sdlc/metrics?days=${days}`), staleTime: 30_000 });

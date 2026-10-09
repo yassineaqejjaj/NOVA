@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { M } from "@/components/engineering/engineering.messages";
+import { Improvement } from "@/components/engineering/improvement";
 import { Performance, compact } from "@/components/engineering/performance";
 import { RunForm } from "@/components/engineering/run-form";
 import { RunStatusBadge } from "@/components/engineering/status";
@@ -55,6 +56,7 @@ export default function EngineeringPage() {
       ) : null}
 
       {runs && runs.length > 0 ? <Performance /> : null}
+      <Improvement />
 
       {isLoading ? <Skeleton className="h-40" /> : null}
       {runs && runs.length === 0 && !creating ? <EmptyState icon={<GitPullRequest />} title={t("noRuns")} /> : null}

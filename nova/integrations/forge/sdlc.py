@@ -29,17 +29,26 @@ def agent_body() -> dict[str, Any]:
     }
 
 
-def agent_version_body(*, nova_version: str, model: str, endpoint: str) -> dict[str, Any]:
-    """One immutable FORGE agent version per NOVA release × model (the model is the user's own)."""
+def agent_version_body(*, nova_version: str, model: str, endpoint: str, policy: dict[str, Any] | None = None) -> dict[str, Any]:
+    """One immutable FORGE agent version per NOVA release × model × policy version (the model is the user's own).
+
+    A new policy (lessons learned from low-scored runs) is a new version, so FORGE compares the scores version by version.
+    """
+    version = int((policy or {}).get("version", 0))
     return {
-        "version": f"{nova_version}+{model}"[:40],
+        "version": f"{nova_version}+p{version}+{model}"[:40],
         "adapter_kind": "nova",
         "endpoint": endpoint,
         "model": {"provider": "external", "model": model or "unknown"},
         "orchestration_config": {"runtime": "sdlc-autopilot", "observed": True},
         "context_config": {"source": "repository"},
-        "metadata": {"nova_version": nova_version, "observed": True},
-        "changelog": f"NOVA {nova_version} SDLC Autopilot — model {model}",
+        "metadata": {
+            "nova_version": nova_version,
+            "observed": True,
+            "policy_version": version,
+            "lessons": {"standards": (policy or {}).get("standards", []), "stages": (policy or {}).get("stages", {})},
+        },
+        "changelog": f"NOVA {nova_version} SDLC Autopilot — policy v{version} — model {model}",
     }
 
 

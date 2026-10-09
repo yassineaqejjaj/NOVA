@@ -38,6 +38,7 @@ from nova.domain.sdlc import (
     slugify,
     validate_changeset,
 )
+from nova.domain.sdlc_policy import lessons_block
 from nova.infra.crypto import decrypt, encrypt
 from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import SdlcRun
@@ -102,6 +103,7 @@ class Ctx:
     usage: TokenUsage = field(default_factory=TokenUsage)
     model: str = ""
     logs: list[str] = field(default_factory=list)
+    stage: str = ""  # the stage being run: selects the lessons of the agent's policy
 
     @property
     def c(self) -> dict[str, Any]:
@@ -110,7 +112,10 @@ class Ctx:
     def log(self, message: str) -> None:
         self.logs.append(message)
 
-    async def ask(self, messages: list[Any], schema: type, *, max_tokens: int | None = None) -> Any:
+    async def ask(self, messages: list[Any], schema: type, *, max_tokens: int | None = None, stage: str | None = None) -> Any:
+        if block := lessons_block(self.c.get("policy"), stage or self.stage):
+            # Lessons learned from earlier runs scored below FORGE's threshold (policy snapshotted when the run was created)
+            messages = [messages[0].model_copy(update={"content": f"{messages[0].content}\n\n{block}"}), *messages[1:]]
         try:
             result = await self.llm.structured_output(messages, schema, max_tokens=max_tokens)
         except LLMError as exc:
@@ -195,11 +200,12 @@ async def ask_changeset(
     *,
     allow_empty: bool = False,
     only_tests: bool = False,
+    stage: str | None = None,
 ) -> tuple[ChangeSet | None, list[Any]]:
     """Ask for a change set, validate it, and feed rejections back to the model once."""
     feedback = ""
     for attempt in range(2):
-        changeset: ChangeSet = await ctx.ask(build(feedback), ChangeSet, max_tokens=16000)
+        changeset: ChangeSet = await ctx.ask(build(feedback), ChangeSet, max_tokens=16000, stage=stage)
         if allow_empty and not changeset.changes:
             return changeset, []
         try:
@@ -698,6 +704,10 @@ async def create_run(
         await gh.aclose()
     if not title.strip():
         title = (goal.strip().splitlines() or ["Change"])[0][:120]
+    from nova.services.sdlc_improvement import active_snapshot
+
+    if policy := await active_snapshot(session):
+        context["policy"] = policy  # the lessons this run starts with stay fixed, even if a new version is deployed meanwhile
     run = SdlcRun(
         user_id=uuid.UUID(user_id),
         project_id=project_id,
@@ -797,7 +807,7 @@ async def advance(run_id: str) -> float | None:
     try:
         gh = await github_accounts.client_for(user_id)
         llm = await providers.llm_for_user(user_id)
-        ctx = Ctx(run=run, gh=gh, llm=llm)
+        ctx = Ctx(run=run, gh=gh, llm=llm, stage=key)
         await _mark_running(run_id, key)
         result = await HANDLERS[key](ctx)
     except Exception as exc:
