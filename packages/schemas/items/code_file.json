@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/code_file",
+  "title": "code_file",
+  "description": "Generated source file",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string"
+    },
+    "code": {
+      "type": "string"
+    },
+    "screen_id": {
+      "type": "string"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -102,6 +102,9 @@ function AttributeField({ name, schema, value, onChange, editable }: { name: str
   );
 }
 
+/** Badge tone of an `a11y_finding` severity. */
+const SEVERITY_TONE: Record<string, "neutral" | "warning" | "danger"> = { low: "neutral", medium: "warning", high: "danger", critical: "danger" };
+
 type Criterion = { given: string; when: string; then: string };
 
 function StoryFields({ item, editable, update }: { item: ArtifactItem; editable: boolean; update: (attrs: Record<string, unknown>) => void }) {
@@ -182,7 +185,7 @@ function ItemCard({ item, kindSchema, editable, depth, parentTitle, artifactId, 
             ) : (
               <span className="text-[14px] font-medium">{item.title}</span>
             )}
-            {summary.map((s) => <Badge key={s.key}>{s.label}</Badge>)}
+            {summary.map((s) => <Badge key={s.key} tone={s.key === "severity" ? SEVERITY_TONE[String(item.attributes.severity)] : undefined}>{s.label}</Badge>)}
             {missingAc ? <Badge tone="warning">{t("noAcceptanceCriteria")}</Badge> : null}
             {item.citations.map((c) => <CitationChip key={`${c.label}-${c.ref}`} citation={c} artifactId={artifactId} itemId={item.id} />)}
           </div>

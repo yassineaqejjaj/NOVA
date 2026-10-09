@@ -67,6 +67,10 @@ export const AGENTS: Record<AgentProfile, AgentDef> = {
     },
     suggestions: [
       { skill: "design-brief", en: "Write the design brief for onboarding", fr: "Rédige le brief de design de l’onboarding" },
+      { skill: "wireframes", en: "Sketch wireframes of the onboarding flow from the PRD", fr: "Dessine les wireframes du parcours d’onboarding à partir du PRD" },
+      { skill: "lowfi-mockups", en: "Turn the wireframes into low-fi mockups", fr: "Transforme les wireframes en maquettes lo-fi" },
+      { skill: "hifi-mockups", en: "Design high-fi mockups of the key screens", fr: "Conçois les maquettes hi-fi des écrans clés" },
+      { skill: "accessibility-audit", en: "Audit the accessibility of these screens (WCAG 2.2)", fr: "Audite l’accessibilité de ces écrans (WCAG 2.2)" },
       { skill: "usability-test-plan", en: "Plan a usability test of the new flow", fr: "Prépare un test utilisateur du nouveau parcours" },
       { skill: "ux-writing", en: "Write the error and empty-state texts", fr: "Écris les textes d’erreur et d’états vides" },
       { skill: "design-review", en: "Review the checkout flow (heuristics and accessibility)", fr: "Fais la revue du parcours de paiement (heuristiques et accessibilité)" },
@@ -84,6 +88,7 @@ export const AGENTS: Record<AgentProfile, AgentDef> = {
     },
     suggestions: [
       { skill: "technical-design", en: "Write the technical design of this feature", fr: "Rédige la conception technique de cette fonctionnalité" },
+      { skill: "figma-to-code", en: "Generate the code of this Figma design", fr: "Génère le code de cette maquette Figma" },
       { skill: "api-design", en: "Specify the API endpoints", fr: "Spécifie les endpoints de l’API" },
       { skill: "effort-estimation", en: "Estimate the effort for this epic", fr: "Estime la charge de cet epic" },
       { skill: "test-strategy", en: "Write the test plan for the release", fr: "Rédige le plan de test de la release" },

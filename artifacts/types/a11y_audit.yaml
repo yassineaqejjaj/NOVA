@@ -1,0 +1,24 @@
+type: a11y_audit
+name: Accessibility Audit
+description: WCAG 2.2 AA audit with located findings, passed checks and fixes
+icon: accessibility
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: findings
+  title: Findings
+  kind: items
+  item_kind: a11y_finding
+  description: ''
+- key: passed
+  title: Passed checks
+  kind: items
+  item_kind: checklist_item
+  description: ''
+- key: recommendations
+  title: Recommendations
+  kind: items
+  item_kind: action
+  description: ''

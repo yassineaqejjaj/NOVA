@@ -7,6 +7,7 @@ from typing import Any
 from nova.agent.providers.factory import build_llm_provider
 from nova.config import get_settings
 from nova.domain.context import ContextProvider
+from nova.domain.design import DesignProvider
 from nova.domain.evaluation import EvaluationSink
 from nova.domain.llm import LLMProvider
 from nova.skills.registry import get_skill_registry
@@ -53,3 +54,13 @@ def evaluation() -> EvaluationSink | None:
 
         _cache["evaluation"] = ForgeEvaluationSink(settings, get_skill_registry(), settings.llm_model)
     return _cache["evaluation"]
+
+
+def design() -> DesignProvider:
+    if "design" in _overrides:
+        return _overrides["design"]
+    if "design" not in _cache:
+        from nova.integrations.figma.adapter import FigmaDesignProvider
+
+        _cache["design"] = FigmaDesignProvider(get_settings())
+    return _cache["design"]

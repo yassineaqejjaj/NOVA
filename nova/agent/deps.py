@@ -9,6 +9,7 @@ from nova.agent.tools.registry import ToolRegistry
 from nova.artifacts.registry import ArtifactRegistry
 from nova.config import Settings
 from nova.domain.context import ContextProvider
+from nova.domain.design import DesignProvider
 from nova.domain.evaluation import EvaluationSink
 from nova.domain.llm import LLMProvider
 from nova.domain.permissions import Permission
@@ -25,4 +26,5 @@ class AgentDeps:
     tools: ToolRegistry
     store: ExecutionStore
     evaluation: EvaluationSink | None = None
+    design: DesignProvider | None = None  # Figma; None: tools answer 'Connect Figma in Settings'
     permissions: frozenset[Permission] = frozenset()  # effective permissions of the user on the project

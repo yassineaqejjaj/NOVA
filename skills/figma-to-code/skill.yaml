@@ -1,0 +1,78 @@
+id: figma-to-code
+name: Figma to Code
+version: 1.0.0
+category: delivery
+agent: engineering
+summary: >-
+  Generate accessible front-end code from a Figma design or a NOVA mockup Artifact, with tokens, states and notes.
+purpose: >-
+  Turn an approved design into faithful, accessible, maintainable components so engineering starts from working code
+  instead of redrawing the design.
+triggers:
+- figma to code
+- generate code from figma
+- design to code
+- implement the design
+- code from mockup
+- du design au code
+- générer le code depuis figma
+- coder la maquette
+inputs:
+- name: design
+  description: "The design to implement: a Figma URL or a ui_screens Artifact"
+  required: true
+  ask: true
+  question: Which design should be implemented (Figma URL or mockup Artifact)?
+- name: framework
+  description: Target stack (default React + TypeScript + Tailwind CSS)
+expected_context:
+  orbit_intent: engineering
+  query_hint: front-end architecture, design system, component library, coding conventions, accessibility requirements
+  token_budget: 6000
+methodology:
+  name: Design-faithful component implementation
+  principles:
+  - The design is the source of truth; never invent screens, copy or tokens
+  - Tokens first, then components, then pages
+  - Semantic HTML before ARIA; accessible by default
+  - Small, typed, compilable components covering all designed states
+  references:
+  - Brad Frost — Atomic Design
+  - W3C — WAI-ARIA Authoring Practices
+  - W3C — WCAG 2.2
+steps:
+- id: read
+  title: Reading the design
+  instruction: >-
+    Read the design with figma_get_design or get_artifact, summarize what will be built and define the architecture
+    (component tree, folders, token strategy, states).
+  fills:
+  - summary
+  - architecture
+- id: tokens
+  title: Mapping the design tokens
+  instruction: List the tokens used (from Figma variables or the artifact) with category, value and usage.
+  fills:
+  - tokens
+- id: code
+  title: Writing the code
+  instruction: >-
+    Write at most 8 concise, compilable files as code_file items (tokens/theme, components, pages), then accessibility
+    notes and the Figma references implemented.
+  fills:
+  - files
+  - a11y_notes
+  - figma
+tools:
+- figma_get_design
+- get_artifact
+- list_artifacts
+- search_orbit
+outputs:
+  artifact_type: ui_code
+  mode: create
+composes_with:
+- hifi-mockups
+- accessibility-audit
+- api-design
+- design-review

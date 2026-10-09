@@ -1,0 +1,18 @@
+criteria:
+- key: quality.evidence
+  question: Does every finding cite the criterion, level, severity, location and a concrete fix?
+  weight: 3
+- key: quality.coverage
+  question: Are contrast, target size, focus, keyboard, labels, reflow and motion all checked?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Findings
+    - Recommendations
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

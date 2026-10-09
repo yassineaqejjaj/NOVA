@@ -28,12 +28,12 @@ const SPECIALTIES: Record<AgentProfile, { en: string[]; fr: string[] }> = {
     fr: ["Rapports d’avancement", "Registre RAID", "Charte de projet", "RACI & rôles", "Plans & jalons"],
   },
   design: {
-    en: ["Design briefs", "User research", "Usability tests", "UX writing", "Design reviews"],
-    fr: ["Briefs de design", "Recherche utilisateur", "Tests d’utilisabilité", "UX writing", "Revues de design"],
+    en: ["Wireframes", "Lo-fi & hi-fi mockups", "Accessibility audit (WCAG 2.2)", "User research", "Figma", "Design briefs", "UX writing"],
+    fr: ["Wireframes", "Maquettes lo-fi & hi-fi", "Audit d’accessibilité (WCAG 2.2)", "Recherche utilisateur", "Figma", "Briefs de design", "UX writing"],
   },
   engineering: {
-    en: ["Technical design", "API specs", "Effort estimates", "Test strategy", "Security & reliability"],
-    fr: ["Conception technique", "Specs d’API", "Estimations de charge", "Stratégie de test", "Sécurité & fiabilité"],
+    en: ["Technical design", "API specs", "Code from Figma", "Effort estimates", "Test strategy", "Security & reliability"],
+    fr: ["Conception technique", "Specs d’API", "Code depuis Figma", "Estimations de charge", "Stratégie de test", "Sécurité & fiabilité"],
   },
 };
 

@@ -9,6 +9,15 @@ from pydantic import BaseModel, Field
 from nova.agent.tools.registry import RetryPolicy, ToolContext, ToolDefinition, ToolDenied, ToolRegistry
 from nova.artifacts.render import render_markdown
 from nova.domain.context import ContextItem, ContextQuery
+from nova.domain.design import (
+    DesignError,
+    DesignNode,
+    DesignRef,
+    ElementSpec,
+    ScreenSpec,
+    TokenSpec,
+    parse_figma_url,
+)
 from nova.domain.permissions import Permission
 
 
@@ -163,6 +172,161 @@ async def publish_artifact_to_orbit(ctx: ToolContext, args: PublishArtifactIn) -
     return ExternalWriteOut(external_id=external_id, status="published")
 
 
+# --- Figma (docs/design-figma.md §4) ------------------------------------------------------------------
+
+
+class FigmaGetDesignIn(BaseModel):
+    url: str | None = Field(default=None, max_length=1000)
+    file_key: str | None = Field(default=None, max_length=100)
+    node_id: str | None = Field(default=None, max_length=50)
+
+
+class FigmaVariableOut(BaseModel):
+    name: str
+    type: str = ""
+    value: str | float | bool | None = None
+
+
+class FigmaGetDesignOut(BaseModel):
+    file_name: str
+    nodes: list[DesignNode]
+    variables: list[FigmaVariableOut]
+    screenshot_url: str | None = None
+    source: Literal["mcp", "rest"]
+    truncated: bool = False
+
+
+class FigmaPushIn(BaseModel):
+    artifact_id: str
+    file_key: str | None = Field(default=None, max_length=100)
+
+
+class FigmaPushOut(BaseModel):
+    external_id: str
+    status: str
+    url: str | None = None
+
+
+def _design(ctx: ToolContext):
+    if ctx.deps.design is None:
+        raise ToolDenied("Connect Figma in Settings")
+    return ctx.deps.design
+
+
+def _design_error(exc: DesignError) -> ToolDenied:
+    hints = {
+        "not_connected": "Connect Figma in Settings",
+        "forbidden": "Figma refused access: check that your Figma account can open this file",
+        "not_found": "Figma file or node not found: check the link",
+        "write_unavailable": "Pushing to Figma needs the Figma MCP connection (OAuth); only a read-only token is linked. "
+        "The mockups stay available in the NOVA Artifact.",
+        "unavailable": "Figma is temporarily unavailable",
+    }
+    return ToolDenied(f"{hints.get(exc.code, 'Figma error')} ({exc.message})"[:300])
+
+
+def _scalar(value: object) -> str | float | bool | None:
+    if value is None or isinstance(value, (str, float, bool)):
+        return value
+    if isinstance(value, int):
+        return float(value)
+    return str(value)[:120]
+
+
+async def figma_get_design(ctx: ToolContext, args: FigmaGetDesignIn) -> FigmaGetDesignOut:
+    design = _design(ctx)
+    ref = parse_figma_url(args.url) if args.url else None
+    if args.url and ref is None:
+        raise ToolDenied("This is not a Figma file link")
+    file_key = args.file_key or (ref.file_key if ref else None)
+    if not file_key:
+        raise ToolDenied("Provide a Figma url or file_key")
+    node_id = (args.node_id or (ref.node_id if ref else None) or "").replace("-", ":") or None
+    try:
+        snapshot = await design.get_design(ctx.state.user_id, DesignRef(file_key=file_key, node_id=node_id, url=args.url))
+    except DesignError as exc:
+        raise _design_error(exc) from exc
+    return FigmaGetDesignOut(
+        file_name=snapshot.file_name,
+        nodes=snapshot.nodes,
+        variables=[FigmaVariableOut(name=v.name, type=v.type, value=_scalar(v.value)) for v in snapshot.variables[:100]],
+        screenshot_url=snapshot.screenshot_url,
+        source=snapshot.source,
+        truncated=snapshot.truncated,
+    )
+
+
+def _split(value: object) -> list[str]:
+    return [p.strip() for p in str(value or "").split(",") if p.strip()]
+
+
+def _int(value: object, default: int) -> int:
+    try:
+        return int(value)  # type: ignore[call-overload]
+    except (TypeError, ValueError):
+        return default
+
+
+def _screen_spec(item) -> ScreenSpec:
+    attrs = item.attributes
+    elements = []
+    for raw in attrs.get("elements") or []:
+        if not isinstance(raw, dict):
+            continue
+        elements.append(
+            ElementSpec(
+                id=str(raw.get("id") or ""),
+                type=str(raw.get("type") or "text"),
+                label=str(raw.get("label") or ""),
+                region=raw.get("region") if raw.get("region") in ("header", "sidebar", "body", "footer") else "body",
+                row=_int(raw.get("row"), 0),
+                span=min(12, max(1, _int(raw.get("span"), 12))),
+                variant=raw.get("variant") or None,
+                state=raw.get("state") or None,
+            )
+        )
+    return ScreenSpec(
+        id=item.id,
+        name=item.title,
+        fidelity=attrs.get("fidelity") if attrs.get("fidelity") in ("wireframe", "lowfi", "hifi") else "wireframe",
+        device=attrs.get("device") if attrs.get("device") in ("mobile", "tablet", "desktop") else "desktop",
+        purpose=str(attrs.get("purpose") or item.description or ""),
+        states=_split(attrs.get("states")),
+        notes=str(attrs.get("notes") or ""),
+        elements=elements,
+    )
+
+
+def _token_spec(item) -> TokenSpec:
+    attrs = item.attributes
+    category = attrs.get("category")
+    return TokenSpec(
+        name=item.title,
+        category=category if category in ("color", "typography", "spacing", "radius", "shadow") else "color",
+        value=str(attrs.get("value") or ""),
+        usage=str(attrs.get("usage") or ""),
+    )
+
+
+async def figma_push_screens(ctx: ToolContext, args: FigmaPushIn) -> FigmaPushOut:
+    design = _design(ctx)
+    snapshot = await ctx.deps.store.get_artifact(args.artifact_id, ctx.state.user_id)
+    if snapshot is None:
+        raise ToolDenied("Artifact not found or not accessible")
+    if snapshot.type != "ui_screens":
+        raise ToolDenied("Only 'ui_screens' Artifacts can be pushed to Figma")
+    sections = snapshot.content.sections
+    screens = [_screen_spec(i) for i in (sections["screens"].items if "screens" in sections else []) if i.kind == "screen"]
+    tokens = [_token_spec(i) for i in (sections["tokens"].items if "tokens" in sections else []) if i.kind == "design_token"]
+    if not screens:
+        raise ToolDenied("This Artifact has no screens to push")
+    try:
+        result = await design.push_screens(ctx.state.user_id, snapshot.title, screens, tokens, file_key=args.file_key)
+    except DesignError as exc:
+        raise _design_error(exc) from exc
+    return FigmaPushOut(external_id=result.external_id, status=result.status, url=result.url)
+
+
 def register_builtin_tools(registry: ToolRegistry) -> None:
     network_retry = RetryPolicy(max_attempts=2, backoff_seconds=0.5)
     registry.register(
@@ -237,6 +401,32 @@ def register_builtin_tools(registry: ToolRegistry) -> None:
             permission=Permission.context_write_external,
             handler=publish_artifact_to_orbit,
             timeout_seconds=20,
+            audit=True,
+            external_write=True,
+        )
+    )
+    registry.register(
+        ToolDefinition(
+            name="figma_get_design",
+            description="Read a Figma file or node (structure, variables) from a Figma link; MCP when connected, else REST.",
+            input_model=FigmaGetDesignIn,
+            output_model=FigmaGetDesignOut,
+            permission=Permission.context_read,
+            handler=figma_get_design,
+            timeout_seconds=60,
+            retry=network_retry,
+            audit=True,
+        )
+    )
+    registry.register(
+        ToolDefinition(
+            name="figma_push_screens",
+            description="Push the screens and tokens of a 'ui_screens' Artifact to Figma (needs the Figma MCP connection).",
+            input_model=FigmaPushIn,
+            output_model=FigmaPushOut,
+            permission=Permission.context_write_external,
+            handler=figma_push_screens,
+            timeout_seconds=120,
             audit=True,
             external_write=True,
         )

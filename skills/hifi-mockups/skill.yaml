@@ -1,0 +1,89 @@
+id: hifi-mockups
+name: High-fi Mockups
+version: 1.0.0
+category: definition
+agent: design
+summary: >-
+  Turn NOVA specs, a design system or a Figma file into high-fidelity mockups with design tokens, full states and real copy.
+purpose: >-
+  Give engineering and stakeholders an accurate, token-based view of the final UI, with every state covered.
+triggers:
+- hifi mockups
+- high-fi mockups
+- high fidelity mockups
+- ui design
+- visual design
+- maquettes haute fidélité
+- maquettes hi-fi
+- design d'interface
+inputs:
+- name: subject
+  description: What to design (feature, flow or screens) and for whom
+  required: true
+  ask: true
+  question: Which feature or flow should be designed, and for whom?
+- name: source
+  description: >-
+    Optional starting point: a NOVA spec Artifact (PRD, user stories, journey, persona, design brief), a Figma URL, or
+    a plain description
+expected_context:
+  orbit_intent: design
+  query_hint: PRD, user stories, user journeys, personas, design brief, brand guidelines, design system, accessibility requirements
+  token_budget: 6000
+methodology:
+  name: Token-based high-fidelity UI design
+  principles:
+  - Start from existing specs and the Figma design system when given; reuse its variables and styles, never invent parallel ones
+  - Apply design tokens (color, typography, spacing, radius, shadow) consistently; each token has a usage
+  - Cover the default, empty, loading and error states, with real copy
+  - Meet WCAG 2.2 AA with 4.5:1 text contrast, 24px minimum targets and visible focus
+  references:
+  - Brad Frost — Atomic Design
+  - W3C — WCAG 2.2
+  - Nathan Curtis — Design tokens
+steps:
+- id: sources
+  title: Gathering the specs
+  instruction: >-
+    Find the existing specs with list_artifacts / get_artifact (PRD, user stories, user journeys, personas, design
+    brief) and search_orbit / retrieve_orbit_context; if source is a Figma URL, read it with figma_get_design. Write the
+    summary and the user flow (one note per step, 4–8 steps).
+  fills:
+  - summary
+  - flows
+- id: system
+  title: Setting the design foundations
+  instruction: >-
+    Define the design tokens (8–20): reuse the Figma variables returned by figma_get_design when available,
+    otherwise propose a coherent set with accessible contrast. Then the component inventory with variants, states
+    and a11y notes.
+  fills:
+  - tokens
+  - components
+- id: screens
+  title: Designing the screens
+  instruction: >-
+    Create 3–6 screens as screen items, at most 18 elements each, following the element rules in the instructions.
+    Set fidelity to hifi, with real copy, a device, the purpose and states covering empty, loading and error, using elements' variant and state fields. Mention the tokens applied in notes (by name). Add one figma_ref per Figma file used (status imported); use figma_push_screens (status pushed) only if the user explicitly asks to push to Figma.
+  fills:
+  - screens
+  - figma
+tools:
+- list_artifacts
+- get_artifact
+- search_orbit
+- retrieve_orbit_context
+- figma_get_design
+- figma_push_screens
+outputs:
+  artifact_type: ui_screens
+  mode: create
+composes_with:
+- persona
+- user-journey
+- design-brief
+- wireframes
+- lowfi-mockups
+- accessibility-audit
+- figma-to-code
+- design-review

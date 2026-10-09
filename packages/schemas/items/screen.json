@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/screen",
+  "title": "screen",
+  "description": "UI screen (wireframe, low-fi or hi-fi) described as a grid of elements",
+  "type": "object",
+  "properties": {
+    "fidelity": {
+      "type": "string",
+      "enum": [
+        "wireframe",
+        "lowfi",
+        "hifi"
+      ]
+    },
+    "device": {
+      "type": "string",
+      "enum": [
+        "mobile",
+        "tablet",
+        "desktop"
+      ]
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "states": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "header",
+              "nav",
+              "tabs",
+              "heading",
+              "text",
+              "image",
+              "icon",
+              "button",
+              "input",
+              "select",
+              "checkbox",
+              "toggle",
+              "list",
+              "card",
+              "table",
+              "chart",
+              "chip",
+              "divider",
+              "banner",
+              "modal",
+              "footer"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "region": {
+            "type": "string",
+            "enum": [
+              "header",
+              "sidebar",
+              "body",
+              "footer"
+            ]
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "span": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "variant": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "secondary",
+              "ghost",
+              "danger",
+              "muted"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "default",
+              "focus",
+              "disabled",
+              "error",
+              "selected"
+            ]
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

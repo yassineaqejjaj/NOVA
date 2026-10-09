@@ -86,6 +86,14 @@ class Settings(BaseSettings):
     orbit_timeout_seconds: float = 45.0  # ORBIT cold-starts its embedding model on the first request
     orbit_default_token_budget: int = 4000
 
+    # --- Figma (docs/design-figma.md §0): MCP + OAuth 2.1 (catalog clients only), REST token fallback ---------
+    figma_mcp_url: str = "https://mcp.figma.com/mcp"
+    figma_api_url: str = "https://api.figma.com"
+    figma_oauth_client_id: str = ""
+    figma_oauth_client_secret: str = ""
+    figma_oauth_redirect_uri: str = ""  # empty: <NOVA_PUBLIC_URL>/api/v1/me/figma/callback
+    figma_timeout_seconds: float = 30.0
+
     # --- FORGE --------------------------------------------------------------------------------
     forge_base_url: str = "http://localhost:8100"
     forge_public_url: str = "http://localhost:3100"
@@ -159,6 +167,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.env == "production"
+
+    @property
+    def figma_redirect_uri(self) -> str:
+        return self.figma_oauth_redirect_uri or f"{self.public_url.rstrip('/')}/api/v1/me/figma/callback"
 
     @property
     def broker_url(self) -> str:

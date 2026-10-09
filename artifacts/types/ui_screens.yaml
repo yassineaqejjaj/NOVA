@@ -1,0 +1,34 @@
+type: ui_screens
+name: UI Screens
+description: Wireframes, low-fi or hi-fi mockups with flows, design tokens and components
+icon: layout
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: flows
+  title: User flow
+  kind: items
+  item_kind: note
+  description: One step of the user flow per note
+- key: tokens
+  title: Design tokens
+  kind: items
+  item_kind: design_token
+  description: ''
+- key: screens
+  title: Screens
+  kind: items
+  item_kind: screen
+  description: ''
+- key: components
+  title: Components
+  kind: items
+  item_kind: ui_component
+  description: ''
+- key: figma
+  title: Figma
+  kind: items
+  item_kind: figma_ref
+  description: ''

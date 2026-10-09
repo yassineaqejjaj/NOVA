@@ -1,0 +1,74 @@
+id: accessibility-audit
+name: Accessibility Audit
+version: 1.0.0
+category: analysis
+agent: design
+summary: >-
+  Audit a design, a NOVA mockup Artifact or a Figma file against WCAG 2.2 AA, with located findings, severities and fixes.
+purpose: >-
+  Find accessibility barriers before they reach production, when they are cheapest to fix, and give designers and
+  engineers concrete fixes.
+triggers:
+- accessibility audit
+- a11y audit
+- wcag audit
+- wcag check
+- accessibility check
+- audit d'accessibilité
+- audit rgaa
+- conformité wcag
+inputs:
+- name: design
+  description: "The design to audit: a description, a ui_screens Artifact or a Figma URL"
+  required: true
+  ask: true
+  question: Which design should be audited (description, mockup Artifact or Figma URL)?
+expected_context:
+  orbit_intent: design
+  query_hint: accessibility requirements, design system, brand colors, previous audits, support feedback
+  token_budget: 5000
+methodology:
+  name: WCAG 2.2 AA audit (POUR)
+  principles:
+  - Organize checks by the POUR principles
+  - Every finding cites the criterion, level, severity, location and a fix
+  - Compute contrast and target sizes when values are known
+  - Say what could not be verified instead of guessing
+  references:
+  - W3C — WCAG 2.2
+  - W3C — Understanding Success Criteria
+steps:
+- id: scope
+  title: Scoping the audit
+  instruction: >-
+    Read the design (get_artifact, figma_get_design or the description) and summarize what is audited, the standard
+    (WCAG 2.2 AA) and the overall conformance outlook.
+  fills:
+  - summary
+- id: findings
+  title: Finding barriers
+  instruction: >-
+    List 6–15 findings with criterion, level, principle, severity, location, evidence and fix, and the checks that
+    pass as checklist items.
+  fills:
+  - findings
+  - passed
+- id: recs
+  title: Recommending fixes
+  instruction: List prioritized recommendations as actions (owner role, status open).
+  fills:
+  - recommendations
+tools:
+- get_artifact
+- list_artifacts
+- figma_get_design
+- search_orbit
+outputs:
+  artifact_type: a11y_audit
+  mode: create
+composes_with:
+- design-review
+- hifi-mockups
+- lowfi-mockups
+- figma-to-code
+- usability-test-plan

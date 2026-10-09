@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/a11y_finding",
+  "title": "a11y_finding",
+  "description": "Accessibility finding",
+  "type": "object",
+  "properties": {
+    "criterion": {
+      "type": "string"
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "A",
+        "AA",
+        "AAA"
+      ]
+    },
+    "principle": {
+      "type": "string",
+      "enum": [
+        "perceivable",
+        "operable",
+        "understandable",
+        "robust"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "location": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "fix": {
+      "type": "string"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

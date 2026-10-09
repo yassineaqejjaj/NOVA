@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/ui_component",
+  "title": "ui_component",
+  "description": "UI component",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string"
+    },
+    "variants": {
+      "type": "string"
+    },
+    "states": {
+      "type": "string"
+    },
+    "a11y": {
+      "type": "string"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

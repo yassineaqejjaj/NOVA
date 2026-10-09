@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { ProfilePicker } from "@/components/agents/profile-picker";
 import { PermissionsCard } from "@/components/missions/permissions";
+import { FigmaLink } from "@/components/figma-link";
 import { OrbitLink } from "@/components/orbit-link";
 import { ORB_PALETTES, type OrbPalette, NovaOrb } from "@/components/shell/nova-orb";
 import { Page, PageHeader } from "@/components/shell/page";
@@ -36,6 +37,7 @@ const M = defineMessages({
     autonomy: "Default autonomy",
     save: "Save",
     saved: "Saved.",
+    figmaHint: "Lets NOVA read your Figma designs to generate code and audits, and push mockups to Figma when connected with Figma.",
     orbitHint: "NOVA retrieves context from ORBIT as you, so it only sees what you can see.",
     profile: "Your profile",
     profileHint: "The specialist agent of your profile leads your work; NOVA brings in the others when a task needs them.",
@@ -82,6 +84,7 @@ const M = defineMessages({
     autonomy: "Autonomie par défaut",
     save: "Enregistrer",
     saved: "Enregistré.",
+    figmaHint: "Permet à NOVA de lire vos maquettes Figma pour générer du code et des audits, et d’y pousser des maquettes lorsque la connexion se fait avec Figma.",
     orbitHint: "NOVA récupère le contexte d’ORBIT en votre nom : il ne voit que ce que vous pouvez voir.",
     profile: "Votre profil",
     profileHint: "L’agent spécialiste de votre profil pilote votre travail ; NOVA fait intervenir les autres quand une tâche le demande.",
@@ -263,6 +266,12 @@ export default function SettingsPage() {
         <h2 className="text-[15px] font-semibold">ORBIT</h2>
         <p className="mb-4 mt-0.5 text-[13px] text-muted">{t("orbitHint")}</p>
         <OrbitLink identity={me.orbit} />
+      </Card>
+
+      <Card id="figma" className="mt-6 scroll-mt-10 p-5">
+        <h2 className="text-[15px] font-semibold">Figma</h2>
+        <p className="mb-4 mt-0.5 text-[13px] text-muted">{t("figmaHint")}</p>
+        <FigmaLink />
       </Card>
 
       <Card className="mt-6 p-5">
