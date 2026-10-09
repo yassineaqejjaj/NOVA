@@ -140,7 +140,7 @@ async def link_orbit(body: OrbitLinkIn, principal: CurrentPrincipal, session: Se
         identity = await link(principal.user_id, str(body.email), body.password)
     except ContextError as exc:
         if exc.code == "unauthorized":
-            raise ApiError(401, "orbit_login_failed", "ORBIT rejected these credentials.") from exc
+            raise ApiError(409, "orbit_login_failed", "ORBIT rejected these credentials.") from exc
         raise
     await audit(
         session,
