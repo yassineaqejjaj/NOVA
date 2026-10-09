@@ -43,6 +43,7 @@ celery_app.conf.update(
         "refresh-evaluations": {"task": "nova.refresh_evaluations", "schedule": 300.0, "options": {"queue": "maintenance"}},
         "retention": {"task": "nova.retention", "schedule": 86400.0, "options": {"queue": "maintenance"}},
         "requeue-stale-sdlc": {"task": "nova.sdlc_requeue_stale", "schedule": 120.0, "options": {"queue": "maintenance"}},
+        "sdlc-forge-sync": {"task": "nova.sdlc_forge_sync", "schedule": 300.0, "options": {"queue": "maintenance"}},
         "advance-training": {"task": "nova.advance_training", "schedule": 120.0, "options": {"queue": "maintenance"}},
     },
 )

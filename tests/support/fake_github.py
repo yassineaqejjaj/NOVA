@@ -262,4 +262,76 @@ def sdlc_response(name: str, system_prompt: str) -> dict[str, Any]:
     return model.handlers[name]().model_dump()
 
 
-__all__ = ["SDLC_SCHEMAS", "FakeGitHub", "Finding", "SdlcLLM", "sdlc_response"]
+class FakeForge:
+    """In-memory FORGE: agents, versions, scenarios and observed runs (idempotent on external_id)."""
+
+    def __init__(self) -> None:
+        self.agents: dict[str, dict[str, Any]] = {}
+        self.versions: list[dict[str, Any]] = []
+        self.scenarios: dict[str, dict[str, Any]] = {}
+        self.observed: dict[str, dict[str, Any]] = {}
+        self.bodies: list[dict[str, Any]] = []
+        self.down = False
+        self.score: float | None = None
+        self.passed: bool | None = None
+        self.status = "evaluating"
+        self.configs: dict[str, dict[str, Any]] = {}
+        self.maintainer = True
+
+    def _check(self) -> None:
+        from nova.integrations.forge.client import ForgeError
+
+        if self.down:
+            raise ForgeError(0, "FORGE unreachable")
+
+    async def find_agent(self, slug: str) -> dict[str, Any] | None:
+        self._check()
+        return self.agents.get(slug)
+
+    async def create_agent(self, body: dict[str, Any]) -> dict[str, Any]:
+        self._check()
+        self.agents[body["slug"]] = {"id": f"agent-{len(self.agents) + 1}", **body}
+        return self.agents[body["slug"]]
+
+    async def list_agent_versions(self, agent_id: str) -> list[dict[str, Any]]:
+        return [v for v in self.versions if v["agent_id"] == agent_id]
+
+    async def create_agent_version(self, agent_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        self._check()
+        version = {"id": f"version-{len(self.versions) + 1}", "agent_id": agent_id, **body}
+        self.versions.append(version)
+        return version
+
+    async def find_scenario(self, slug: str) -> dict[str, Any] | None:
+        self._check()
+        return self.scenarios.get(slug)
+
+    async def create_scenario(self, body: dict[str, Any]) -> dict[str, Any]:
+        self._check()
+        self.scenarios[body["slug"]] = {"id": f"scenario-{len(self.scenarios) + 1}", **body}
+        return self.scenarios[body["slug"]]
+
+    async def find_evaluation_config(self, key: str) -> dict[str, Any] | None:
+        self._check()
+        return self.configs.get(key)
+
+    async def create_evaluation_config(self, body: dict[str, Any]) -> dict[str, Any]:
+        from nova.integrations.forge.client import ForgeError
+
+        self._check()
+        if not self.maintainer:
+            raise ForgeError(403, "Rôle maintainer requis")
+        self.configs[body["key"]] = {"id": f"config-{len(self.configs) + 1}", **body}
+        return self.configs[body["key"]]
+
+    async def create_observed_run(self, body: dict[str, Any]) -> dict[str, Any]:
+        self._check()
+        self.bodies.append(body)
+        return self.observed.setdefault(body["external_id"], {"id": f"run-{len(self.observed) + 1}", "status": "evaluating"})
+
+    async def get_run(self, run_id: str) -> dict[str, Any]:
+        self._check()
+        return {"id": run_id, "status": self.status, "composite_score": self.score, "passed": self.passed}
+
+
+__all__ = ["SDLC_SCHEMAS", "FakeForge", "FakeGitHub", "Finding", "SdlcLLM", "sdlc_response"]

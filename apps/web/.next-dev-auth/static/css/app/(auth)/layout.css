@@ -1,0 +1,26 @@
+/*!***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ../../node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[3].use[1]!../../node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[14].oneOf[3].use[2]!../../node_modules/next/font/local/target.css?{"path":"src/lib/fonts.ts","import":"","arguments":[{"src":"../assets/fonts/montserrat-latin-wght-normal.woff2","weight":"100 900","variable":"--font-montserrat","display":"swap"}],"variableName":"montserrat"} ***!
+  \***************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+@font-face {
+font-family: 'montserrat';
+src: url(/_next/static/media/da70673de0ab2c81-s.p.woff2) format('woff2');
+font-display: swap;
+font-weight: 100 900;
+}@font-face {font-family: 'montserrat Fallback';src: local("Arial");ascent-override: 87.85%;descent-override: 22.78%;line-gap-override: 0.00%;size-adjust: 110.19%
+}.__className_b76d2a {font-family: 'montserrat', 'montserrat Fallback'
+}.__variable_b76d2a {--font-montserrat: 'montserrat', 'montserrat Fallback'
+}
+
+/*!******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ../../node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[3].use[1]!../../node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js??ruleSet[1].rules[14].oneOf[3].use[2]!../../node_modules/next/font/local/target.css?{"path":"src/lib/fonts.ts","import":"","arguments":[{"src":"../assets/fonts/dm-sans-latin-wght-normal.woff2","weight":"100 1000","variable":"--font-dm-sans","display":"swap"}],"variableName":"dmSans"} ***!
+  \******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+@font-face {
+font-family: 'dmSans';
+src: url(/_next/static/media/4103274d095002e3-s.p.woff2) format('woff2');
+font-display: swap;
+font-weight: 100 1000;
+}@font-face {font-family: 'dmSans Fallback';src: local("Arial");ascent-override: 94.35%;descent-override: 29.49%;line-gap-override: 0.00%;size-adjust: 105.14%
+}.__className_fa512a {font-family: 'dmSans', 'dmSans Fallback'
+}.__variable_fa512a {--font-dm-sans: 'dmSans', 'dmSans Fallback'
+}
+

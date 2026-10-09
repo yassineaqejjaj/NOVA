@@ -399,3 +399,115 @@ async def test_runs_are_evaluated_and_aggregated(app, gh, model):
     assert m["by_model"]["fake-model"]["runs"] == 4
     other = await login(app)
     assert (await other.get(f"{API}/sdlc/metrics")).json()["runs"] == 0
+
+
+# --- FORGE ingestion -----------------------------------------------------------------------------------------------
+
+
+@pytest_asyncio.fixture
+async def forge():
+    from sqlalchemy import delete
+
+    from nova.infra import db
+    from nova.infra.models import IntegrationReference
+    from tests.support.fake_github import FakeForge
+
+    async with db.session_scope() as session:  # ids cached for a previous fake FORGE would not exist in this one
+        await session.execute(delete(IntegrationReference).where(IntegrationReference.system == "forge"))
+    fake = FakeForge()
+    providers.override("forge_client", fake)
+    return fake
+
+
+async def test_finished_runs_are_ingested_by_forge_without_any_code(app, gh, model, forge):
+    client = await linked(app)
+    goal = "Add a farewell function; ask marie.dupont@example.com for review"
+    run = await start(client, goal=goal, autonomy="autopilot", auto_merge=True)
+    assert run["status"] == "completed" and run["forge"] == {
+        "status": "evaluating", "composite_score": None, "passed": None,
+        "url": run["forge"]["url"], "ingested_at": run["forge"]["ingested_at"],
+    }  # fmt: skip
+    assert run["forge"]["url"].endswith("/runs/run-1")
+
+    # The scenario is rule-scored on output_json and the rules-only config is created once (no LLM judge on SDLC runs)
+    assert [r["id"] for r in forge.scenarios["nova-sdlc-delivery"]["content"]["rules"]] == [
+        "delivered", "merged", "ci_first_pass", "no_review_fixes_needed", "autonomy",
+    ]  # fmt: skip
+    assert forge.configs["nova-delivery"]["pass_threshold"] == 70 and forge.bodies[0]["evaluation_config_id"] == "config-1"
+    assert {"outcome", "merged", "first_pass_ci", "review_fix_rounds", "human_interventions"} <= set(
+        forge.bodies[0]["output_json"]
+    )
+    assert list(forge.agents) == ["nova-sdlc"] and forge.versions[0]["model"]["model"] == "fake-model"
+    body = forge.bodies[0]
+    assert body["external_id"] == f"nova-sdlc:{run['id']}" and body["execution_status"] == "completed"
+    assert body["output_json"]["merged"] is True and body["output_json"]["first_pass_ci"] is True
+    assert body["output_json"]["stages"][0]["key"] == "spec"
+    assert body["usage"] == {"input_tokens": 700, "output_tokens": 350, "model_calls": 7}
+    dumped = str(body)
+    assert "export function" not in dumped and "farewell(name" not in dumped  # no code, no diff
+    assert "marie.dupont@example.com" not in dumped and "[EMAIL]" in dumped  # free text is redacted
+
+    from nova.services import sdlc_forge
+
+    assert await sdlc_forge.ingest(run["id"]) is not None and len(forge.bodies) == 1  # once only
+
+
+async def test_ingestion_follows_the_forge_score_and_never_breaks_a_run(app, gh, model, forge):
+    from nova.services import sdlc_forge
+
+    forge.down = True
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot", auto_merge=True)
+    assert run["status"] == "completed" and run["forge"] is None  # FORGE down: the run is unaffected
+    failed_gh = CheckSummary(
+        state="failure",
+        total=1,
+        failures=[{"name": "lint", "conclusion": "failure", "title": "", "summary": "", "annotations": [], "log": ""}],
+    )
+    gh.check_calls, gh.check_script = 0, [failed_gh]
+    broken = await start(client, autonomy="autopilot")
+    assert broken["status"] == "failed"
+    gh.check_script = [CheckSummary(state="success", total=1)]
+    cancelled = await start(client)
+    await client.post(f"{API}/sdlc/runs/{cancelled['id']}/cancel")
+
+    forge.down = False
+    assert await sdlc_forge.sync() >= 2  # the two finished runs are sent; the cancelled one never is
+    sent = {b["external_id"]: b for b in forge.bodies}  # the database is shared with the other tests: look at our own runs
+    assert f"nova-sdlc:{run['id']}" in sent and f"nova-sdlc:{cancelled['id']}" not in sent
+    assert sent[f"nova-sdlc:{broken['id']}"]["execution_status"] == "failed"
+    assert sent[f"nova-sdlc:{broken['id']}"]["output_json"]["failed_stage"] == "ci"
+
+    forge.status, forge.score, forge.passed = "completed", 82.5, True
+    await sdlc_forge.sync()
+    detail = (await client.get(f"{API}/sdlc/runs/{run['id']}")).json()
+    assert (
+        detail["forge"]["status"] == "completed"
+        and detail["forge"]["composite_score"] == 82.5
+        and detail["forge"]["passed"] is True
+    )
+    metrics = (await client.get(f"{API}/sdlc/metrics")).json()
+    assert metrics["forge_evaluated"] == 2 and metrics["avg_forge_score"] == 82.5 and metrics["forge_passed_rate"] == 1.0
+    assert (await client.get(f"{API}/sdlc/runs/{cancelled['id']}")).json()["forge"] is None
+
+
+async def test_an_older_forge_without_observed_runs_pauses_the_sync(app, gh, model, forge):
+    from nova.integrations.forge.client import ForgeError
+    from nova.services import sdlc_forge
+
+    async def unsupported(body):
+        raise ForgeError(404, "Not Found")
+
+    forge.create_observed_run = unsupported
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot", auto_merge=True)
+    assert run["status"] == "completed" and run["forge"] is None
+    await sdlc_forge.sync()  # logs once, does not raise, does not hammer FORGE
+
+
+async def test_without_the_maintainer_role_forge_falls_back_to_its_default_config(app, gh, model, forge):
+    forge.maintainer = False
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot", auto_merge=True)
+    assert run["status"] == "completed" and run["forge"] is not None  # still ingested
+    assert forge.bodies[0]["evaluation_config_id"] is None and forge.configs == {}

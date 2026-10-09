@@ -104,6 +104,8 @@ class Settings(BaseSettings):
     forge_timeout_seconds: float = 20.0
     # FORGE `nova` credential (Settings → Credentials) whose secret is NOVA_FORGE_INBOUND_TOKEN: FORGE uses it to
     # authenticate when it calls NOVA back. Agent versions registered by NOVA reference it.
+    # SDLC Autopilot runs are ingested by FORGE as observed runs (metrics and stage summaries, never code or diffs)
+    forge_sdlc_ingest: bool = True
     forge_credential_id: str = ""
     # NOVA API as reachable *from FORGE* (agent version endpoint). Empty: derived from NOVA_PUBLIC_URL.
     forge_nova_endpoint: str = ""

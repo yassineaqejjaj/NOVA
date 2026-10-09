@@ -67,7 +67,7 @@ def _avg(values: list[float | int]) -> float | None:
     return round(sum(values) / len(values), 1) if values else None
 
 
-def aggregate(runs: list[SdlcRun]) -> dict[str, Any]:
+def aggregate(runs: list[SdlcRun], forge: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     """Success rate, CI repairs and cost per run over ``runs`` (review runs are counted apart: they write nothing)."""
     delivery = [r for r in runs if r.kind != "review"]
     evals = [(r, run_evaluation(r)) for r in delivery]
@@ -84,7 +84,14 @@ def aggregate(runs: list[SdlcRun]) -> dict[str, Any]:
             "success_rate": _rate(sum(1 for r, _ in done if r.status == "completed"), len(done)),
             "avg_tokens": _avg([e["tokens"] for _, e in mine]),
         }
+    scores = [
+        f["composite_score"] for r in delivery if (f := (forge or {}).get(str(r.id))) and f.get("composite_score") is not None
+    ]
+    verdicts = [f["passed"] for r in delivery if (f := (forge or {}).get(str(r.id))) and f.get("passed") is not None]
     return {
+        "forge_evaluated": len(scores),
+        "avg_forge_score": _avg(scores),
+        "forge_passed_rate": _rate(sum(1 for v in verdicts if v), len(verdicts)),
         "runs": len(runs),
         "delivery_runs": len(delivery),
         "review_runs": len(runs) - len(delivery),

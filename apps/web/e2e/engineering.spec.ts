@@ -59,4 +59,6 @@ test("Engineering: from an intent to a merged change, with the plan and the merg
   await page.screenshot({ path: process.env.E2E_SHOT_LIST ?? "/tmp/nova-engineering-list.png", fullPage: true });
   await page.getByTestId("run-row").click();
   await expect(page.getByTestId("run-evaluation")).toContainText("CI green first time");
+  // Ingested by FORGE automatically when the run finished (never code: metrics and summaries)
+  await expect(page.getByTestId("forge-card")).toContainText("Sent to FORGE");
 });

@@ -70,7 +70,19 @@ runs, cancelled ones excluded), merged rate, first-pass CI rate, average repairs
 failures by stage and results by model. Cost is expressed in tokens: provider prices change, so NOVA does not guess
 a currency amount.
 
-**FORGE.** FORGE evaluates runs it orchestrates and cannot ingest observed production executions yet (gap G-F1 in
-`integration-analysis.md`); replaying an SDLC run through the NOVA Agent Protocol would re-run it against a real
-repository. The figures therefore stay in NOVA and are exportable as JSON; forwarding them to FORGE needs the
-`observed` run origin proposed in G-F1.
+**FORGE ingestion (automatic).** When a run ends (completed or failed; a cancelled one is the user's choice) NOVA sends it
+to FORGE once as an *observed run* (`POST /api/v1/runs/observed`, FORGE PR "observed runs", contract in FORGE
+`docs/OBSERVED_RUNS.md`), idempotent on `external_id = nova-sdlc:<run id>`. FORGE scores it with its own pipeline; NOVA
+keeps the link and the score and shows them on the run and in Performance (average FORGE score, pass rate).
+
+* **What is sent**: outcome, delivery metrics (CI/review repairs, interventions, tokens, duration), stage summaries
+  (400 characters each), the goal and repository name, with e-mail/secret redaction. **Never code, diffs or file
+  contents** (repositories may be C2/C3).
+* **Scoring**: the scenario `nova-sdlc-delivery` carries five rules on the result — delivered, merged, CI green first
+  time, no review fix needed, ≤ 2 human interventions — and the configuration `nova-delivery` has no LLM judge, weights
+  quality 0.8 / autonomy 0.2, pass threshold 70, and caps an unmerged change at 60. NOVA creates both once. The
+  configuration needs the FORGE **maintainer** role: with an `editor`/`evaluator` key NOVA falls back to FORGE's default
+  configuration (LLM judges) and says so in the log.
+* **Resilience**: FORGE being down or older never affects a run; `nova.sdlc_forge_sync` (every 5 min) retries what was
+  not sent and refreshes scores, and pauses while FORGE answers 404/405 on the endpoint.
+* Disable with `NOVA_FORGE_SDLC_INGEST=false`. Needs `NOVA_FORGE_API_KEY` (already used by the existing capture).

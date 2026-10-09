@@ -8,7 +8,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { M } from "@/components/engineering/engineering.messages";
-import { RunEvaluationCard } from "@/components/engineering/performance";
+import { ForgeCard, RunEvaluationCard } from "@/components/engineering/performance";
 import { StageOutput } from "@/components/engineering/stage-output";
 import { RunStatusBadge, StageIcon } from "@/components/engineering/status";
 import { ErrorNotice, Page } from "@/components/shell/page";
@@ -156,6 +156,7 @@ export default function RunPage() {
       </ol>
 
       {run.status !== "queued" ? <RunEvaluationCard evaluation={run.evaluation} /> : null}
+      <ForgeCard forge={run.forge} />
 
       {run.log && run.log.length > 0 ? (
         <section className="mt-8">

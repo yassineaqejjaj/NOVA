@@ -19,6 +19,7 @@ from nova.integrations.github.client import GitHubError
 from nova.services import github_accounts, llm_config, sdlc
 from nova.services.audit import audit
 from nova.services.dispatch import dispatch_sdlc
+from nova.services.sdlc_forge import states as forge_states
 from nova.services.sdlc_metrics import aggregate
 from nova_api.auth import CurrentPrincipal
 from nova_api.errors import ApiError
@@ -194,6 +195,10 @@ async def _owned(session: AsyncSession, principal: Any, run_id: str) -> SdlcRun:
     return run
 
 
+async def _view(session: AsyncSession, run: SdlcRun) -> dict[str, Any]:
+    return sdlc.view(run, forge=(await forge_states(session, [run.id])).get(str(run.id)))
+
+
 def _guard(exc: Exception) -> ApiError:
     if isinstance(exc, sdlc.ConflictError):
         return ApiError(409, "conflict", str(exc))
@@ -211,7 +216,8 @@ async def run_metrics(
     rows = await session.scalars(
         select(SdlcRun).where(SdlcRun.user_id == uuid.UUID(principal.user_id), SdlcRun.created_at >= since)
     )
-    return {"days": days, **aggregate(list(rows))}
+    runs = list(rows)
+    return {"days": days, **aggregate(runs, await forge_states(session, [r.id for r in runs]))}
 
 
 @router.get("/sdlc/runs")
@@ -221,7 +227,9 @@ async def list_runs(
     rows = await session.scalars(
         select(SdlcRun).where(SdlcRun.user_id == uuid.UUID(principal.user_id)).order_by(SdlcRun.created_at.desc()).limit(limit)
     )
-    return [sdlc.view(r, detail=False) for r in rows]
+    runs = list(rows)
+    forge = await forge_states(session, [r.id for r in runs])
+    return [sdlc.view(r, detail=False, forge=forge.get(str(r.id))) for r in runs]
 
 
 @router.post("/sdlc/runs", status_code=201)
@@ -252,14 +260,14 @@ async def create_run(body: RunIn, principal: CurrentPrincipal, session: SessionD
     await session.commit()
     await dispatch_sdlc(str(run.id))
     await session.refresh(run)
-    return sdlc.view(run)
+    return await _view(session, run)
 
 
 @router.get("/sdlc/runs/{run_id}")
 async def get_run(run_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
     run = await _owned(session, principal, run_id)
     await session.refresh(run)
-    return sdlc.view(run)
+    return await _view(session, run)
 
 
 @router.post("/sdlc/runs/{run_id}/approve")
@@ -281,7 +289,7 @@ async def approve_run(run_id: str, body: ApproveIn, principal: CurrentPrincipal,
     await session.commit()
     await dispatch_sdlc(run_id)
     await session.refresh(run)
-    return sdlc.view(run)
+    return await _view(session, run)
 
 
 @router.post("/sdlc/runs/{run_id}/cancel")
@@ -293,7 +301,7 @@ async def cancel_run(run_id: str, principal: CurrentPrincipal, session: SessionD
         raise _guard(exc) from exc
     await audit(session, actor_id=principal.user_id, action="sdlc.cancel", target_type="sdlc_run", target_id=run_id)
     await session.commit()
-    return sdlc.view(run)
+    return await _view(session, run)
 
 
 @router.post("/sdlc/runs/{run_id}/retry")
@@ -306,7 +314,7 @@ async def retry_run(run_id: str, principal: CurrentPrincipal, session: SessionDe
     await session.commit()
     await dispatch_sdlc(run_id)
     await session.refresh(run)
-    return sdlc.view(run)
+    return await _view(session, run)
 
 
 @router.post("/sdlc/runs/{run_id}/release")
@@ -325,7 +333,7 @@ async def release_run(run_id: str, body: ReleaseIn, principal: CurrentPrincipal,
         summary=f"{'Draft release' if body.draft else 'Release'} {body.tag} on {run.repo}",
     )
     await session.commit()
-    return sdlc.view(run)
+    return await _view(session, run)
 
 
 @router.post("/sdlc/runs/{run_id}/deploy")
@@ -344,4 +352,4 @@ async def deploy_run(run_id: str, principal: CurrentPrincipal, session: SessionD
         summary=f"Deploy hook for {run.repo}",
     )
     await session.commit()
-    return sdlc.view(run)
+    return await _view(session, run)
