@@ -24,6 +24,7 @@ const api = {
   NOVA_LLM_API_KEY: "",
   NOVA_SMTP_HOST: "",
   NOVA_SMTP_FROM: "",
+  NOVA_E2E_FAKE_GITHUB: "1", // in-memory GitHub for the engineering scenario
   PYTHONPATH: ".:apps/api:services/worker",
 };
 

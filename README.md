@@ -31,6 +31,9 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Artifact
 * **Sub-agents** — NOVA orchestrates four specialist agents (Product, Project, Design, Engineering); every step of a
   workflow runs under the persona and quality bar of the agent owning its Skill, shown live with its activity and timing.
   The user's profile (onboarding, Settings) chooses the lead agent.
+* **Engineering — autonomous SDLC** — give NOVA an intent or a GitHub issue and it specifies, designs, codes, tests, opens the
+  pull request, reviews it, repairs CI and merges after your approval (Settings → bring your own LLM key and GitHub token).
+  See [`docs/ENGINEERING.md`](docs/ENGINEERING.md).
 * **64 Skills** — versioned workflows for Product, Project, Design and Engineering work (strategy, discovery,
   prioritization, definition, delivery, analysis, communication), composed into editable workflows.
 * **Artifacts** — 54 structured types (PRD with 23 sections, backlog, sprint plan…), Lexical editing, autosave,
@@ -133,6 +136,7 @@ tests/              unit, integration, support (test doubles)
 
 * [Integration analysis](docs/integration-analysis.md) — ORBIT & FORGE contracts, gaps, differences with the brief
 * [Training with FORGE](docs/TRAINING.md) — every specialist agent re-trained on all its Skills, validated by FORGE experiments
+* [Engineering (SDLC Autopilot)](docs/ENGINEERING.md) — features, roadmap, safety rails
 * [Architecture](docs/ARCHITECTURE.md) — execution model, Skills, Artifacts, data model, API, security
 * [Skills](docs/SKILLS.md) — writing and versioning Skills
 * [Deployment](docs/DEPLOYMENT.md) — Railway + Vercel production setup, releases, FORGE/ORBIT connection

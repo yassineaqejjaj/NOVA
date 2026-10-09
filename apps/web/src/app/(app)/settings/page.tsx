@@ -8,6 +8,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { ProfilePicker } from "@/components/agents/profile-picker";
+import { GithubLink } from "@/components/engineering/github-link";
+import { LlmSettings } from "@/components/engineering/llm-settings";
+import { M as EM } from "@/components/engineering/engineering.messages";
 import { PermissionsCard } from "@/components/missions/permissions";
 import { FigmaLink } from "@/components/figma-link";
 import { OrbitLink } from "@/components/orbit-link";
@@ -122,6 +125,7 @@ const PREVIEW_STATES: OrbState[] = ["idle", "thinking", "working", "waiting", "c
 export default function SettingsPage() {
   const router = useRouter();
   const t = useT(M);
+  const te = useT(EM);
   const lang = useLang();
   const { data: me } = useMe();
   const client = useQueryClient();
@@ -260,6 +264,18 @@ export default function SettingsPage() {
           <div className="space-y-1.5"><Label>{t("format")}</Label><Select value={prefs.artifact_format ?? "structured"} onValueChange={(v) => set({ artifact_format: v })} options={[{ value: "structured", label: t("structured") }, { value: "concise", label: t("concise") }, { value: "detailed", label: t("detailed") }]} className="w-full" /></div>
         </div>
         <div className="mt-5 flex justify-end"><Button variant="primary" size="sm" onClick={() => save.mutate()} disabled={save.isPending}>{t("save")}</Button></div>
+      </Card>
+
+      <Card id="llm" className="mt-6 scroll-mt-10 p-5">
+        <h2 className="text-[15px] font-semibold">{te("llmTitle")}</h2>
+        <p className="mb-4 mt-0.5 text-[13px] text-muted">{te("llmHint")}</p>
+        <LlmSettings />
+      </Card>
+
+      <Card id="github" className="mt-6 scroll-mt-10 p-5">
+        <h2 className="text-[15px] font-semibold">{te("ghTitle")}</h2>
+        <p className="mb-4 mt-0.5 text-[13px] text-muted">{te("ghHint")}</p>
+        <GithubLink />
       </Card>
 
       <Card id="orbit" className="mt-6 scroll-mt-10 p-5">

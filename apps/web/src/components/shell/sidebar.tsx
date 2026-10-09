@@ -11,6 +11,7 @@ import {
   Tooltip,
 } from "@nova/ui";
 import {
+  Code2,
   FolderKanban,
   History,
   Inbox,
@@ -52,6 +53,7 @@ const M = defineMessages({
     library: "Library",
     context: "Context",
     skills: "Skills",
+    engineering: "Engineering",
     timeline: "Timeline",
     workspace: "Workspace",
     knowledge: "Knowledge",
@@ -74,6 +76,7 @@ const M = defineMessages({
     library: "Bibliothèque",
     context: "Contexte",
     skills: "Compétences",
+    engineering: "Engineering",
     timeline: "Timeline",
     workspace: "Espace de travail",
     knowledge: "Connaissances",
@@ -118,6 +121,7 @@ export const NAV_GROUPS: { label: MissionLabel; items: NavItem[] }[] = [
   {
     label: "navAutomation",
     items: [
+      { href: "/engineering", label: "engineering", icon: Code2 },
       { href: "/skills", label: "skills", icon: Sparkles },
       { href: "/routines", label: "routines", icon: Repeat },
       { href: "/team", label: "team", icon: Users },

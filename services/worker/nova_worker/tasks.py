@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from nova.services import maintenance, training
+from nova.services import maintenance, sdlc, training
 from nova.services.executions import RetryableExecutionError, run_task
 from nova_worker.app import celery_app, run
 
@@ -54,3 +54,22 @@ def retention() -> dict[str, int]:
 def advance_training() -> int:
     """FORGE training loop: start due cycles and advance open ones (services/training.py)."""
     return run(training.tick())
+
+
+@celery_app.task(name="nova.sdlc_advance", acks_late=True)
+def sdlc_advance(run_id: str) -> None:
+    """Advance an SDLC run stage by stage; waiting for CI re-schedules the task instead of holding the worker."""
+    delay = run(sdlc.advance(run_id))
+    while delay == 0.0:
+        delay = run(sdlc.advance(run_id))
+    if delay:
+        celery_app.send_task("nova.sdlc_advance", args=[run_id], countdown=delay, queue="executions")
+
+
+@celery_app.task(name="nova.sdlc_requeue_stale")
+def sdlc_requeue_stale() -> int:
+    """Runs a crashed worker left mid-flight are picked up again."""
+    ids = run(sdlc.requeue_stale())
+    for run_id in ids:
+        celery_app.send_task("nova.sdlc_advance", args=[run_id], queue="executions")
+    return len(ids)

@@ -105,6 +105,70 @@ class FigmaAccount(Base):
     linked_at: Mapped[datetime] = _created()
 
 
+class UserLLMConfig(Base):
+    """The user's own LLM (bring your own key). The key is stored encrypted and never returned by the API."""
+
+    __tablename__ = "user_llm_configs"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    provider: Mapped[str] = mapped_column(String(30))  # anthropic | openai | google | mistral | openrouter | custom
+    model: Mapped[str] = mapped_column(String(120))
+    base_url: Mapped[str] = mapped_column(String(500), default="")  # custom endpoints only
+    key_ciphertext: Mapped[str] = mapped_column(Text)
+    key_hint: Mapped[str] = mapped_column(String(12), default="")  # last characters, for display
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class GithubAccount(Base):
+    """GitHub link of a user (personal access token, encrypted)."""
+
+    __tablename__ = "github_accounts"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    login: Mapped[str] = mapped_column(String(100), default="")
+    token_ciphertext: Mapped[str] = mapped_column(Text)
+    scopes: Mapped[str] = mapped_column(String(500), default="")
+    linked_at: Mapped[datetime] = _created()
+
+
+class SdlcRun(Base):
+    """One autonomous software-delivery run: intent → spec → design → code → tests → PR → review → CI → merge → release."""
+
+    __tablename__ = "sdlc_runs"
+    __table_args__ = (Index("ix_sdlc_runs_user_created", "user_id", "created_at"),)
+    id: Mapped[uuid.UUID] = _pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
+    kind: Mapped[str] = mapped_column(String(12), default="feature")  # feature | bugfix | refactor | review
+    title: Mapped[str] = mapped_column(String(300))
+    goal: Mapped[str] = mapped_column(Text, default="")
+    repo: Mapped[str] = mapped_column(String(200))  # owner/name
+    base_branch: Mapped[str] = mapped_column(String(200), default="")
+    branch: Mapped[str] = mapped_column(String(250), default="")
+    autonomy: Mapped[str] = mapped_column(String(12), default="guided")  # guided | autopilot
+    auto_merge: Mapped[bool] = mapped_column(Boolean, default=False)
+    deploy_hook_ciphertext: Mapped[str | None] = mapped_column(Text)
+    # queued | running | waiting_user | completed | failed | cancelled
+    status: Mapped[str] = mapped_column(String(14), default="queued", index=True)
+    stage: Mapped[str] = mapped_column(String(20), default="spec")
+    stages: Mapped[list] = mapped_column(JSONType, default=list)  # [{key, status, summary, output, started_at, finished_at}]
+    log: Mapped[list] = mapped_column(JSONType, default=list)  # [{at, level, message}] (capped)
+    context: Mapped[dict] = mapped_column(JSONType, default=dict)  # working memory between stages (spec, design, notes…)
+    issue_url: Mapped[str] = mapped_column(String(500), default="")
+    pr_number: Mapped[int | None] = mapped_column(Integer)
+    pr_url: Mapped[str] = mapped_column(String(500), default="")
+    head_sha: Mapped[str] = mapped_column(String(64), default="")
+    merge_sha: Mapped[str] = mapped_column(String(64), default="")
+    release_url: Mapped[str] = mapped_column(String(500), default="")
+    gate: Mapped[str | None] = mapped_column(String(20))  # plan | merge: what the run waits for
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # worker lease (one worker per run)
+    usage: Mapped[dict] = mapped_column(JSONType, default=dict)
+    model: Mapped[str] = mapped_column(String(120), default="")
+    error: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class Project(Base):
     __tablename__ = "projects"
     id: Mapped[uuid.UUID] = _pk()
