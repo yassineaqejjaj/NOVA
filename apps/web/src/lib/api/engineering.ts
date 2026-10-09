@@ -48,6 +48,51 @@ export interface Run {
   stages: Stage[];
   log?: { at: string; level: "info" | "error"; message: string }[];
   release?: { version: string; title: string; notes: string } | null;
+  evaluation: RunEvaluation;
+}
+
+export interface RunEvaluation {
+  outcome: RunStatus;
+  merged: boolean;
+  failed_stage: StageKey | null;
+  reached_ci: boolean;
+  ci_state: string | null;
+  ci_fix_rounds: number;
+  first_pass_ci: boolean;
+  review_rounds: number;
+  review_fix_rounds: number;
+  blocking_findings: number;
+  human_interventions: number;
+  retries: number;
+  duration_seconds: number | null;
+  model_calls: number;
+  tokens: number;
+  input_tokens: number;
+  output_tokens: number;
+  model: string;
+}
+
+export interface RunMetrics {
+  days: number;
+  runs: number;
+  delivery_runs: number;
+  review_runs: number;
+  active: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+  success_rate: number | null;
+  merged_rate: number | null;
+  first_pass_ci_rate: number | null;
+  avg_ci_fix_rounds: number | null;
+  avg_review_fix_rounds: number | null;
+  avg_human_interventions: number | null;
+  avg_tokens: number | null;
+  avg_model_calls: number | null;
+  total_tokens: number;
+  avg_duration_seconds: number | null;
+  failures_by_stage: Partial<Record<StageKey, number>>;
+  by_model: Record<string, { runs: number; success_rate: number | null; avg_tokens: number | null }>;
 }
 
 export interface LlmProviderInfo {
@@ -104,6 +149,7 @@ export const engKeys = {
   github: ["github"] as const,
   repos: ["github-repos"] as const,
   runs: ["sdlc-runs"] as const,
+  metrics: (days: number) => ["sdlc-metrics", days] as const,
   run: (id: string) => ["sdlc-run", id] as const,
 };
 
@@ -122,6 +168,9 @@ export const useRuns = () =>
     queryFn: () => api.get<Run[]>("/sdlc/runs"),
     refetchInterval: (q) => (q.state.data?.some((r) => ACTIVE.includes(r.status)) ? 3000 : 20_000),
   });
+
+export const useMetrics = (days: number) =>
+  useQuery({ queryKey: engKeys.metrics(days), queryFn: () => api.get<RunMetrics>(`/sdlc/metrics?days=${days}`), staleTime: 30_000 });
 
 export const useRun = (id: string) =>
   useQuery({

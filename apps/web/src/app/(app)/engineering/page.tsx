@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { M } from "@/components/engineering/engineering.messages";
+import { Performance, compact } from "@/components/engineering/performance";
 import { RunForm } from "@/components/engineering/run-form";
 import { RunStatusBadge } from "@/components/engineering/status";
 import { EmptyState, Page, PageHeader } from "@/components/shell/page";
@@ -53,6 +54,8 @@ export default function EngineeringPage() {
         </Card>
       ) : null}
 
+      {runs && runs.length > 0 ? <Performance /> : null}
+
       {isLoading ? <Skeleton className="h-40" /> : null}
       {runs && runs.length === 0 && !creating ? <EmptyState icon={<GitPullRequest />} title={t("noRuns")} /> : null}
       <ul className="divide-y divide-border/70">
@@ -65,6 +68,8 @@ export default function EngineeringPage() {
                 <div className="truncate text-[12px] text-muted">
                   {run.repo} · {t(`k_${run.kind}` as "k_feature")}
                   {run.pr_number ? ` · #${run.pr_number}` : ""}
+                  {run.evaluation.ci_fix_rounds > 0 ? ` · ${t("repairsChip", { n: run.evaluation.ci_fix_rounds })}` : ""}
+                  {run.evaluation.tokens > 0 ? ` · ${compact(run.evaluation.tokens)} tok` : ""}
                 </div>
               </div>
               <RunStatusBadge status={run.status} />

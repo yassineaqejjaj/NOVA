@@ -634,6 +634,9 @@ def view(run: SdlcRun, *, detail: bool = True) -> dict[str, Any]:
         "finished_at": aware(run.finished_at).isoformat() if run.finished_at else None,
         "stages": [{k: v for k, v in s.items() if detail or k != "output"} for s in (run.stages or [])],
     }
+    from nova.services.sdlc_metrics import run_evaluation
+
+    data["evaluation"] = run_evaluation(run)
     if detail:
         data["log"] = run.log or []
         data["release"] = (run.context or {}).get("release")

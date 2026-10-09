@@ -52,4 +52,11 @@ test("Engineering: from an intent to a merged change, with the plan and the merg
   await page.goto("/engineering");
   await expect(page.getByTestId("run-row")).toHaveCount(1);
   await expect(page.getByTestId("run-row")).toContainText("Completed");
+
+  // Evaluation: success rate, CI repairs and cost (tokens) of the runs
+  await expect(page.getByTestId("p-success")).toContainText("100%");
+  await expect(page.getByTestId("performance")).toContainText("CI repairs per run");
+  await page.screenshot({ path: process.env.E2E_SHOT_LIST ?? "/tmp/nova-engineering-list.png", fullPage: true });
+  await page.getByTestId("run-row").click();
+  await expect(page.getByTestId("run-evaluation")).toContainText("CI green first time");
 });

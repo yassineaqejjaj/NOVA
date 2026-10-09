@@ -331,3 +331,71 @@ async def test_deploy_hook_is_stored_encrypted_and_only_called_after_the_merge(a
     assert row is not None and "secret-token" not in (row.deploy_hook_ciphertext or "")
     assert (await client.post(f"{API}/sdlc/runs/{run['id']}/deploy")).status_code == 200
     assert calls and calls[0].url.host == "deploy.example.com"
+
+
+async def test_runs_are_evaluated_and_aggregated(app, gh, model):
+    client = await linked(app)
+    # 1) green first time, merged; 2) CI repaired once; 3) blocking review finding fixed; 4) fails (CI never green); 5) a review run
+    clean = await start(client, autonomy="autopilot", auto_merge=True)
+    assert clean["evaluation"] | {} and clean["evaluation"]["first_pass_ci"] and clean["evaluation"]["merged"]
+    assert (
+        clean["evaluation"]["ci_fix_rounds"] == 0
+        and clean["evaluation"]["model_calls"] == 7
+        and clean["evaluation"]["tokens"] == 1050
+    )
+
+    failure = CheckSummary(
+        state="failure",
+        total=1,
+        failures=[
+            {"name": "test", "conclusion": "failure", "title": "", "summary": "", "annotations": [], "log": "FAILED test_x"}
+        ],
+    )
+    gh.check_calls = 0
+    gh.check_script = [failure, CheckSummary(state="success", total=1)]
+    repaired = await start(client, autonomy="autopilot", auto_merge=True)
+    assert (
+        repaired["evaluation"]["ci_fix_rounds"] == 1
+        and not repaired["evaluation"]["first_pass_ci"]
+        and repaired["evaluation"]["merged"]
+    )
+    assert any("FAILED test_x" in p for n, p in model.calls if n == "ChangeSet")  # the repair saw the job log
+
+    gh.check_calls = 0
+    gh.check_script = [CheckSummary(state="success", total=1)]
+    model.review_queue = [
+        ReviewOutput(
+            verdict="request_changes", summary="bug", findings=[Finding(severity="blocker", path="src/greet.ts", message="x")]
+        ),
+        ReviewOutput(verdict="approve", summary="ok"),
+    ]
+    reviewed = await start(client, autonomy="autopilot", auto_merge=True)
+    assert reviewed["evaluation"]["review_fix_rounds"] == 1 and reviewed["evaluation"]["blocking_findings"] == 1
+
+    gh.check_calls = 0
+    gh.check_script = [
+        CheckSummary(
+            state="failure",
+            total=1,
+            failures=[{"name": "lint", "conclusion": "failure", "title": "", "summary": "", "annotations": [], "log": ""}],
+        )
+    ]
+    broken = await start(client, autonomy="autopilot")
+    assert (
+        broken["status"] == "failed"
+        and broken["evaluation"]["failed_stage"] == "ci"
+        and broken["evaluation"]["ci_fix_rounds"] == 2
+    )
+
+    gh.check_calls = 0
+    gh.check_script = [CheckSummary(state="success", total=1)]
+    await start(client, kind="review", goal="", repo="", pr_url="https://github.com/o/r/pull/9")
+
+    m = (await client.get(f"{API}/sdlc/metrics")).json()
+    assert m["days"] == 30 and m["runs"] == 5 and m["delivery_runs"] == 4 and m["review_runs"] == 1
+    assert m["completed"] == 3 and m["failed"] == 1 and m["success_rate"] == 0.75 and m["merged_rate"] == 0.75
+    assert m["failures_by_stage"] == {"ci": 1} and m["first_pass_ci_rate"] == round(2 / 4, 3)
+    assert m["avg_ci_fix_rounds"] == 0.8 and m["total_tokens"] > 0
+    assert m["by_model"]["fake-model"]["runs"] == 4
+    other = await login(app)
+    assert (await other.get(f"{API}/sdlc/metrics")).json()["runs"] == 0
