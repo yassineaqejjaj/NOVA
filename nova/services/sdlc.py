@@ -386,11 +386,16 @@ async def _review_once(ctx: Ctx, repo: str, number: int, title: str, body: str, 
     return review, diff
 
 
+_PATH_TOKEN = re.compile(r"[\w@.+/-]+\.[A-Za-z0-9]{1,8}")
+
+
 async def _fix(ctx: Ctx, reason: str, details: str, finding_paths: list[str]) -> str:
     run = ctx.run
     snap = await snapshot(ctx, run.branch)
     changed_paths = [c["path"] for c in ctx.c.get("changes", []) + ctx.c.get("tests", []) if c["action"] != "delete"]
-    read = await read_files(ctx, snap, list(dict.fromkeys([*finding_paths, *changed_paths])))
+    # Files named in the failure output (a linter, a stack trace) are read too, when they exist on the branch
+    mentioned = [m.lstrip("./") for m in _PATH_TOKEN.findall(details) if m.lstrip("./") in snap.paths]
+    read = await read_files(ctx, snap, list(dict.fromkeys([*finding_paths, *mentioned, *changed_paths])))
     changeset, safe = await ask_changeset(
         ctx,
         lambda fb: prompts.fix_messages(reason, details, ctx.c.get("spec", {}), read, tree_listing(snap, 300), fb),
@@ -492,6 +497,11 @@ async def stage_ci(ctx: Ctx) -> StageResult:
     details = "\n\n".join(
         f"CHECK {f['name']} ({f['conclusion']}): {f['title']}\n{f['summary']}\n"
         + "\n".join(f"- {a['path']}:{a['line']}: {a['message']}" for a in f["annotations"])
+        + (
+            f"\nJOB LOG (excerpt):\n{f['log']}"
+            if f.get("log")
+            else "\n(the job log is not readable: the token may lack the Actions read permission)"
+        )
         for f in summary.failures
     )
     ctx.log(f"CI failed ({', '.join(f['name'] for f in summary.failures)}): fixing (round {fix_rounds + 1}/{MAX_FIX_ROUNDS})")

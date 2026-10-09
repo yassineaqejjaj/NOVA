@@ -53,6 +53,33 @@ def parse_github_ref(url: str, kind: str) -> tuple[str, int] | None:
     return (match.group(1), int(match.group(2))) if match else None
 
 
+_ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+_STAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T[\d:.]+Z ")
+_SIGNAL = re.compile(
+    r"error|failed|failure|fatal|traceback|assert|would reformat|exception|\bE\d{3}\b|\bF\d{3}\b|✗|✘|not found|cannot|unexpected",
+    re.IGNORECASE,
+)
+
+
+def summarize_log(text: str, limit: int = 6000) -> str:
+    """The part of a CI job log that explains the failure: error-looking lines with context, then the tail."""
+    lines = [_STAMP.sub("", _ANSI.sub("", raw)).rstrip() for raw in text.splitlines()]
+    lines = [ln for ln in lines if ln.strip() and not ln.startswith("##[group]") and "##[endgroup]" not in ln]
+    keep: set[int] = set()
+    hits = [i for i, ln in enumerate(lines) if _SIGNAL.search(ln) and "DeprecationWarning" not in ln]
+    for i in hits[-40:]:
+        keep.update(range(max(0, i - 2), min(len(lines), i + 3)))
+    keep.update(range(max(0, len(lines) - 25), len(lines)))
+    out: list[str] = []
+    previous = -2
+    for i in sorted(keep):
+        if i != previous + 1:
+            out.append("…")
+        out.append(lines[i][:400])
+        previous = i
+    return "\n".join(out)[-limit:]
+
+
 @dataclass
 class CheckSummary:
     state: str  # none | pending | success | failure
@@ -280,6 +307,16 @@ class GitHubClient:
         )
         return d.get("sha", "")
 
+    async def job_log(self, repo: str, job_id: int, limit: int = 6000) -> str:
+        """Explanatory excerpt of a GitHub Actions job log ("" when unavailable: needs the Actions read permission)."""
+        try:
+            response = await self._client.get(f"/repos/{repo}/actions/jobs/{job_id}/logs", follow_redirects=True)
+        except httpx.HTTPError:
+            return ""
+        if response.status_code != 200:
+            return ""
+        return summarize_log(response.text, limit)
+
     # --- Checks -----------------------------------------------------------------------------------------------
 
     async def checks(self, repo: str, sha: str) -> CheckSummary:
@@ -322,6 +359,10 @@ class GitHubClient:
                         "title": output.get("title") or "",
                         "summary": (output.get("summary") or output.get("text") or "")[:2000],
                         "annotations": annotations,
+                        # For GitHub Actions the check run id is the job id: its log holds the real error.
+                        "log": await self.job_log(repo, run["id"])
+                        if (run.get("app") or {}).get("slug") == "github-actions"
+                        else "",
                     }
                 )
         failures += [

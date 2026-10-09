@@ -178,7 +178,8 @@ def fix_messages(
         _system(
             "STAGE: FIX. Fix exactly the reported problems with the smallest safe change. Return the COMPLETE content of "
             "each modified file (only files shown above can be modified; create new files for anything else). Do not "
-            "disable tests, linters or checks to make them pass: fix the cause."
+            "disable tests, linters or checks to make them pass: fix the cause. When a linter or formatter reports the problem, "
+            "reproduce exactly the change the tool asks for (import order, line length, formatting)."
         ),
         LLMMessage(role="user", content=user),
     ]
