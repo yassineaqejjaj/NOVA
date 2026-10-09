@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nova://items/figma_ref",
+  "title": "figma_ref",
+  "description": "Reference to a Figma file or node",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string"
+    },
+    "file_key": {
+      "type": "string"
+    },
+    "node_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "linked",
+        "pushed",
+        "imported"
+      ]
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

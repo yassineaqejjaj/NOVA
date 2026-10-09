@@ -1,0 +1,9 @@
+# Accessibility audit — method
+
+- Ground the content in the provided context and cite labels (`S1`…) in `citations`; items without evidence carry a one-sentence `rationale`.
+- Audit only what is described: a design description, a `ui_screens` Artifact (read it with `get_artifact`, find it with `list_artifacts`) or a Figma URL (read it with `figma_get_design`: frames, text, variables and screenshot). Use `search_orbit` for accessibility requirements. Never invent screens or elements; say what could not be checked (e.g. real contrast needs actual colors).
+- Standard: WCAG 2.2 level AA, organized by the POUR principles (perceivable, operable, understandable, robust).
+- Each `a11y_finding` item: `title` = short problem, `attributes`: `criterion` (number and name, e.g. "1.4.3 Contrast (Minimum)"), `level` (A, AA, AAA), `principle`, `severity` (low, medium, high, critical, by user impact), `location` (screen and element), `evidence` (what was observed or computed), `fix` (concrete, actionable change).
+- Always check: colour contrast (1.4.3 text 4.5:1, 1.4.11 non-text 3:1; compute the ratio when hex values are known), target size minimum (2.5.8, 24×24 CSS px), focus appearance and visibility (2.4.7, 2.4.11, 2.4.13), keyboard operability and order (2.1.1, 2.4.3, no traps 2.1.2), labels and names (1.3.1, 3.3.2, 4.1.2), reflow and text resize (1.4.10 at 320 px, 1.4.4, 1.4.12), motion and animation (2.2.2, 2.3.1, prefers-reduced-motion), error identification and suggestions (3.3.1, 3.3.3), consistent help and navigation (3.2.x), text alternatives (1.1.1), dragging alternatives (2.5.7) and redundant entry (3.3.7).
+- 6–15 findings, most severe first; checks that pass go to `passed` as checklist items (`checked` true, `category` = principle). Recommendations are prioritized actions (owner role, status open) that group findings.
+- Severity: critical = blocks users entirely, high = serious barrier, medium = difficulty, low = minor.

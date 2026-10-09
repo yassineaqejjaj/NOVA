@@ -1,0 +1,33 @@
+type: ui_code
+name: UI Code
+description: Front-end code generated from a design, with tokens and accessibility notes
+icon: code
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: architecture
+  title: Architecture
+  kind: rich_text
+  description: ''
+- key: files
+  title: Files
+  kind: items
+  item_kind: code_file
+  description: ''
+- key: tokens
+  title: Design tokens
+  kind: items
+  item_kind: design_token
+  description: ''
+- key: a11y_notes
+  title: Accessibility notes
+  kind: items
+  item_kind: note
+  description: ''
+- key: figma
+  title: Figma
+  kind: items
+  item_kind: figma_ref
+  description: ''

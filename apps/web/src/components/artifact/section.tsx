@@ -31,6 +31,7 @@ import { useComposer } from "@/stores/ui";
 
 import { CitationChip, ItemsEditor } from "./items-editor";
 import { RichTextEditor } from "./rich-text-editor";
+import { ScreensPreview } from "./screens-preview";
 
 const M = defineMessages({
   en: {
@@ -159,6 +160,11 @@ export function ArtifactSection({
   const blockCitations = content.kind === "rich_text" ? content.blocks.flatMap((b) => b.citations) : [];
   const uniqueCitations = blockCitations.filter((c, i) => blockCitations.findIndex((x) => x.label === c.label && x.ref === c.ref) === i);
 
+  const itemsEditor =
+    content.kind === "items" ? (
+      <ItemsEditor items={content.items} itemKind={definition.item_kind ?? "note"} editable={editable} allItems={allItems} artifactId={artifactId} onChange={(items) => onChange({ ...content, items })} />
+    ) : null;
+
   return (
     <section id={`section-${definition.key}`} className="group/section scroll-mt-20 border-b border-border py-4 last:border-b-0">
       <header className="flex items-center gap-2">
@@ -237,8 +243,12 @@ export function ArtifactSection({
                   ariaLabel={title}
                   onChange={(blocks) => onChange({ ...content, blocks })}
                 />
+              ) : artifactType?.type === "ui_screens" && definition.item_kind === "screen" ? (
+                <ScreensPreview items={content.items} allItems={allItems}>
+                  {itemsEditor}
+                </ScreensPreview>
               ) : (
-                <ItemsEditor items={content.items} itemKind={definition.item_kind ?? "note"} editable={editable} allItems={allItems} artifactId={artifactId} onChange={(items) => onChange({ ...content, items })} />
+                itemsEditor
               )}
               {commentsOpen ? (
                 <div className="mt-3 space-y-2 rounded-[10px] border border-border bg-surface-2/60 p-3">

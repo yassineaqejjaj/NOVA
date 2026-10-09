@@ -1,0 +1,84 @@
+id: lowfi-mockups
+name: Low-fi Mockups
+version: 1.0.0
+category: definition
+agent: design
+summary: >-
+  Turn NOVA specs or a description into low-fidelity mockups: real copy, components and states on a neutral layout.
+purpose: >-
+  Validate content, components and interaction states with users and stakeholders before investing in visual design.
+triggers:
+- lowfi mockups
+- low-fi mockups
+- low fidelity mockups
+- lo-fi screens
+- maquettes basse fidélité
+- maquettes lo-fi
+inputs:
+- name: subject
+  description: What to design (feature, flow or screens) and for whom
+  required: true
+  ask: true
+  question: Which feature or flow should be designed, and for whom?
+- name: source
+  description: >-
+    Optional starting point: a NOVA spec Artifact (PRD, user stories, journey, persona, design brief), a Figma URL, or
+    a plain description
+expected_context:
+  orbit_intent: design
+  query_hint: PRD, user stories, user journeys, personas, design brief, brand guidelines, design system, accessibility requirements
+  token_budget: 6000
+methodology:
+  name: Low-fidelity prototyping with real content
+  principles:
+  - Start from existing specs (PRD, stories, journeys, personas) and reuse their vocabulary
+  - Real, user-facing copy; no lorem ipsum
+  - Show the components and their states (default, focus, disabled, error, selected)
+  - Neutral visuals, with structure and content first and brand later
+  references:
+  - Nielsen Norman Group — Low-fidelity prototypes
+  - Steve Krug — Don't Make Me Think
+steps:
+- id: sources
+  title: Gathering the specs
+  instruction: >-
+    Find the existing specs with list_artifacts / get_artifact (PRD, user stories, user journeys, personas, design
+    brief) and search_orbit / retrieve_orbit_context; if source is a Figma URL, read it with figma_get_design. Write the
+    summary and the user flow (one note per step, 4–8 steps).
+  fills:
+  - summary
+  - flows
+- id: system
+  title: Setting the design foundations
+  instruction: >-
+    Define the component inventory (components) with variants, states and a11y notes (role, name, keyboard). Add a
+    minimal token set only if the source provides one.
+  fills:
+  - tokens
+  - components
+- id: screens
+  title: Designing the screens
+  instruction: >-
+    Create 3–6 screens as screen items, at most 18 elements each, following the element rules in the instructions.
+    Set fidelity to lowfi, with real copy in every label, a device, the purpose, and states listing at least empty, loading and error where relevant. Use variant and state on elements to show primary actions and the key interaction states. If a Figma URL was given, add one figma_ref (status imported). Push to Figma only if the user asks.
+  fills:
+  - screens
+  - figma
+tools:
+- list_artifacts
+- get_artifact
+- search_orbit
+- retrieve_orbit_context
+- figma_get_design
+- figma_push_screens
+outputs:
+  artifact_type: ui_screens
+  mode: create
+composes_with:
+- persona
+- user-journey
+- design-brief
+- wireframes
+- hifi-mockups
+- usability-test-plan
+- ux-writing

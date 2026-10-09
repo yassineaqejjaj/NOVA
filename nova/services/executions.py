@@ -59,6 +59,7 @@ async def build_deps(principal_user_id: str, project_id: uuid.UUID | None, origi
         artifacts=get_artifact_registry(),
         tools=get_tool_registry(),
         store=SqlExecutionStore(principal),
+        design=providers.design(),
         evaluation=None if origin == ExecutionOrigin.forge_protocol else providers.evaluation(),
         permissions=permissions,
     )

@@ -1,0 +1,18 @@
+criteria:
+- key: quality.copy
+  question: Is the copy real and consistent, and are components and states shown?
+  weight: 2
+- key: quality.traceability
+  question: Does every screen trace back to a spec or the user's description?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Screens
+    - User flow
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

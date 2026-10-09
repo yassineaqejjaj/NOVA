@@ -20,6 +20,17 @@ export interface Me {
   orbit: OrbitIdentity;
 }
 
+export interface FigmaStatus {
+  linked: boolean;
+  mode: "oauth" | "token" | null;
+  /** Connected through the Figma MCP server (read and, when `can_write`, canvas write). */
+  mcp: boolean;
+  can_write: boolean;
+  figma_handle: string | null;
+  /** False when the server has no Figma OAuth client id configured. */
+  oauth_available: boolean;
+}
+
 export interface Preferences {
   nova_name: string;
   avatar?: string;

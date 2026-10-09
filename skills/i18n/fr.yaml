@@ -1798,3 +1798,137 @@ wsjf-prioritization:
       description: "Les fonctionnalités ou epics à séquencer, s’ils ne figurent pas dans le contexte"
     scale:
       description: "Échelle relative à utiliser (par défaut Fibonacci modifiée 1, 2, 3, 5, 8, 13, 20)"
+
+wireframes:
+  name: "Wireframes"
+  summary: "Transformer les spécifications NOVA ou une description en wireframes : parcours, structure et disposition des écrans, avec des libellés provisoires courts."
+  purpose: "Se mettre d’accord sur la structure et le parcours avant toute décision visuelle ou rédactionnelle, pour que les retours portent sur ce que fait chaque écran."
+  method: "Wireframing centré sur la structure"
+  principles:
+  - "Partir des spécifications existantes (PRD, stories, parcours, personas), jamais d’une page blanche"
+  - "Structure et hiérarchie uniquement : ni couleur, ni texte définitif, des libellés provisoires courts"
+  - "Une seule action principale par écran"
+  - "Nommer les états nécessaires à chaque écran, même si seul l’état par défaut est dessiné"
+  steps:
+    sources: "Collecte des spécifications"
+    system: "Définition des fondations de design"
+    screens: "Conception des écrans"
+  criteria:
+    quality.structure: "Chaque écran présente-t-il une structure claire et une seule action principale, avec des libellés provisoires uniquement ?"
+    quality.traceability: "Chaque écran s’appuie-t-il sur une spécification ou sur la description de l’utilisateur ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    subject:
+      description: "Ce qu’il faut concevoir (fonctionnalité, parcours ou écrans) et pour qui"
+      question: "Quelle fonctionnalité ou quel parcours faut-il concevoir, et pour qui ?"
+    source:
+      description: "Point de départ facultatif : un artefact de spécification NOVA (PRD, user stories, parcours, persona, brief de design), une URL Figma ou une description"
+
+lowfi-mockups:
+  name: "Maquettes basse fidélité"
+  summary: "Transformer les spécifications NOVA ou une description en maquettes basse fidélité : textes réels, composants et états sur une mise en page neutre."
+  purpose: "Valider le contenu, les composants et les états d’interaction avec les utilisateurs et les parties prenantes avant d’investir dans le design visuel."
+  method: "Prototypage basse fidélité avec contenu réel"
+  principles:
+  - "Partir des spécifications existantes (PRD, stories, parcours, personas) et reprendre leur vocabulaire"
+  - "Textes réels destinés aux utilisateurs, pas de lorem ipsum"
+  - "Montrer les composants et leurs états (par défaut, focus, désactivé, erreur, sélectionné)"
+  - "Visuels neutres : la structure et le contenu d’abord, la marque ensuite"
+  steps:
+    sources: "Collecte des spécifications"
+    system: "Définition des fondations de design"
+    screens: "Conception des écrans"
+  criteria:
+    quality.copy: "Les textes sont-ils réels et cohérents, et les composants et états sont-ils montrés ?"
+    quality.traceability: "Chaque écran s’appuie-t-il sur une spécification ou sur la description de l’utilisateur ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    subject:
+      description: "Ce qu’il faut concevoir (fonctionnalité, parcours ou écrans) et pour qui"
+      question: "Quelle fonctionnalité ou quel parcours faut-il concevoir, et pour qui ?"
+    source:
+      description: "Point de départ facultatif : un artefact de spécification NOVA (PRD, user stories, parcours, persona, brief de design), une URL Figma ou une description"
+
+hifi-mockups:
+  name: "Maquettes haute fidélité"
+  summary: "Transformer les spécifications NOVA, un design system ou un fichier Figma en maquettes haute fidélité avec tokens de design, états complets et textes réels."
+  purpose: "Donner à l’ingénierie et aux parties prenantes une vue précise, fondée sur des tokens, de l’interface finale, avec tous les états couverts."
+  method: "Design d’interface haute fidélité fondé sur des tokens"
+  principles:
+  - "Partir des spécifications existantes et, le cas échéant, du design system Figma : réutiliser les variables et styles existants, ne jamais en inventer en parallèle"
+  - "Appliquer les tokens de design (couleur, typographie, espacement, rayon, ombre) de façon cohérente, chacun avec son usage"
+  - "Couvrir les états par défaut, vide, chargement et erreur, avec des textes réels"
+  - "Respecter WCAG 2.2 AA : contraste 4,5:1 pour le texte, cibles d’au moins 24 px, focus visible"
+  steps:
+    sources: "Collecte des spécifications"
+    system: "Définition des fondations de design"
+    screens: "Conception des écrans"
+  criteria:
+    quality.tokens: "Les tokens sont-ils appliqués de façon cohérente, en réutilisant les variables Figma lorsqu’elles sont fournies ?"
+    quality.states: "Les états vide, chargement et erreur sont-ils couverts ?"
+    quality.a11y: "Les écrans respectent-ils WCAG 2.2 AA (contraste, taille des cibles, focus) ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    subject:
+      description: "Ce qu’il faut concevoir (fonctionnalité, parcours ou écrans) et pour qui"
+      question: "Quelle fonctionnalité ou quel parcours faut-il concevoir, et pour qui ?"
+    source:
+      description: "Point de départ facultatif : un artefact de spécification NOVA (PRD, user stories, parcours, persona, brief de design), une URL Figma ou une description"
+
+accessibility-audit:
+  name: "Audit d’accessibilité"
+  summary: "Auditer un design, une maquette NOVA ou un fichier Figma selon WCAG 2.2 AA, avec constats localisés, gravités et corrections."
+  purpose: "Repérer les obstacles d’accessibilité avant la production, quand ils sont les moins coûteux à corriger, et fournir aux designers et développeurs des corrections concrètes."
+  method: "Audit WCAG 2.2 AA (POUR)"
+  principles:
+  - "Organiser les contrôles selon les principes POUR"
+  - "Chaque constat cite le critère, le niveau, la gravité, l’emplacement et une correction"
+  - "Calculer les contrastes et les tailles de cibles lorsque les valeurs sont connues"
+  - "Dire ce qui n’a pas pu être vérifié plutôt que deviner"
+  steps:
+    scope: "Cadrage de l’audit"
+    findings: "Identification des obstacles"
+    recs: "Recommandation de corrections"
+  criteria:
+    quality.evidence: "Chaque constat cite-t-il le critère, le niveau, la gravité, l’emplacement et une correction concrète ?"
+    quality.coverage: "Le contraste, la taille des cibles, le focus, le clavier, les libellés, le reflow et les animations sont-ils tous vérifiés ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    design:
+      description: "Le design à auditer : une description, un artefact de maquettes ou une URL Figma"
+      question: "Quel design faut-il auditer (description, artefact de maquettes ou URL Figma) ?"
+
+figma-to-code:
+  name: "Figma vers code"
+  summary: "Générer du code front-end accessible à partir d’un design Figma ou d’une maquette NOVA, avec tokens, états et notes."
+  purpose: "Transformer un design validé en composants fidèles, accessibles et maintenables, pour que l’ingénierie parte de code fonctionnel plutôt que de redessiner."
+  method: "Implémentation de composants fidèle au design"
+  principles:
+  - "Le design est la source de vérité ; ne jamais inventer d’écrans, de textes ou de tokens"
+  - "D’abord les tokens, puis les composants, puis les pages"
+  - "HTML sémantique avant ARIA ; accessible par défaut"
+  - "Composants petits, typés et compilables couvrant tous les états conçus"
+  steps:
+    read: "Lecture du design"
+    tokens: "Correspondance des tokens de design"
+    code: "Écriture du code"
+  criteria:
+    quality.fidelity: "Le code implémente-t-il fidèlement la source du design, sans tokens ni écrans inventés ?"
+    quality.semantics: "Le code est-il sémantique, accessible et compilable ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    design:
+      description: "Le design à implémenter : une URL Figma ou un artefact de maquettes"
+      question: "Quel design faut-il implémenter (URL Figma ou artefact de maquettes) ?"
+    framework:
+      description: "Pile cible (par défaut React + TypeScript + Tailwind CSS)"

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Accessibility Audit — inputs",
+  "type": "object",
+  "properties": {
+    "design": {
+      "type": "string",
+      "description": "The design to audit: a description, a ui_screens Artifact or a Figma URL"
+    }
+  },
+  "required": [
+    "design"
+  ],
+  "additionalProperties": false
+}

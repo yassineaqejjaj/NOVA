@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Figma to Code — inputs",
+  "type": "object",
+  "properties": {
+    "design": {
+      "type": "string",
+      "description": "The design to implement: a Figma URL or a ui_screens Artifact"
+    },
+    "framework": {
+      "type": "string",
+      "description": "Target stack (default React + TypeScript + Tailwind CSS)"
+    }
+  },
+  "required": [
+    "design"
+  ],
+  "additionalProperties": false
+}

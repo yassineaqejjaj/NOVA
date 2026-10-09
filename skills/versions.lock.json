@@ -1,6 +1,7 @@
 {
   "acceptance-criteria@1.0.0": "3490e3258993c24400c62786142ce3ca2bc997593bb29bbd00dcb1113310f225",
   "acceptance-criteria@1.1.0": "8bcfae007c7d079ce280538f9febe75878c3ec7e0431a8da92c043b2cee3c2f6",
+  "accessibility-audit@1.0.0": "f83cf421139f1a2415d5d5b31604dae9fb252b8177cc2296cbb78b75a0a4616a",
   "api-design@1.0.0": "a9ab2de4f3d5dfda9da2145285abff7025ede18946640aeea1dcb5ace06790bd",
   "architecture-decision-record@1.0.0": "66eb2ca4897d01254a36d34d40f2dcac6a857f91e0d706801068633dfc86a525",
   "artifact-edit@1.0.0": "7a070d98ea5f8fe48cd8afdde95691f1fdcc9e925ff560b94d457ebdea5c8eb5",
@@ -28,8 +29,10 @@
   "experiment-definition@1.1.0": "8cd2f3ba4659668965ddf0afd8a5b292a173ee80032673441a47e66f9a3cad65",
   "feedback-synthesis@1.0.0": "edf4a7243cced2628ec37238c49ce9385201a77d122309d7d0b9346fcb06eb46",
   "feedback-synthesis@1.1.0": "809c242a058f1b04729c29ba0629705d38d421cb363d9e186233c18700646ce2",
+  "figma-to-code@1.0.0": "06c84c8dbab5ed1f625174565a76af8194a05e27416d9a97b4447e04e39c1d54",
   "functional-requirements@1.0.0": "b74b8e228f039bc882bc10baf9ee580f260782ebc1c3a5c9445dc35478d2614d",
   "functional-requirements@1.1.0": "092f77f7da7fdb0a1e3aadb5c0cf81ca7feb5d0befdbbf5c4222e7114cd8c917",
+  "hifi-mockups@1.0.0": "e144dbce6ea17addeaff1367e48d487810d997e3620da0cf24d796db9a450c2d",
   "hypothesis-generation@1.0.0": "e4a92abada3c9f637d884a24d8b2e4974d89d9ddeb4637f76ca63ca051b2f933",
   "hypothesis-generation@1.1.0": "0bf175f310e2606d76c3f2f4d64b6653533b6c8a09f743b78acdb1182cb43583",
   "impact-effort-prioritization@1.0.0": "fcad56b83a57adcf6439c1cb273dbd34e29b0910ff0a4ba83cf090f7c1e1b8c2",
@@ -43,6 +46,7 @@
   "jobs-to-be-done@1.1.0": "df5e277bb4709be50d9fad2de17d7c98f476fd6f70d4f140956525ec01ccc981",
   "kano-analysis@1.0.0": "ffc98d74a6701d4c92788e89fffc06663f805a5dbcf148694b4d50e6cc6d09eb",
   "kano-analysis@1.1.0": "d3067e94b03e20d2ffa1cf6c244c22c944c04147a9d03884e7b6eaf39ea146d6",
+  "lowfi-mockups@1.0.0": "6baf3605d1c9343fb5ffa029fd9e3ba484466c675f4037e86981afa1b1ba60b6",
   "moscow-prioritization@1.0.0": "6e220f629910de2cada3d992ad2745e8efdf620c920c33fbaec4aca5c2fcadd7",
   "moscow-prioritization@1.1.0": "86646e5e70fc458e170bc9d4ac277c51819856f99e9f828a02c7c6536053111a",
   "non-functional-requirements@1.0.0": "9b4d83d9496f71704edb091e199f784f9b4161f1bdac3754696f68455443a5c9",
@@ -109,6 +113,7 @@
   "vision-to-backlog@1.1.0": "329e15675a3f5c54d03ea72117fd9a2870d26b93bc81bc79222ed97bc2011fd1",
   "vision-to-objectives@1.0.0": "b71e54db02ea2fe39b2222d9cc6b7da32e133380589acab27d5f6de81b9c6178",
   "vision-to-objectives@1.1.0": "87a321ef60232aa0a99f8e1fb75ef51fea6e14c1e5383a3ec96bc48dbb1ba279",
+  "wireframes@1.0.0": "247bb95d6edef559200456b7b160b2973222be5343fad21bab00ebcdf76754bf",
   "wsjf-prioritization@1.0.0": "1bfa99d4d55074c52496805bbb7bdcac39d3779992d5d4c9f7930cad1f429c01",
   "wsjf-prioritization@1.1.0": "8aa3525b723ccb30edbf3617f2ac659de5a4c4e34bdc0d34a26b8a90118ba1fc"
 }

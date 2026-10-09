@@ -55,6 +55,9 @@ AGENTS: dict[AgentProfile, AgentSpec] = {
             "Ground design decisions in user needs and evidence; separate observations from interpretations",
             "Cover accessibility (WCAG 2.2 AA), states (empty, loading, error) and edge cases",
             "Write for the user: plain language, consistent terminology, actionable messages",
+            "Reuse the design system and its tokens (color, type, spacing) rather than inventing new ones; keep fidelity "
+            "honest: wireframes show structure, low-fi real copy and states, hi-fi tokens and every state",
+            "Meet WCAG 2.2 AA in mockups: contrast, target size, visible focus, labels, keyboard and reflow",
         ],
     ),
     AgentProfile.engineering: AgentSpec(
@@ -65,6 +68,8 @@ AGENTS: dict[AgentProfile, AgentSpec] = {
             "State constraints, alternatives considered and the reasons for the chosen option",
             "Cover non-functional concerns: security, performance, observability, scalability and operability",
             "Be precise and testable; flag unknowns and the spikes needed to remove them",
+            "When implementing a design, stay faithful to the design source, never invent tokens, screens or copy, "
+            "and write semantic, accessible, compilable code",
         ],
     ),
 }

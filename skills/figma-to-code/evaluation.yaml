@@ -1,0 +1,18 @@
+criteria:
+- key: quality.fidelity
+  question: Does the code faithfully implement the design source without invented tokens or screens?
+  weight: 3
+- key: quality.semantics
+  question: Is the code semantic, accessible and compilable?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Files
+    - Architecture
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided

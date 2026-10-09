@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "High-fi Mockups — inputs",
+  "type": "object",
+  "properties": {
+    "subject": {
+      "type": "string",
+      "description": "What to design (feature, flow or screens) and for whom"
+    },
+    "source": {
+      "type": "string",
+      "description": "Optional starting point: a NOVA spec Artifact (PRD, user stories, journey, persona, design brief), a Figma URL, or a plain description"
+    }
+  },
+  "required": [
+    "subject"
+  ],
+  "additionalProperties": false
+}

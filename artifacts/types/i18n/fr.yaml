@@ -594,3 +594,34 @@ retrospective:
     went_well: {title: "Ce qui a bien fonctionné"}
     to_improve: {title: "À améliorer"}
     actions: {title: "Actions"}
+
+ui_screens:
+  name: "Écrans d’interface"
+  description: "Wireframes et maquettes basse ou haute fidélité avec parcours, tokens de design et composants"
+  sections:
+    summary: {title: "Synthèse"}
+    flows: {title: "Parcours utilisateur", description: "Une étape du parcours par note"}
+    tokens: {title: "Tokens de design"}
+    screens: {title: "Écrans"}
+    components: {title: "Composants"}
+    figma: {title: "Figma"}
+
+a11y_audit:
+  name: "Audit d’accessibilité"
+  description: "Audit WCAG 2.2 AA avec constats localisés, contrôles réussis et corrections"
+  sections:
+    summary: {title: "Synthèse"}
+    findings: {title: "Constats"}
+    passed: {title: "Contrôles réussis"}
+    recommendations: {title: "Recommandations"}
+
+ui_code:
+  name: "Code d’interface"
+  description: "Code front-end généré depuis un design, avec tokens et notes d’accessibilité"
+  sections:
+    summary: {title: "Synthèse"}
+    architecture: {title: "Architecture"}
+    files: {title: "Fichiers"}
+    tokens: {title: "Tokens de design"}
+    a11y_notes: {title: "Notes d’accessibilité"}
+    figma: {title: "Figma"}

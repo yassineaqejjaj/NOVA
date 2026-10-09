@@ -18,7 +18,7 @@ PARTIAL_CREATE = {"functional-requirements", "definition-of-ready"}  # documente
 
 def test_library_loads_and_schemas_are_up_to_date():
     registry = get_skill_registry()
-    assert len(registry.all()) == 64
+    assert len(registry.all()) == 69
     assert build.main(check=True) == 0
 
 

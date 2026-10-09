@@ -90,6 +90,21 @@ class OrbitAccount(Base):
     linked_at: Mapped[datetime] = _created()
 
 
+class FigmaAccount(Base):
+    """Figma link of a user: OAuth tokens (MCP) or a personal access token (REST, read-only). Encrypted."""
+
+    __tablename__ = "figma_accounts"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    mode: Mapped[str] = mapped_column(String(10))  # oauth | token
+    figma_user_id: Mapped[str] = mapped_column(String(64), default="")
+    handle: Mapped[str] = mapped_column(String(200), default="")
+    token_ciphertext: Mapped[str | None] = mapped_column(Text)
+    refresh_ciphertext: Mapped[str | None] = mapped_column(Text)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    scope: Mapped[str] = mapped_column(String(500), default="")
+    linked_at: Mapped[datetime] = _created()
+
+
 class Project(Base):
     __tablename__ = "projects"
     id: Mapped[uuid.UUID] = _pk()
