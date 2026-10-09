@@ -87,3 +87,10 @@ def test_snapshot_tools_are_read_only_and_follow_the_orbit_read_permission():
             tools.authorize(ToolRequest(tool=name), allowed=[name], permissions=frozenset())
         with pytest.raises(ToolDenied, match="not declared"):
             tools.authorize(ToolRequest(tool=name), allowed=[], permissions=frozenset({Permission.context_read}))
+
+
+def test_orbit_aware_skills_get_the_snapshot_tools_and_others_do_not():
+    from nova.agent.snapshots import effective_tools
+
+    assert effective_tools(["search_orbit"]) == ["search_orbit", "list_orbit_snapshots", "get_orbit_snapshot"]
+    assert effective_tools(["list_artifacts"]) == ["list_artifacts"] and effective_tools([]) == []

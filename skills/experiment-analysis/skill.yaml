@@ -60,7 +60,7 @@ steps:
       rule: alternatives, consequences, decided_by role, status accepted only when recorded in context. List
       next steps as note items.
     fills: [decisions, next_steps]
-tools: [search_orbit, retrieve_orbit_context, list_orbit_snapshots, get_orbit_snapshot]
+tools: [search_orbit, retrieve_orbit_context]
 outputs:
   artifact_type: experiment_analysis
   mode: create

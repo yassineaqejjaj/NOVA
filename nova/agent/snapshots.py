@@ -31,3 +31,14 @@ async def retrieve_with_reference(d: AgentDeps, query: ContextQuery) -> ContextB
     bundle = await d.context.retrieve(query.model_copy(update={"base_snapshot": None}))
     bundle.warnings = [UNUSABLE_WARNING.format(name=name), *bundle.warnings]
     return bundle
+
+
+SNAPSHOT_TOOLS = ("list_orbit_snapshots", "get_orbit_snapshot")
+ORBIT_READ_TOOLS = ("search_orbit", "retrieve_orbit_context")
+
+
+def effective_tools(declared: list[str]) -> list[str]:
+    """Skills are immutable versions: any skill that already reads ORBIT may also list/read its snapshots (read-only)."""
+    if any(t in declared for t in ORBIT_READ_TOOLS):
+        return [*declared, *(t for t in SNAPSHOT_TOOLS if t not in declared)]
+    return declared

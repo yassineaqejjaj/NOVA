@@ -52,7 +52,7 @@ steps:
       Frame 3–5 opportunities (node_type opportunity, parent_id = the theme id) as user needs. List next
       steps as note items: research to run, items to add to the backlog, people to inform.
     fills: [opportunities, next_steps]
-tools: [search_orbit, retrieve_orbit_context, list_orbit_snapshots, get_orbit_snapshot]
+tools: [search_orbit, retrieve_orbit_context]
 outputs:
   artifact_type: feedback_synthesis
   mode: create
