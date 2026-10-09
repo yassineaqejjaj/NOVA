@@ -156,6 +156,7 @@ tests/              unit, integration, support (test doubles)
 * [Engineering (SDLC Autopilot)](docs/ENGINEERING.md) — features, roadmap, safety rails
 * [Training with FORGE](docs/TRAINING.md) — every specialist agent re-trained on all its Skills, validated by FORGE experiments
 * [Voice](docs/VOICE.md) — speech-to-text and text-to-speech
+* [Figma design](docs/design-figma.md) — Figma design integration notes
 * [Deployment](docs/DEPLOYMENT.md) — Railway + Vercel production setup, releases, FORGE/ORBIT connection
 * [Operations](docs/OPERATIONS.md) — production configuration, scaling, observability
 * [Open source components](OPEN_SOURCE_COMPONENTS.md) — third-party components used by NOVA
