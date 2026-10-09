@@ -1,4 +1,4 @@
-"""The root README stays accurate: structure, links, commands, variables and figures."""
+"""The root README stays accurate with the repository."""
 
 from __future__ import annotations
 
@@ -15,10 +15,28 @@ README = ROOT / "README.md"
 
 FENCE = "```"
 
+SKILLS_COUNT_RE = re.compile(
+    r"\b(\d+)\+?\s+(?:\w+\s+)?skills\b",
+    re.IGNORECASE,
+)
+ARTIFACTS_COUNT_RE = re.compile(
+    r"\b(\d+)\+?\s+(?:\w+\s+)?artifact types\b",
+    re.IGNORECASE,
+)
+PASSWORD_QUOTED_RE = re.compile(
+    r"(?<!\w)password(?!\w)[\s:=*]*`([^`\n]+)`",
+    re.IGNORECASE,
+)
+PASSWORD_ASSIGN_RE = re.compile(
+    r"[A-Za-z0-9_]*password[A-Za-z0-9_]*\s*[=:]\s*([^\s`]+)",
+    re.IGNORECASE,
+)
+SEPARATOR_RE = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
+HEADING_RE = re.compile(r"^(#{1,6})\s+\S")
+VARIABLE_RE = re.compile(r"\bNOVA_(?:LLM|DOCKER)_[A-Z0-9_]+\b")
 
-# --------------------------------------------------------------------------- helpers
 
-
+# ----------------------------------------------------------------------- helpers
 @pytest.fixture(scope="module")
 def text() -> str:
     assert README.is_file(), "README.md must stay at the repository root"
@@ -26,7 +44,7 @@ def text() -> str:
 
 
 def _split_fences(content: str) -> tuple[list[str], list[tuple[str, str]], bool]:
-    """Return (lines outside code blocks, [(info, body)] of code blocks, closed_properly)."""
+    """Split content into prose lines, (info, body) code blocks and a closed flag."""
     outside: list[str] = []
     blocks: list[tuple[str, str]] = []
     in_fence = False
@@ -58,14 +76,24 @@ def _code(content: str) -> str:
     return "\n".join(body for _, body in _split_fences(content)[1])
 
 
-def _section(content: str, title: str) -> str:
+def _raw_section(content: str, title: str) -> str:
     """Body of the `## ...` section whose heading contains `title`."""
-    parts = re.split(r"^## ", _prose(content), flags=re.MULTILINE)
+    parts = re.split(r"^## ", content, flags=re.MULTILINE)
     for part in parts[1:]:
         heading, _, body = part.partition("\n")
         if title.lower() in heading.lower():
             return body
     raise AssertionError(f"no '## {title}' section in README")
+
+
+def _section(content: str, title: str) -> str:
+    """Prose of a section (code blocks removed)."""
+    return _raw_section(_prose(content), title)
+
+
+def section_with_subsections(content: str, title: str) -> str:
+    """Raw text of a section including its code blocks and subsections."""
+    return _raw_section(content, title)
 
 
 def _compose_text() -> str:
@@ -81,12 +109,11 @@ def _env_example() -> str:
 
 
 def _nova_sources() -> str:
-    return "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in (ROOT / "nova").rglob("*.py"))
+    files = (ROOT / "nova").rglob("*.py")
+    return "\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in files)
 
 
-# --------------------------------------------------------------------------- AC: title, tagline
-
-
+# ----------------------------------------------------------------- title, tagline
 def test_readme_starts_with_title_and_short_pitch(text: str) -> None:
     first = next(line for line in text.splitlines() if line.strip())
     assert re.match(r"^# \S", first), "the README must start with an H1 title"
@@ -106,9 +133,7 @@ def test_readme_starts_with_title_and_short_pitch(text: str) -> None:
     assert len(pitch) <= 600, "the pitch must stay short"
 
 
-# --------------------------------------------------------------------------- AC: ORION roles
-
-
+# -------------------------------------------------------------------- ORION roles
 def test_orion_section_presents_nova_orbit_forge_with_repo_links(text: str) -> None:
     section = _section(text, "ORION")
     for name in ("NOVA", "ORBIT", "FORGE"):
@@ -117,9 +142,7 @@ def test_orion_section_presents_nova_orbit_forge_with_repo_links(text: str) -> N
     assert "https://github.com/yassineaqejjaj/FORGE" in section
 
 
-# --------------------------------------------------------------------------- AC: features
-
-
+# ----------------------------------------------------------------------- features
 @pytest.mark.parametrize(
     "keyword",
     [
@@ -140,11 +163,10 @@ def test_main_features_are_listed(text: str, keyword: str) -> None:
     assert keyword in _section(text, "What it does").lower()
 
 
-# --------------------------------------------------------------------------- AC: figures
-
-
+# ------------------------------------------------------------------------ figures
 def _count_skills() -> int:
-    return sum(1 for d in (ROOT / "skills").iterdir() if d.is_dir() and (d / "skill.yaml").is_file())
+    dirs = (d for d in (ROOT / "skills").iterdir() if d.is_dir())
+    return sum(1 for d in dirs if (d / "skill.yaml").is_file())
 
 
 def _count_artifact_types() -> int:
@@ -154,9 +176,9 @@ def _count_artifact_types() -> int:
 
 def test_cited_skill_and_artifact_counts_match_the_repository(text: str) -> None:
     prose = _prose(text)
-    for match in re.finditer(r"\b(\d+)\+?\s+(?:\w+\s+)?skills\b", prose, flags=re.IGNORECASE):
+    for match in SKILLS_COUNT_RE.finditer(prose):
         assert int(match.group(1)) == _count_skills(), match.group(0)
-    for match in re.finditer(r"\b(\d+)\+?\s+(?:\w+\s+)?artifact types\b", prose, flags=re.IGNORECASE):
+    for match in ARTIFACTS_COUNT_RE.finditer(prose):
         assert int(match.group(1)) == _count_artifact_types(), match.group(0)
 
 
@@ -182,16 +204,15 @@ def test_cited_prd_section_count_matches_the_prd_type(text: str) -> None:
     if not match:
         return  # figure removed: nothing to verify
     candidates = sorted((ROOT / "artifacts" / "types").glob("prd*.y*ml"))
-    assert candidates, "README cites PRD sections but artifacts/types has no PRD type"
-    sections = _find_sections(yaml.safe_load(candidates[0].read_text(encoding="utf-8")))
+    assert candidates, "README cites PRD sections but there is no PRD type"
+    data = yaml.safe_load(candidates[0].read_text(encoding="utf-8"))
+    sections = _find_sections(data)
     if sections is None:
         pytest.skip("PRD type does not expose a 'sections' list")
     assert int(match.group(1)) == len(sections)
 
 
-# --------------------------------------------------------------------------- AC: quick start
-
-
+# ---------------------------------------------------------------------- quick start
 def test_quick_start_commands(text: str) -> None:
     section = _section(text, "Quick start")
     code = _code(section_with_subsections(text, "Quick start"))
@@ -199,16 +220,6 @@ def test_quick_start_commands(text: str) -> None:
     assert "docker compose up -d --build" in code
     assert "python -m nova.seed" in code
     assert "NOVA_DEMO_PASSWORD" in section
-
-
-def section_with_subsections(content: str, title: str) -> str:
-    """Raw text of a `## title` section including its code blocks and subsections."""
-    parts = re.split(r"^## ", content, flags=re.MULTILINE)
-    for part in parts[1:]:
-        heading, _, body = part.partition("\n")
-        if title.lower() in heading.lower():
-            return body
-    raise AssertionError(f"no '## {title}' section in README")
 
 
 def test_quick_start_matches_compose_and_env_example(text: str) -> None:
@@ -219,7 +230,8 @@ def test_quick_start_matches_compose_and_env_example(text: str) -> None:
     match = re.search(r"docker compose exec (\w+) python -m nova\.seed", quick)
     assert match, "the seed command must run in a compose service"
     assert match.group(1) in services
-    for service in ("postgres", "valkey", "keycloak", "api", "worker", "beat", "web", "voice"):
+    expected = ("postgres", "valkey", "keycloak", "api", "worker", "beat", "web", "voice")
+    for service in expected:
         assert service in services, service
 
 
@@ -231,9 +243,7 @@ def test_compose_profiles_mentioned_in_readme_exist(text: str) -> None:
         assert profile in compose, profile
 
 
-# --------------------------------------------------------------------------- AC: inference config
-
-
+# ------------------------------------------------------------------ inference config
 def test_inference_section_documents_vllm_and_openai_compatible(text: str) -> None:
     quick = section_with_subsections(text, "Quick start")
     assert "vLLM" in quick
@@ -242,17 +252,20 @@ def test_inference_section_documents_vllm_and_openai_compatible(text: str) -> No
 
 
 def test_documented_llm_and_docker_variables_exist_in_the_repository(text: str) -> None:
-    names = set(re.findall(r"\bNOVA_(?:LLM|DOCKER)_[A-Z0-9_]+\b", text))
+    names = set(VARIABLE_RE.findall(text))
     assert {"NOVA_LLM_PROVIDER", "NOVA_LLM_BASE_URL", "NOVA_LLM_MODEL"} <= names
     assert "NOVA_DOCKER_LLM_BASE_URL" in names
     corpus = _env_example() + "\n" + _compose_text()
     sources = _nova_sources()
     for name in sorted(names):
         field = name.removeprefix("NOVA_").lower()
-        assert name in corpus or name in sources or field in sources, f"{name} is not used anywhere"
+        used = name in corpus or name in sources or field in sources
+        assert used, f"{name} is not used anywhere"
 
 
-# --------------------------------------------------------------------------- AC: local URLs
+# ---------------------------------------------------------------------- local URLs
+def _section_urls(content: str) -> set[str]:
+    return set(re.findall(r"http://localhost:\d+[^\s)>|`]*", content))
 
 
 def test_local_urls_are_documented(text: str) -> None:
@@ -263,26 +276,18 @@ def test_local_urls_are_documented(text: str) -> None:
     assert "http://localhost:8280" in urls
 
 
-def _section_urls(content: str) -> set[str]:
-    return set(re.findall(r"http://localhost:\d+[^\s)>|`]*", content))
-
-
-def test_local_ports_appear_in_compose_or_env(text: str) -> None:
+def test_local_ports_appear_in_compose_or_env() -> None:
     corpus = _compose_text() + "\n" + _env_example()
     for port in ("3200", "8200", "8280"):
         assert port in corpus, f"port {port} is documented but not configured"
 
 
-# --------------------------------------------------------------------------- AC: repository layout
-
-
+# ------------------------------------------------------------------ repository layout
 def test_repository_layout_paths_exist(text: str) -> None:
-    layout = _section(text, "Repository")
-    del layout  # the block is code; read it from the raw section
     raw = section_with_subsections(text, "Repository")
-    _, blocks, _ = _split_fences(FENCE + "text\n" + raw.split(FENCE)[1].split("\n", 1)[1] + FENCE)
-    block = blocks[0][1]
-    paths = [line.split()[0].rstrip("/") for line in block.splitlines() if line.strip()]
+    block = raw.split(FENCE)[1].split("\n", 1)[1]
+    lines = [line for line in block.splitlines() if line.strip()]
+    paths = [line.split()[0].rstrip("/") for line in lines]
     expected = {
         "apps/api",
         "apps/web",
@@ -296,15 +301,13 @@ def test_repository_layout_paths_exist(text: str) -> None:
     }
     assert expected <= set(paths)
     for path in paths:
-        assert (ROOT / path).exists(), f"{path} is listed in the README but does not exist"
+        assert (ROOT / path).exists(), f"{path} is listed but does not exist"
 
 
-# --------------------------------------------------------------------------- AC: tests and lint
-
-
+# ------------------------------------------------------------------ tests and lint
 def test_tests_and_lint_commands_are_defined(text: str) -> None:
     section = section_with_subsections(text, "Tests and lint")
-    code = _code(FENCE + "bash\n" + section.split(FENCE)[1].split("\n", 1)[1] + FENCE)
+    code = _code(section)
     assert "pytest" in code
     assert "ruff check" in code
     assert "ruff format --check" in code
@@ -316,12 +319,13 @@ def test_tests_and_lint_commands_are_defined(text: str) -> None:
     package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
     scripts = package.get("scripts", {})
     for script in re.findall(r"npm run ([\w:-]+)", code):
-        assert script in scripts, f"npm script '{script}' is not defined in package.json"
+        assert script in scripts, f"npm script '{script}' is not in package.json"
     assert "test:e2e" in code
 
 
 def test_every_npm_script_in_readme_exists(text: str) -> None:
-    scripts = json.loads((ROOT / "package.json").read_text(encoding="utf-8")).get("scripts", {})
+    package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+    scripts = package.get("scripts", {})
     for script in re.findall(r"npm run ([\w:-]+)", _code(text)):
         assert script in scripts, script
 
@@ -338,9 +342,7 @@ def test_ci_workflow_mentioned_in_readme_exists(text: str) -> None:
     assert (ROOT / ".github" / "workflows" / "ci.yml").is_file()
 
 
-# --------------------------------------------------------------------------- AC: links
-
-
+# ----------------------------------------------------------------------------- links
 REQUIRED_DOCS = [
     "docs/ARCHITECTURE.md",
     "docs/DEPLOYMENT.md",
@@ -377,9 +379,7 @@ def test_documentation_links_are_present_and_valid(text: str, doc: str) -> None:
     assert (ROOT / doc).is_file()
 
 
-# --------------------------------------------------------------------------- AC: no secrets
-
-
+# -------------------------------------------------------------------------- no secrets
 SECRET_PATTERNS = [
     r"ghp_[A-Za-z0-9]{20,}",
     r"github_pat_[A-Za-z0-9_]{20,}",
@@ -405,30 +405,28 @@ def test_readme_only_keeps_public_demo_credentials(text: str) -> None:
     for email in re.findall(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", text):
         assert email.endswith(".example"), f"real e-mail address in README: {email}"
 
-    # 1) prose: the word "password" followed by a quoted literal, e.g. password `NOVA_DEMO_PASSWORD`
-    quoted = re.findall(r"(?<!\w)password(?!\w)[\s:=*]*`([^`\n]+)`", text, flags=re.IGNORECASE)
+    # 1) prose: the word "password" followed by a quoted literal
+    quoted = PASSWORD_QUOTED_RE.findall(text)
     assert quoted, "the README should state which demo password value to use"
     for value in quoted:
-        assert value.strip() in ALLOWED_PASSWORD_VALUES, f"unexpected password value in README: {value!r}"
+        assert value.strip() in ALLOWED_PASSWORD_VALUES, f"unexpected value: {value!r}"
 
     # 2) assignments such as `SOME_PASSWORD=value` or `password: value`
-    for match in re.finditer(r"[A-Za-z0-9_]*password[A-Za-z0-9_]*\s*[=:]\s*([^\s`]+)", text, flags=re.IGNORECASE):
+    for match in PASSWORD_ASSIGN_RE.finditer(text):
         value = match.group(1).strip("`'\"")
-        assert value in ALLOWED_PASSWORD_VALUES, f"literal password assignment in README: {match.group(0)!r}"
+        assert value in ALLOWED_PASSWORD_VALUES, f"literal password: {match.group(0)!r}"
 
 
-# --------------------------------------------------------------------------- AC: production
-
-
-def test_production_section_keeps_public_url_and_points_to_deployment_doc(text: str) -> None:
+# --------------------------------------------------------------------------- production
+def test_production_section_keeps_public_url_and_points_to_deployment_doc(
+    text: str,
+) -> None:
     section = _section(text, "Production")
     assert "https://nova-six-orcin-96.vercel.app" in section
     assert "docs/DEPLOYMENT.md" in section
 
 
-# --------------------------------------------------------------------------- AC: valid Markdown
-
-
+# ------------------------------------------------------------------------ valid Markdown
 def test_code_blocks_are_closed_and_have_a_language(text: str) -> None:
     _, blocks, closed = _split_fences(text)
     assert closed, "unclosed code block"
@@ -437,11 +435,19 @@ def test_code_blocks_are_closed_and_have_a_language(text: str) -> None:
         assert info, f"code block without a language: {body.splitlines()[:1]}"
 
 
+def _heading_levels(content: str) -> list[int]:
+    levels = []
+    for line in _prose(content).splitlines():
+        found = HEADING_RE.match(line)
+        if found:
+            levels.append(len(found.group(1)))
+    return levels
+
+
 def test_heading_hierarchy_is_consistent(text: str) -> None:
-    headings = [
-        len(m.group(1)) for line in _prose(text).splitlines() if (m := re.match(r"^(#{1,6})\s+\S", line))
-    ]
-    assert headings and headings[0] == 1
+    headings = _heading_levels(text)
+    assert headings
+    assert headings[0] == 1
     assert headings.count(1) == 1, "exactly one H1"
     for previous, current in zip(headings, headings[1:], strict=False):
         assert current <= previous + 1, "heading levels must not be skipped"
@@ -455,10 +461,9 @@ def _cells(row: str) -> int:
 
 
 def test_tables_are_well_formed(text: str) -> None:
-    lines = _prose(text).splitlines()
     tables: list[list[str]] = []
     current: list[str] = []
-    for line in lines:
+    for line in _prose(text).splitlines():
         if line.strip().startswith("|"):
             current.append(line)
         elif current:
@@ -469,9 +474,7 @@ def test_tables_are_well_formed(text: str) -> None:
     assert tables, "the README should contain at least one table"
     for table in tables:
         assert len(table) >= 2
-        assert re.match(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$", table[1].replace("|---|", "|---|")) or (
-            set(table[1].replace("|", "").replace(":", "").replace(" ", "")) == {"-"}
-        ), "the second table row must be the separator"
+        assert SEPARATOR_RE.match(table[1]), "the second table row must be a separator"
         width = _cells(table[0])
         for row in table:
             assert _cells(row) == width, f"inconsistent column count: {row}"
