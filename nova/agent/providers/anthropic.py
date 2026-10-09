@@ -40,6 +40,7 @@ class AnthropicProvider(OpenAICompatibleProvider):
         reasoning_tokens: int = 0,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        self._no_temperature = False
         if not api_key:
             raise LLMError("No Anthropic API key configured (NOVA_LLM_API_KEY)")
         super().__init__(
@@ -88,10 +89,16 @@ class AnthropicProvider(OpenAICompatibleProvider):
         return payload
 
     async def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if self._no_temperature:
+            payload = {k: v for k, v in payload.items() if k != "temperature"}
         try:
             response = await self._client.post("/messages", json=payload)
         except (httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.PoolTimeout) as exc:
             raise LLMError(f"Anthropic API unreachable ({exc.__class__.__name__})", retryable=True) from exc
+        if response.status_code == 400 and "temperature" in payload and "temperature" in response.text:
+            # Recent Claude models reject the (deprecated) temperature parameter: retry without it, and remember.
+            self._no_temperature = True
+            return await self._post(payload)
         if response.status_code >= 400:
             raise LLMError(
                 f"Anthropic API error {response.status_code}: {response.text[:200]}",
