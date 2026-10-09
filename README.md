@@ -3,7 +3,10 @@
 > **One collaborator. One NOVA.** Express what you want to achieve; NOVA finds the context, picks the
 > method, runs the workflow and produces durable, editable product work.
 
-NOVA is part of **ORION**:
+NOVA is the personal product agent of the **ORION** ecosystem. It turns an intent into a plan, runs versioned
+Skills and delivers structured, editable Artifacts (PRD, backlog, sprint plan…).
+
+## ORION: NOVA, ORBIT and FORGE
 
 | | Responsibility |
 |---|---|
@@ -17,7 +20,7 @@ evaluated by FORGE through FORGE's existing `nova` adapter. See
 
 ## What it does
 
-```
+```text
 Intent → ORBIT context → Plan → Skill selection → Execution → Artifact → (approval) → FORGE trace
 ```
 
@@ -34,22 +37,24 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Artifact
 * **Engineering — autonomous SDLC** — give NOVA an intent or a GitHub issue and it specifies, designs, codes, tests, opens the
   pull request, reviews it, repairs CI and merges after your approval (Settings → bring your own LLM key and GitHub token).
   See [`docs/ENGINEERING.md`](docs/ENGINEERING.md).
-* **64 Skills** — versioned workflows for Product, Project, Design and Engineering work (strategy, discovery,
-  prioritization, definition, delivery, analysis, communication), composed into editable workflows.
-* **Artifacts** — 54 structured types (PRD with 23 sections, backlog, sprint plan…), Lexical editing, autosave,
-  version history and compare, section-level AI regeneration, comments, citations, export.
+* **Skills** — versioned workflows for Product, Project, Design and Engineering work (strategy, discovery,
+  prioritization, definition, delivery, analysis, communication), composed into editable workflows. Each Skill lives in
+  `skills/<name>/` (see [`docs/SKILLS.md`](docs/SKILLS.md)).
+* **Artifacts** — structured types defined in `artifacts/types/` (the PRD has 23 sections; also backlog, sprint plan…),
+  Lexical editing, autosave, version history and compare, section-level AI regeneration, comments, citations, export.
 * **Transparency** — which ORBIT context was used (classification, freshness, relevance), recorded provenance
   ("why did you include this?"), never raw model reasoning.
 * **Security** — Keycloak OIDC/SSO, RBAC, ORBIT ACL propagation, C0–C3 classification awareness, tool registry,
   autonomy policy, prompt-injection defenses, audit log, PII redaction.
-* **Open source only** — vLLM (or any OpenAI-compatible server), PostgreSQL, Valkey, Keycloak, OpenTelemetry.
-  Runs offline. See [`OPEN_SOURCE_COMPONENTS.md`](OPEN_SOURCE_COMPONENTS.md).
+* **Open source components** — vLLM (or any OpenAI-compatible server), PostgreSQL, Valkey, Keycloak, OpenTelemetry.
+  Can run offline with a self-hosted model. See [`OPEN_SOURCE_COMPONENTS.md`](OPEN_SOURCE_COMPONENTS.md).
 
 ## Production
 
 Live on **Vercel** (web) + **Railway** (API, worker, beat, Keycloak, Valkey, PostgreSQL):
 <https://nova-six-orcin-96.vercel.app>, connected to the deployed ORBIT and FORGE. See
 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the topology, variables, release process and how to connect FORGE.
+Kubernetes manifests are described in [`infrastructure/kubernetes/README.md`](infrastructure/kubernetes/README.md).
 
 ## Quick start (Docker)
 
@@ -57,7 +62,7 @@ Prerequisites: Docker (Compose v2). ORBIT and FORGE run from their own repositor
 
 ```bash
 cp .env.example .env
-docker compose up -d --build                 # postgres, valkey, keycloak, api, worker, beat, web
+docker compose up -d --build                 # postgres, valkey, keycloak, api, worker, beat, web, voice
 docker compose exec api python -m nova.seed  # demo data (Yassine · Head of AI, projects NOVA/ORBIT/FORGE)
 ```
 
@@ -65,7 +70,9 @@ Open <http://localhost:3200> and sign in with Keycloak user **`yassine`** / pass
 (`nova-demo` by default). Then **Settings → ORBIT** to link your ORBIT account (local ORBIT demo:
 `camille.martin@nordalis.example` / `orbit-demo`).
 
-**Inference** — NOVA needs an OpenAI-compatible server:
+### Inference
+
+NOVA needs an OpenAI-compatible server:
 
 | Setup | Settings |
 |---|---|
@@ -74,13 +81,18 @@ Open <http://localhost:3200> and sign in with Keycloak user **`yassine`** / pass
 
 `.env` describes the host; inside Compose, `NOVA_DOCKER_*` variables (`AUTH_MODE`, `ORBIT_BASE_URL`, `FORGE_BASE_URL`,
 `LLM_BASE_URL`) provide the container-network equivalents — ORBIT and FORGE are reached through `host.docker.internal`.
+Other options (for example the Anthropic provider) are described in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
-| URL | |
+Optional Compose profiles: `gpu` (vLLM), `cpu-llm` (Ollama in a container), `observability` (Jaeger).
+
+### Local URLs
+
+| URL | Service |
 |---|---|
-| http://localhost:3200 | NOVA |
-| http://localhost:8200/api/v1/docs | API (OpenAPI) |
-| http://localhost:8200/v1/agents/nova-orchestrator/runs | NOVA Agent Protocol (called by FORGE) |
-| http://localhost:8280 | Keycloak (admin / `KEYCLOAK_ADMIN_PASSWORD`) |
+| <http://localhost:3200> | NOVA (web) |
+| <http://localhost:8200/api/v1/docs> | API (OpenAPI) |
+| <http://localhost:8200/v1/agents/nova-orchestrator/runs> | NOVA Agent Protocol (called by FORGE) |
+| <http://localhost:8280> | Keycloak (admin / `KEYCLOAK_ADMIN_PASSWORD`) |
 
 ### Connect FORGE
 
@@ -107,37 +119,44 @@ npm run dev            # http://localhost:3200
 
 On macOS, set `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` for the Celery worker.
 
-## Tests
+## Tests and lint
 
 ```bash
 uv run pytest                                   # unit + integration (SQLite, in-memory checkpointer)
 NOVA_DATABASE_URL=postgresql+asyncpg://nova:nova@localhost:5435/nova_test uv run pytest   # real Postgres checkpointer
-uv run ruff check . && uv run python -m nova.skills.build --check
-npm run typecheck && npm run lint
+uv run ruff check . && uv run ruff format --check .
+uv run python -m nova.skills.build --check      # Skills consistency
+npm run typecheck && npm run lint               # web
 npm run test:e2e                                # Playwright (starts API, web and test doubles for LLM/ORBIT)
 ```
 
+The same checks run in CI (`.github/workflows/ci.yml`).
+
 ## Repository
 
-```
+```text
 apps/web            Next.js 15 · React 19 · Tailwind v4 · shadcn/ui (packages/ui) · TanStack Query · Zustand · Lexical · Framer Motion
 apps/api            FastAPI app (nova_api): auth (OIDC BFF), routers, SSE, NOVA Agent Protocol
 services/worker     Celery (nova_worker): executions, schedules, FORGE refresh, retention
-nova/               core: domain · agent (graph, nodes, tools, providers) · skills · artifacts · integrations/{orbit,forge} · infra · services
-skills/             64 Skills (skill.yaml, instructions.md, input/output JSON Schemas, evaluation.yaml)
-artifacts/types/    38 Artifact types
+services/voice      Speech-to-text / text-to-speech service (nova_voice)
+nova/               core: domain · agent (graph, nodes, tools, providers) · skills · artifacts · integrations/{orbit,forge,figma,github} · infra · services
+skills/             Skills (skill.yaml, instructions.md, input/output JSON Schemas, evaluation.yaml)
+artifacts/types/    Artifact type definitions
 packages/schemas    item-kind JSON Schemas shared by API and editor
-infrastructure/     docker, keycloak realm, kubernetes manifests
-docs/               integration-analysis.md, ARCHITECTURE.md, SKILLS.md, OPERATIONS.md, TRAINING.md
+infrastructure/     docker, keycloak realm, kubernetes manifests, railway images
+alembic/            database migrations
+docs/               architecture, deployment, engineering, operations, skills, training, voice, integration analysis
 tests/              unit, integration, support (test doubles)
 ```
 
 ## Documentation
 
 * [Integration analysis](docs/integration-analysis.md) — ORBIT & FORGE contracts, gaps, differences with the brief
-* [Training with FORGE](docs/TRAINING.md) — every specialist agent re-trained on all its Skills, validated by FORGE experiments
-* [Engineering (SDLC Autopilot)](docs/ENGINEERING.md) — features, roadmap, safety rails
 * [Architecture](docs/ARCHITECTURE.md) — execution model, Skills, Artifacts, data model, API, security
 * [Skills](docs/SKILLS.md) — writing and versioning Skills
+* [Engineering (SDLC Autopilot)](docs/ENGINEERING.md) — features, roadmap, safety rails
+* [Training with FORGE](docs/TRAINING.md) — every specialist agent re-trained on all its Skills, validated by FORGE experiments
+* [Voice](docs/VOICE.md) — speech-to-text and text-to-speech
 * [Deployment](docs/DEPLOYMENT.md) — Railway + Vercel production setup, releases, FORGE/ORBIT connection
 * [Operations](docs/OPERATIONS.md) — production configuration, scaling, observability
+* [Open source components](OPEN_SOURCE_COMPONENTS.md) — third-party components used by NOVA
