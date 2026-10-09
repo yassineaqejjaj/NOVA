@@ -26,6 +26,25 @@ import { useUi } from "@/stores/ui";
 const M = defineMessages({
   en: {
     title: "Settings",
+    description: "Make NOVA yours, choose its model, and connect the tools it works with.",
+    sections: "Settings sections",
+    nav_profile: "Profile",
+    nav_appearance: "Appearance",
+    nav_autonomy: "Autonomy",
+    nav_llm: "AI model",
+    nav_integrations: "Integrations",
+    nav_account: "Account",
+    profileSection: "Profile",
+    profileSectionHint: "Who you are and how NOVA works with you.",
+    appearanceSection: "Appearance",
+    appearanceSectionHint: "Language, theme and NOVA’s orb.",
+    autonomySection: "Autonomy and permissions",
+    autonomySectionHint: "What NOVA may do alone, what needs your approval, and what it never does.",
+    llmSection: "AI model",
+    llmSectionHint: "The model behind NOVA’s conversations and code work.",
+    integrationsSection: "Integrations",
+    integrationsSectionHint: "Connect the knowledge and tools NOVA acts with. Credentials are stored encrypted.",
+    accountSection: "Account",
     yourNova: "Your NOVA",
     yourNovaHint: "Personalization never overrides company policies or permissions.",
     name: "Name",
@@ -73,6 +92,25 @@ const M = defineMessages({
   },
   fr: {
     title: "Paramètres",
+    description: "Personnalisez NOVA, choisissez son modèle et connectez les outils avec lesquels il travaille.",
+    sections: "Rubriques des paramètres",
+    nav_profile: "Profil",
+    nav_appearance: "Apparence",
+    nav_autonomy: "Autonomie",
+    nav_llm: "Modèle d’IA",
+    nav_integrations: "Intégrations",
+    nav_account: "Compte",
+    profileSection: "Profil",
+    profileSectionHint: "Qui vous êtes et comment NOVA travaille avec vous.",
+    appearanceSection: "Apparence",
+    appearanceSectionHint: "Langue, thème et orbe de NOVA.",
+    autonomySection: "Autonomie et permissions",
+    autonomySectionHint: "Ce que NOVA peut faire seul, ce qui demande votre accord, et ce qu’il ne fait jamais.",
+    llmSection: "Modèle d’IA",
+    llmSectionHint: "Le modèle derrière les conversations et le travail de code de NOVA.",
+    integrationsSection: "Intégrations",
+    integrationsSectionHint: "Connectez les connaissances et les outils avec lesquels NOVA agit. Les identifiants sont stockés chiffrés.",
+    accountSection: "Compte",
     yourNova: "Votre NOVA",
     yourNovaHint: "La personnalisation ne remplace jamais les politiques ni les permissions de l’entreprise.",
     name: "Nom",
@@ -176,132 +214,205 @@ export default function SettingsPage() {
   if (!me || !prefs) return null;
   const set = (patch: Partial<Preferences>) => setPrefs({ ...prefs, ...patch });
 
+  const sections = [
+    { id: "profile", label: t("nav_profile") },
+    { id: "appearance", label: t("nav_appearance") },
+    { id: "autonomy", label: t("nav_autonomy") },
+    { id: "ai-model", label: t("nav_llm") },
+    { id: "integrations", label: t("nav_integrations") },
+    { id: "account", label: t("nav_account") },
+  ];
+
   return (
-    <Page>
-      <PageHeader title={t("title")} />
+    <Page wide>
+      <PageHeader title={t("title")} description={t("description")} />
 
-      <Card className="p-5" id="profile">
-        <h2 className="text-[15px] font-semibold">{t("profile")}</h2>
-        <p className="mt-0.5 text-[13px] text-muted">{t("profileHint")}</p>
-        <div className="mt-4"><ProfilePicker value={agentOf(prefs.profile)} onChange={chooseProfile} /></div>
-      </Card>
+      <div className="md:grid md:grid-cols-[190px_minmax(0,1fr)] md:gap-10">
+        <SettingsNav items={sections} label={t("sections")} />
 
-      <PermissionsCard />
+        <div className="min-w-0 space-y-14">
+          <Section id="profile" title={t("profileSection")} hint={t("profileSectionHint")}>
+            <Card className="p-5">
+              <h3 className="text-[15px] font-semibold">{t("profile")}</h3>
+              <p className="mt-0.5 text-[13px] text-muted">{t("profileHint")}</p>
+              <div className="mt-4"><ProfilePicker value={agentOf(prefs.profile)} onChange={chooseProfile} /></div>
+            </Card>
 
-      <Card className="mt-6 p-5">
-        <h2 className="text-[15px] font-semibold">{t("orb")}</h2>
-        <p className="mt-0.5 text-[13px] text-muted">{t("orbHint")}</p>
-        <div className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="flex flex-col items-center gap-3 rounded-[20px] bg-surface-2/70 px-8 py-6">
-            <NovaOrb state={previewState} size={84} reflection title={t("preview")} />
-            <div className="mt-2 flex max-w-[260px] flex-wrap justify-center gap-1" role="group" aria-label={t("preview")}>
-              {PREVIEW_STATES.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => {
-                    // "Completed" is a live transition: replay it from a calm orb.
-                    if (s === "completed") {
-                      setPreviewState("idle");
-                      setTimeout(() => setPreviewState("completed"), 80);
-                    } else setPreviewState(s);
-                  }}
-                  aria-pressed={previewState === s}
-                  className={cn("rounded-full px-2.5 py-1 text-[11.5px]", previewState === s ? "bg-surface text-text shadow-sm" : "text-subtle hover:text-text")}
-                >
-                  {t(`s_${s}` as "s_idle")}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div role="radiogroup" aria-label={t("orb")} className="grid flex-1 grid-cols-4 gap-3 sm:grid-cols-7">
-            {(Object.keys(ORB_PALETTES) as OrbPalette[]).map((key) => {
-              const active = orbColor === key;
-              return (
-                <button
-                  key={key}
-                  role="radio"
-                  aria-checked={active}
-                  aria-label={t(key)}
-                  onClick={() => chooseOrb(key)}
-                  className={cn("group flex flex-col items-center gap-1.5 rounded-[14px] p-2 transition-colors", active ? "bg-surface-2" : "hover:bg-surface-2/60")}
-                >
-                  <span className={cn("relative rounded-full p-0.5 ring-2 transition-[box-shadow]", active ? "ring-text/70" : "ring-transparent")}>
-                    <NovaOrb color={key} size={36} state="completed" />
-                    {active ? (
-                      <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-text text-background">
-                        <Check className="size-2.5" />
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className={cn("text-[12px]", active ? "font-medium text-text" : "text-muted")}>{t(key)}</span>
-                </button>
-              );
-            })}
-          </div>
+            <Card className="p-5">
+              <h3 className="text-[15px] font-semibold">{t("yourNova")}</h3>
+              <p className="mt-0.5 text-[13px] text-muted">{t("yourNovaHint")}</p>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label htmlFor="nova-name">{t("name")}</Label><Input id="nova-name" value={prefs.nova_name} onChange={(e) => set({ nova_name: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label htmlFor="role">{t("role")}</Label><Input id="role" value={prefs.role ?? ""} onChange={(e) => set({ role: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label htmlFor="tone">{t("tone")}</Label><Input id="tone" value={prefs.tone ?? ""} onChange={(e) => set({ tone: e.target.value })} placeholder={t("tonePlaceholder")} /></div>
+                <div className="space-y-1.5"><Label htmlFor="methods">{t("methods")}</Label><Input id="methods" value={(prefs.preferred_methods ?? []).join(", ")} onChange={(e) => set({ preferred_methods: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="RICE, Jobs To Be Done" /></div>
+                <div className="space-y-1.5"><Label>{t("format")}</Label><Select value={prefs.artifact_format ?? "structured"} onValueChange={(v) => set({ artifact_format: v })} options={[{ value: "structured", label: t("structured") }, { value: "concise", label: t("concise") }, { value: "detailed", label: t("detailed") }]} className="w-full" /></div>
+              </div>
+              <div className="mt-5 flex justify-end"><Button variant="primary" size="sm" onClick={() => save.mutate()} disabled={save.isPending}>{t("save")}</Button></div>
+            </Card>
+          </Section>
+
+          <Section id="appearance" title={t("appearanceSection")} hint={t("appearanceSectionHint")}>
+            <Card className="p-5">
+              <h3 className="text-[15px] font-semibold">{t("language")}</h3>
+              <p className="mt-0.5 text-[13px] text-muted">{t("languageHint")}</p>
+              <div role="radiogroup" aria-label={t("language")} className="mt-4 flex gap-2">
+                {LANGS.map((l) => (
+                  <Button key={l.value} role="radio" aria-checked={lang === l.value} size="sm" variant={lang === l.value ? "primary" : "secondary"} onClick={() => chooseLang(l.value)}>
+                    {l.label}
+                  </Button>
+                ))}
+              </div>
+              <Separator className="my-5" />
+              <h3 className="text-[15px] font-semibold">{t("appearance")}</h3>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" variant={theme === "dark" ? "primary" : "secondary"} onClick={() => setTheme("dark")}>{t("dark")}</Button>
+                <Button size="sm" variant={theme === "light" ? "primary" : "secondary"} onClick={() => setTheme("light")}>{t("light")}</Button>
+              </div>
+            </Card>
+
+            <Card className="p-5">
+              <h3 className="text-[15px] font-semibold">{t("orb")}</h3>
+              <p className="mt-0.5 text-[13px] text-muted">{t("orbHint")}</p>
+              <div className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-center">
+                <div className="flex flex-col items-center gap-3 rounded-[20px] bg-surface-2/70 px-8 py-6">
+                  <NovaOrb state={previewState} size={84} reflection title={t("preview")} />
+                  <div className="mt-2 flex max-w-[260px] flex-wrap justify-center gap-1" role="group" aria-label={t("preview")}>
+                    {PREVIEW_STATES.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          // "Completed" is a live transition: replay it from a calm orb.
+                          if (s === "completed") {
+                            setPreviewState("idle");
+                            setTimeout(() => setPreviewState("completed"), 80);
+                          } else setPreviewState(s);
+                        }}
+                        aria-pressed={previewState === s}
+                        className={cn("rounded-full px-2.5 py-1 text-[11.5px]", previewState === s ? "bg-surface text-text shadow-sm" : "text-subtle hover:text-text")}
+                      >
+                        {t(`s_${s}` as "s_idle")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div role="radiogroup" aria-label={t("orb")} className="grid flex-1 grid-cols-4 gap-3 sm:grid-cols-7">
+                  {(Object.keys(ORB_PALETTES) as OrbPalette[]).map((key) => {
+                    const active = orbColor === key;
+                    return (
+                      <button
+                        key={key}
+                        role="radio"
+                        aria-checked={active}
+                        aria-label={t(key)}
+                        onClick={() => chooseOrb(key)}
+                        className={cn("group flex flex-col items-center gap-1.5 rounded-[14px] p-2 transition-colors", active ? "bg-surface-2" : "hover:bg-surface-2/60")}
+                      >
+                        <span className={cn("relative rounded-full p-0.5 ring-2 transition-[box-shadow]", active ? "ring-text/70" : "ring-transparent")}>
+                          <NovaOrb color={key} size={36} state="completed" />
+                          {active ? (
+                            <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-text text-background">
+                              <Check className="size-2.5" />
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className={cn("text-[12px]", active ? "font-medium text-text" : "text-muted")}>{t(key)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </Card>
+          </Section>
+
+          <Section id="autonomy" title={t("autonomySection")} hint={t("autonomySectionHint")}>
+            <PermissionsCard />
+          </Section>
+
+          <Section id="ai-model" title={t("llmSection")} hint={t("llmSectionHint")}>
+            <Card id="llm" className="scroll-mt-10 p-5">
+              <h3 className="text-[15px] font-semibold">{te("llmTitle")}</h3>
+              <p className="mb-4 mt-0.5 text-[13px] text-muted">{te("llmHint")}</p>
+              <LlmSettings />
+            </Card>
+          </Section>
+
+          <Section id="integrations" title={t("integrationsSection")} hint={t("integrationsSectionHint")}>
+            <Card id="orbit" className="scroll-mt-10 p-5">
+              <h3 className="text-[15px] font-semibold">ORBIT</h3>
+              <p className="mb-4 mt-0.5 text-[13px] text-muted">{t("orbitHint")}</p>
+              <OrbitLink identity={me.orbit} />
+            </Card>
+            <Card id="github" className="scroll-mt-10 p-5">
+              <h3 className="text-[15px] font-semibold">{te("ghTitle")}</h3>
+              <p className="mb-4 mt-0.5 text-[13px] text-muted">{te("ghHint")}</p>
+              <GithubLink />
+            </Card>
+            <Card id="figma" className="scroll-mt-10 p-5">
+              <h3 className="text-[15px] font-semibold">Figma</h3>
+              <p className="mb-4 mt-0.5 text-[13px] text-muted">{t("figmaHint")}</p>
+              <FigmaLink />
+            </Card>
+          </Section>
+
+          <Section id="account" title={t("accountSection")}>
+            <Card className="flex items-center p-5 text-[13px] text-muted">
+              {t("signedInAs", { email: me.email })}
+              <Button variant="ghost" size="sm" className="ml-auto" onClick={() => void logout()}>{t("signOut")}</Button>
+            </Card>
+          </Section>
         </div>
-      </Card>
-
-      <Card className="mt-6 p-5">
-        <h2 className="text-[15px] font-semibold">{t("language")}</h2>
-        <p className="mt-0.5 text-[13px] text-muted">{t("languageHint")}</p>
-        <div role="radiogroup" aria-label={t("language")} className="mt-4 flex gap-2">
-          {LANGS.map((l) => (
-            <Button key={l.value} role="radio" aria-checked={lang === l.value} size="sm" variant={lang === l.value ? "primary" : "secondary"} onClick={() => chooseLang(l.value)}>
-              {l.label}
-            </Button>
-          ))}
-        </div>
-      </Card>
-
-      <Card className="mt-6 p-5">
-        <h2 className="text-[15px] font-semibold">{t("yourNova")}</h2>
-        <p className="mt-0.5 text-[13px] text-muted">{t("yourNovaHint")}</p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5"><Label htmlFor="nova-name">{t("name")}</Label><Input id="nova-name" value={prefs.nova_name} onChange={(e) => set({ nova_name: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label htmlFor="role">{t("role")}</Label><Input id="role" value={prefs.role ?? ""} onChange={(e) => set({ role: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label htmlFor="tone">{t("tone")}</Label><Input id="tone" value={prefs.tone ?? ""} onChange={(e) => set({ tone: e.target.value })} placeholder={t("tonePlaceholder")} /></div>
-          <div className="space-y-1.5"><Label htmlFor="methods">{t("methods")}</Label><Input id="methods" value={(prefs.preferred_methods ?? []).join(", ")} onChange={(e) => set({ preferred_methods: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} placeholder="RICE, Jobs To Be Done" /></div>
-          <div className="space-y-1.5"><Label>{t("format")}</Label><Select value={prefs.artifact_format ?? "structured"} onValueChange={(v) => set({ artifact_format: v })} options={[{ value: "structured", label: t("structured") }, { value: "concise", label: t("concise") }, { value: "detailed", label: t("detailed") }]} className="w-full" /></div>
-        </div>
-        <div className="mt-5 flex justify-end"><Button variant="primary" size="sm" onClick={() => save.mutate()} disabled={save.isPending}>{t("save")}</Button></div>
-      </Card>
-
-      <Card id="llm" className="mt-6 scroll-mt-10 p-5">
-        <h2 className="text-[15px] font-semibold">{te("llmTitle")}</h2>
-        <p className="mb-4 mt-0.5 text-[13px] text-muted">{te("llmHint")}</p>
-        <LlmSettings />
-      </Card>
-
-      <Card id="github" className="mt-6 scroll-mt-10 p-5">
-        <h2 className="text-[15px] font-semibold">{te("ghTitle")}</h2>
-        <p className="mb-4 mt-0.5 text-[13px] text-muted">{te("ghHint")}</p>
-        <GithubLink />
-      </Card>
-
-      <Card id="orbit" className="mt-6 scroll-mt-10 p-5">
-        <h2 className="text-[15px] font-semibold">ORBIT</h2>
-        <p className="mb-4 mt-0.5 text-[13px] text-muted">{t("orbitHint")}</p>
-        <OrbitLink identity={me.orbit} />
-      </Card>
-
-      <Card id="figma" className="mt-6 scroll-mt-10 p-5">
-        <h2 className="text-[15px] font-semibold">Figma</h2>
-        <p className="mb-4 mt-0.5 text-[13px] text-muted">{t("figmaHint")}</p>
-        <FigmaLink />
-      </Card>
-
-      <Card className="mt-6 p-5">
-        <h2 className="text-[15px] font-semibold">{t("appearance")}</h2>
-        <div className="mt-3 flex gap-2">
-          <Button size="sm" variant={theme === "dark" ? "primary" : "secondary"} onClick={() => setTheme("dark")}>{t("dark")}</Button>
-          <Button size="sm" variant={theme === "light" ? "primary" : "secondary"} onClick={() => setTheme("light")}>{t("light")}</Button>
-        </div>
-        <Separator className="my-5" />
-        <div className="flex items-center text-[13px] text-muted">
-          {t("signedInAs", { email: me.email })}
-          <Button variant="ghost" size="sm" className="ml-auto" onClick={() => void logout()}>{t("signOut")}</Button>
-        </div>
-      </Card>
+      </div>
     </Page>
+  );
+}
+
+function Section({ id, title, hint, children }: { id: string; title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-24">
+      <header className="mb-4">
+        <h2 id={`${id}-title`} className="text-[19px] font-semibold tracking-tight">{title}</h2>
+        {hint ? <p className="mt-0.5 text-[13px] text-muted">{hint}</p> : null}
+      </header>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+/** Section navigation: a sticky column on desktop, a sticky scrolling bar on phones. The current section follows the scroll. */
+function SettingsNav({ items, label }: { items: { id: string; label: string }[]; label: string }) {
+  const [active, setActive] = useState(items[0]!.id);
+  useEffect(() => {
+    const nodes = items.map((i) => document.getElementById(i.id)).filter((n): n is HTMLElement => !!n);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (visible) setActive(visible.target.id);
+      },
+      { rootMargin: "-10% 0px -75% 0px" },
+    );
+    nodes.forEach((n) => observer.observe(n));
+    return () => observer.disconnect();
+  }, [items]);
+  return (
+    <nav aria-label={label} className="sticky top-0 z-10 -mx-5 mb-6 overflow-x-auto bg-background/90 px-5 py-2 backdrop-blur md:static md:mx-0 md:mb-0 md:overflow-visible md:bg-transparent md:p-0 md:backdrop-blur-none">
+      <ul className="flex gap-1 md:sticky md:top-10 md:flex-col">
+        {items.map((item) => (
+          <li key={item.id} className="shrink-0">
+            <a
+              href={`#${item.id}`}
+              aria-current={active === item.id ? "location" : undefined}
+              onClick={() => setActive(item.id)}
+              className={cn(
+                "block rounded-[10px] px-3 py-1.5 text-[13.5px] transition-colors",
+                active === item.id ? "bg-surface-2 font-medium text-text" : "text-muted hover:bg-surface-2/60 hover:text-text",
+              )}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }

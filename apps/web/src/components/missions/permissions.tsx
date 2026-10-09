@@ -78,8 +78,8 @@ export function PermissionsCard() {
     save.mutate({ action_permissions: next });
   };
   return (
-    <Card className="mt-6 p-5" id="permissions">
-      <h2 className="text-[15px] font-semibold">{t("title")}</h2>
+    <Card className="p-5" id="permissions">
+      <h3 className="text-[15px] font-semibold">{t("title")}</h3>
       <p className="mt-0.5 text-[13px] text-muted">{t("hint")}</p>
       <div className="mt-4 space-y-1.5">
         <div className="text-[12.5px] font-medium text-muted">{t("level")}</div>
