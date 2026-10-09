@@ -15,6 +15,7 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 
+from tests.support.fake_github import SDLC_SCHEMAS, sdlc_response
 from tests.support.schema_faker import fake
 
 app = FastAPI()
@@ -151,6 +152,8 @@ async def completions(request: Request) -> dict[str, Any]:
             ],
             "routine_suggestion": "Every Friday at 16:00",
         }
+    elif name in SDLC_SCHEMAS:  # SDLC Autopilot (engineering E2E): consistent with the fake GitHub repository
+        value = sdlc_response(name, messages[0]["content"] if messages else "")
     elif schema:
         labels = re.findall(r'label="(S\d+)"', user)
         value = fake(schema, citations=labels[:1])

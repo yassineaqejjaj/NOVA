@@ -73,6 +73,18 @@ const CODE_FR: Record<string, string> = {
   signup_disabled: "La création de compte n’est pas encore disponible.",
   email_unavailable: "L’e-mail n’a pas pu être envoyé. Réessayez plus tard.",
   identity_unavailable: "Le service de connexion est indisponible. Réessayez dans un instant.",
+  // engineering (own LLM key, GitHub, SDLC runs)
+  llm_acknowledgement_required: "Confirmez que vos requêtes seront envoyées à ce fournisseur (jamais de données C2 confidentielles ou C3 secrètes).",
+  llm_not_configured: "Ajoutez d’abord votre clé API.",
+  github_token_invalid: "GitHub a refusé ce jeton.",
+  github_unauthorized: "Connectez GitHub dans les Paramètres d’abord.",
+  github_forbidden: "GitHub refuse l’accès : le jeton n’a pas les droits nécessaires sur ce dépôt.",
+  github_not_found: "Introuvable sur GitHub (vérifiez le nom du dépôt et les accès du jeton).",
+  github_rate_limited: "Limite de requêtes GitHub atteinte. Réessayez plus tard.",
+  github_unavailable: "GitHub est injoignable pour le moment. Réessayez.",
+  goal_required: "Décrivez ce que NOVA doit construire ou corriger, ou indiquez l’URL d’une issue GitHub.",
+  repo_required: "Choisissez un dépôt.",
+  conflict: "Cette action n’est pas possible dans l’état actuel du run.",
 };
 
 /** The error message in the interface language: known detail, else the code's message, else the English detail. */
@@ -122,6 +134,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body?: unknown) => request<T>("POST", path, body ?? {}),
+  put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
   patch: <T>(path: string, body: unknown) => request<T>("PATCH", path, body),
   delete: <T>(path: string) => request<T>("DELETE", path),
 };

@@ -53,7 +53,7 @@ async def build_deps(principal_user_id: str, project_id: uuid.UUID | None, origi
         permissions = await effective_permissions(session, principal, project_id)
     return AgentDeps(
         settings=get_settings(),
-        llm=providers.llm(),
+        llm=providers.llm() if origin == ExecutionOrigin.forge_protocol else await providers.llm_for_user(principal_user_id),
         context=providers.context(),
         skills=get_skill_registry(),
         artifacts=get_artifact_registry(),

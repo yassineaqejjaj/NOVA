@@ -134,7 +134,7 @@ async def plan_goal(goal: Goal, project_name: str | None) -> dict[str, Any]:
         "stakeholder-brief",
     ]
     candidates = routed + [registry.get(s) for s in defaults if registry.has(s) and all(c.id != s for c in routed)]
-    result = await providers.llm().structured_output(
+    result = await (await providers.llm_for_user(str(goal.user_id))).structured_output(
         prompts.goal_plan_messages(
             title=goal.title,
             outcome=goal.outcome,
