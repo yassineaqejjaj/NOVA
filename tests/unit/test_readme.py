@@ -355,15 +355,12 @@ REQUIRED_DOCS = [
     "OPEN_SOURCE_COMPONENTS.md",
 ]
 
+EXTERNAL_LINK_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|#|//)", flags=re.IGNORECASE)
+
 
 def _relative_links(content: str) -> list[str]:
     links = re.findall(r"\]\(([^)\s]+)\)", _prose(content))
-    relative = []
-    for link in links:
-        if re.match(r"^(?:[a-z][a-z0-9+.-]*:|#|//)", link, flags=re.IGNORECASE):
-            continue
-        relative.append(unquote(link.split("#", 1)[0]))
-    return relative
+    return [unquote(link.split("#", 1)[0]) for link in links if not EXTERNAL_LINK_RE.match(link)]
 
 
 def test_all_relative_links_point_to_existing_files(text: str) -> None:
