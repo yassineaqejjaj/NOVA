@@ -40,7 +40,7 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Artifact
 * **Skills** — versioned workflows for Product, Project, Design and Engineering work (strategy, discovery,
   prioritization, definition, delivery, analysis, communication), composed into editable workflows. Each Skill lives in
   `skills/<name>/` (see [`docs/SKILLS.md`](docs/SKILLS.md)).
-* **Artifacts** — structured types defined in `artifacts/types/` (the PRD has 23 sections; also backlog, sprint plan…),
+* **Artifacts** — structured types defined in `artifacts/types/` (PRD, backlog, sprint plan…),
   Lexical editing, autosave, version history and compare, section-level AI regeneration, comments, citations, export.
 * **Transparency** — which ORBIT context was used (classification, freshness, relevance), recorded provenance
   ("why did you include this?"), never raw model reasoning.
@@ -142,7 +142,6 @@ services/voice      Speech-to-text / text-to-speech service (nova_voice)
 nova/               core: domain · agent (graph, nodes, tools, providers) · skills · artifacts · integrations/{orbit,forge,figma,github} · infra · services
 skills/             Skills (skill.yaml, instructions.md, input/output JSON Schemas, evaluation.yaml)
 artifacts/types/    Artifact type definitions
-packages/schemas    item-kind JSON Schemas shared by API and editor
 infrastructure/     docker, keycloak realm, kubernetes manifests, railway images
 alembic/            database migrations
 docs/               architecture, deployment, engineering, operations, skills, training, voice, integration analysis
