@@ -118,3 +118,26 @@ async def test_truncated_structured_output_retries_with_a_larger_budget():
     provider = AnthropicProvider("", "", api_key="sk-test", default_max_tokens=4096, transport=httpx.MockTransport(handler))
     result = await provider.structured_output([LLMMessage(role="user", content="Rate it")], Answer)
     assert result.value.score == 9 and budgets == [4096, 8192]
+
+
+async def test_models_that_reject_temperature_are_retried_without_it_and_remembered():
+    bodies: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        bodies.append(body)
+        if "temperature" in body:
+            return httpx.Response(
+                400,
+                json={
+                    "type": "error",
+                    "error": {"type": "invalid_request_error", "message": "`temperature` is deprecated for this model."},
+                },
+            )
+        return httpx.Response(200, json={"model": "m", "content": [{"type": "text", "text": "OK"}], "usage": {}})
+
+    provider = _provider(handler)
+    assert (await provider.generate([LLMMessage(role="user", content="hi")])).text == "OK"
+    assert "temperature" in bodies[0] and "temperature" not in bodies[1]
+    await provider.generate([LLMMessage(role="user", content="again")])
+    assert len(bodies) == 3 and "temperature" not in bodies[2]  # remembered: no more failing first attempt
