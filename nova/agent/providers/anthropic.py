@@ -41,6 +41,7 @@ class AnthropicProvider(OpenAICompatibleProvider):
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self._no_temperature = False
+        self._no_forced_tool = False
         if not api_key:
             raise LLMError("No Anthropic API key configured (NOVA_LLM_API_KEY)")
         super().__init__(
@@ -88,9 +89,21 @@ class AnthropicProvider(OpenAICompatibleProvider):
             payload["system"] = system
         return payload
 
+    @staticmethod
+    def _without_forced_tool(payload: dict[str, Any]) -> dict[str, Any]:
+        choice = payload.get("tool_choice") or {}
+        if choice.get("type") not in ("tool", "any"):
+            return payload
+        name = choice.get("name") or STRUCTURED_TOOL
+        note = f"You MUST answer by calling the `{name}` tool exactly once, with the complete result as its input. Do not write any other text."
+        system = f"{payload['system']}\n\n{note}" if payload.get("system") else note
+        return {**payload, "tool_choice": {"type": "auto"}, "system": system}
+
     async def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
         if self._no_temperature:
             payload = {k: v for k, v in payload.items() if k != "temperature"}
+        if self._no_forced_tool:
+            payload = self._without_forced_tool(payload)
         try:
             response = await self._client.post("/messages", json=payload)
         except (httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.PoolTimeout) as exc:
@@ -98,6 +111,11 @@ class AnthropicProvider(OpenAICompatibleProvider):
         if response.status_code == 400 and "temperature" in payload and "temperature" in response.text:
             # Recent Claude models reject the (deprecated) temperature parameter: retry without it, and remember.
             self._no_temperature = True
+            return await self._post(payload)
+        forced = (payload.get("tool_choice") or {}).get("type") in ("tool", "any")
+        if response.status_code == 400 and forced and "tool_choice" in response.text:
+            # Some Claude models (extended thinking) cannot be forced to call a tool: ask for the call instead.
+            self._no_forced_tool = True
             return await self._post(payload)
         if response.status_code >= 400:
             raise LLMError(
