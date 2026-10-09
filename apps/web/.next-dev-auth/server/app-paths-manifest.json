@@ -1,0 +1,6 @@
+{
+  "/(app)/artifacts/[id]/page": "app/(app)/artifacts/[id]/page.js",
+  "/(app)/team/page": "app/(app)/team/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(app)/settings/page": "app/(app)/settings/page.js"
+}

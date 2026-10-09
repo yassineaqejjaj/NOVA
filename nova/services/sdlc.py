@@ -606,7 +606,7 @@ def _now() -> str:
     return utcnow().isoformat()
 
 
-def view(run: SdlcRun, *, detail: bool = True) -> dict[str, Any]:
+def view(run: SdlcRun, *, detail: bool = True, forge: dict[str, Any] | None = None) -> dict[str, Any]:
     data: dict[str, Any] = {
         "id": str(run.id),
         "kind": run.kind,
@@ -637,6 +637,7 @@ def view(run: SdlcRun, *, detail: bool = True) -> dict[str, Any]:
     from nova.services.sdlc_metrics import run_evaluation
 
     data["evaluation"] = run_evaluation(run)
+    data["forge"] = forge
     if detail:
         data["log"] = run.log or []
         data["release"] = (run.context or {}).get("release")
@@ -807,7 +808,10 @@ async def advance(run_id: str) -> float | None:
     finally:
         if gh is not None:
             await gh.aclose()
-    return await _persist(run_id, key, result, ctx)
+    delay = await _persist(run_id, key, result, ctx)
+    if delay is None:
+        await _evaluate(run_id)  # a finished run is handed to FORGE (no-op while it is running, waiting or cancelled)
+    return delay
 
 
 async def _mark_running(run_id: str, key: str) -> None:
@@ -877,6 +881,7 @@ async def _fail(run_id: str, key: str, message: str) -> None:
         run.status, run.error, run.lease_until, run.finished_at = RunStatus.failed.value, message, None, utcnow()
         _set_stage(run, key, status=StageStatus.failed.value, summary=message, finished_at=_now())
         _append_log(run, "error", f"Stage {key} failed: {message}")
+    await _evaluate(run_id)
 
 
 async def _finish(run_id: str, status: RunStatus) -> None:
@@ -884,6 +889,13 @@ async def _finish(run_id: str, status: RunStatus) -> None:
         run = await session.get(SdlcRun, uuid.UUID(run_id))
         if run is not None:
             run.status, run.lease_until, run.finished_at = status.value, None, utcnow()
+    await _evaluate(run_id)
+
+
+async def _evaluate(run_id: str) -> None:
+    from nova.services.sdlc_forge import ingest_safely
+
+    await ingest_safely(run_id)
 
 
 async def run_until_pause(run_id: str, *, sleep: bool = False) -> None:

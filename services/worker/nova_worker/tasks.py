@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from nova.services import maintenance, sdlc, training
+from nova.services import maintenance, sdlc, sdlc_forge, training
 from nova.services.executions import RetryableExecutionError, run_task
 from nova_worker.app import celery_app, run
 
@@ -73,3 +73,9 @@ def sdlc_requeue_stale() -> int:
     for run_id in ids:
         celery_app.send_task("nova.sdlc_advance", args=[run_id], queue="executions")
     return len(ids)
+
+
+@celery_app.task(name="nova.sdlc_forge_sync")
+def sdlc_forge_sync() -> int:
+    """Send finished SDLC runs to FORGE (observed runs) and refresh their evaluation state."""
+    return run(sdlc_forge.sync())

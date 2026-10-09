@@ -26,8 +26,9 @@ if __name__ == "__main__":
     asyncio.run(reset())
     if os.environ.get("NOVA_E2E_FAKE_GITHUB"):  # engineering E2E: an in-memory GitHub instead of api.github.com
         from nova.services import providers
-        from tests.support.fake_github import FakeGitHub
+        from tests.support.fake_github import FakeForge, FakeGitHub
 
         github = FakeGitHub()
         providers.override("github", lambda token: github)
+        providers.override("forge_client", FakeForge())  # finished runs are ingested by an in-memory FORGE
     uvicorn.run("nova_api.main:app", host="127.0.0.1", port=int(os.environ.get("E2E_API_PORT", "8293")), log_level="warning")

@@ -49,6 +49,8 @@ export interface Run {
   log?: { at: string; level: "info" | "error"; message: string }[];
   release?: { version: string; title: string; notes: string } | null;
   evaluation: RunEvaluation;
+  /** FORGE's evaluation of the finished run (null until it was ingested). */
+  forge: ForgeState | null;
 }
 
 export interface RunEvaluation {
@@ -72,8 +74,19 @@ export interface RunEvaluation {
   model: string;
 }
 
+export interface ForgeState {
+  status: string | null;
+  composite_score: number | null;
+  passed: boolean | null;
+  url: string | null;
+  ingested_at: string | null;
+}
+
 export interface RunMetrics {
   days: number;
+  forge_evaluated: number;
+  avg_forge_score: number | null;
+  forge_passed_rate: number | null;
   runs: number;
   delivery_runs: number;
   review_runs: number;

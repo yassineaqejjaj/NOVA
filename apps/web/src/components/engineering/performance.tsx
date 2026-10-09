@@ -1,9 +1,9 @@
 "use client";
 
-import { Card, Select, Skeleton } from "@nova/ui";
+import { Badge, Card, Select, Skeleton } from "@nova/ui";
 import { useState } from "react";
 
-import { type RunEvaluation, type RunMetrics, useMetrics } from "@/lib/api/engineering";
+import { type ForgeState, type RunEvaluation, type RunMetrics, useMetrics } from "@/lib/api/engineering";
 import { useT } from "@/lib/i18n";
 
 import { M } from "./engineering.messages";
@@ -71,6 +71,14 @@ function Figures({ data }: { data: RunMetrics }) {
         <Tile label={t("p_tokens")} value={compact(data.avg_tokens)} hint={t("p_tokensHint", { calls: num(data.avg_model_calls) })} />
         <Tile label={t("p_duration")} value={duration(data.avg_duration_seconds)} />
         <Tile label={t("p_interventions")} value={num(data.avg_human_interventions)} />
+        {data.forge_evaluated > 0 ? (
+          <Tile
+            testId="p-forge"
+            label={t("p_forgeScore")}
+            value={num(data.avg_forge_score)}
+            hint={t("p_forgeHint", { n: data.forge_evaluated, passed: Math.round((data.forge_passed_rate ?? 0) * data.forge_evaluated) })}
+          />
+        ) : null}
       </div>
       {failures.length > 0 ? (
         <p className="text-[12.5px] text-muted">
@@ -108,6 +116,30 @@ export function RunEvaluationCard({ evaluation: e }: { evaluation: RunEvaluation
         {item(t("e_tokens"), compact(e.tokens))}
         {item(t("e_duration"), duration(e.duration_seconds))}
       </dl>
+    </section>
+  );
+}
+
+/** FORGE's view of a finished run: score and verdict once evaluated. */
+export function ForgeCard({ forge }: { forge: ForgeState | null }) {
+  const t = useT(M);
+  if (!forge) return null;
+  const scored = forge.composite_score !== null;
+  return (
+    <section className="mt-8" data-testid="forge-card">
+      <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-subtle">{t("forgeTitle")}</h2>
+      <div className="flex flex-wrap items-center gap-3 text-[14px]">
+        {scored ? (
+          <>
+            <span className="text-[22px] font-semibold tabular-nums">{t("forgeScore", { score: num(forge.composite_score) })}</span>
+            {forge.passed !== null ? <Badge tone={forge.passed ? "success" : "warning"}>{forge.passed ? t("forgePassed") : t("forgeFailed")}</Badge> : null}
+          </>
+        ) : (
+          <span className="text-muted">{t("forgePending")}</span>
+        )}
+        {forge.url ? <a href={forge.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">{t("forgeOpen")}</a> : null}
+      </div>
+      <p className="mt-1.5 text-[12px] text-subtle">{t("forgeHint")}</p>
     </section>
   );
 }

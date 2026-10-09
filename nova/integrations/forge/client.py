@@ -59,6 +59,10 @@ class ForgeClient:
     async def create_runs(self, body: dict[str, Any]) -> list[dict[str, Any]]:
         return await self._request("POST", "/runs", json=body)
 
+    async def create_observed_run(self, body: dict[str, Any]) -> dict[str, Any]:
+        """Ingest a run NOVA already executed (idempotent on ``external_id``); FORGE evaluates it."""
+        return await self._request("POST", "/runs/observed", json=body)
+
     async def get_run(self, run_id: str) -> dict[str, Any]:
         return await self._request("GET", f"/runs/{run_id}")
 
