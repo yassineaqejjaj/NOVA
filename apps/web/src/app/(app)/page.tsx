@@ -47,12 +47,13 @@ export default function HomePage() {
 
       {today ? <ProactiveHero today={today} /> : <Skeleton className="h-[230px] rounded-[28px]" />}
 
-      {today ? <GettingStarted today={today} /> : null}
-
       <section aria-label={t("request")} className="mt-6 space-y-3">
         <Suggestions />
         <Composer variant="command" placeholder={t("placeholder")} />
       </section>
+
+      {/* Below the composer: it stays the first thing on screen */}
+      {today ? <GettingStarted today={today} /> : null}
 
       {today?.continue.length ? (
         <div className="mt-8">
