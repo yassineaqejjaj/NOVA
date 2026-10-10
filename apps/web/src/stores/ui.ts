@@ -14,6 +14,11 @@ interface UiState {
   /** Interface language (null: follow the browser) — mirrors the user's preference. */
   lang: "en" | "fr" | null;
   orbColor: OrbColor;
+  /** "Getting started" checklist, per user id on this browser: hidden by the user / Skills library visited. */
+  startedDismissed: string[];
+  skillsOpened: string[];
+  dismissStarted: (userId: string) => void;
+  markSkillsOpened: (userId: string) => void;
   setLang: (lang: "en" | "fr" | null) => void;
   /** Voice session (talking with NOVA), opened from the composer mic, the orb or ⌘K. */
   voice: { open: boolean; conversationId: string | null; projectId: string | null };
@@ -33,6 +38,10 @@ export const useUi = create<UiState>()(
       theme: "light",
       lang: null,
       orbColor: "coral",
+      startedDismissed: [],
+      skillsOpened: [],
+      dismissStarted: (userId) => set((s) => ({ startedDismissed: [...new Set([...s.startedDismissed, userId])] })),
+      markSkillsOpened: (userId) => set((s) => ({ skillsOpened: [...new Set([...s.skillsOpened, userId])] })),
       setLang: (lang) => set({ lang }),
       voice: { open: false, conversationId: null, projectId: null },
       openVoice: (context) => set({ voice: { open: true, conversationId: context?.conversationId ?? null, projectId: context?.projectId ?? null } }),
@@ -42,7 +51,7 @@ export const useUi = create<UiState>()(
       setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
       setTheme: (theme) => set({ theme }),
     }),
-    { name: "nova-ui-v2", partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed, theme: s.theme, lang: s.lang, orbColor: s.orbColor }) },
+    { name: "nova-ui-v2", partialize: (s) => ({ sidebarCollapsed: s.sidebarCollapsed, theme: s.theme, lang: s.lang, orbColor: s.orbColor, startedDismissed: s.startedDismissed, skillsOpened: s.skillsOpened }) },
   ),
 );
 

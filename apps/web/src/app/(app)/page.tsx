@@ -12,6 +12,7 @@ import {
   Suggestions,
   WorkingOn,
 } from "@/components/home/command-center";
+import { GettingStarted } from "@/components/home/getting-started";
 import { GoalsStrip, ImpactCard, ProactiveHero, ProductPulse, RecommendedToday } from "@/components/home/today";
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
 import { TopSearch } from "@/components/shell/sidebar";
@@ -50,6 +51,9 @@ export default function HomePage() {
         <Suggestions />
         <Composer variant="command" placeholder={t("placeholder")} />
       </section>
+
+      {/* Below the composer: it stays the first thing on screen */}
+      {today ? <GettingStarted today={today} /> : null}
 
       {today?.continue.length ? (
         <div className="mt-8">
