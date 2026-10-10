@@ -12,6 +12,7 @@ import {
   Suggestions,
   WorkingOn,
 } from "@/components/home/command-center";
+import { GettingStarted } from "@/components/home/getting-started";
 import { GoalsStrip, ImpactCard, ProactiveHero, ProductPulse, RecommendedToday } from "@/components/home/today";
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
 import { TopSearch } from "@/components/shell/sidebar";
@@ -45,6 +46,8 @@ export default function HomePage() {
       </div>
 
       {today ? <ProactiveHero today={today} /> : <Skeleton className="h-[230px] rounded-[28px]" />}
+
+      {today ? <GettingStarted today={today} /> : null}
 
       <section aria-label={t("request")} className="mt-6 space-y-3">
         <Suggestions />
