@@ -29,6 +29,7 @@ class AgentDeps:
     design: DesignProvider | None = None  # Figma; None: tools answer 'Connect Figma in Settings'
     permissions: frozenset[Permission] = frozenset()  # effective permissions of the user on the project
     skill_llms: dict[str, LLMProvider] = field(default_factory=dict)  # per-Skill model for generation steps
+    skill_scores: dict[str, float] = field(default_factory=dict)  # FORGE composite per Skill (dynamic assembly)
 
     def llm_for(self, skill_id: str) -> LLMProvider:
         """The model that writes a Skill's output: its routed model when configured, else the main one."""

@@ -38,6 +38,7 @@ from nova.domain.artifacts import (
     apply_section_updates,
     empty_content,
 )
+from nova.domain.assembly import withholds_external_writes
 from nova.domain.blocks import Block
 from nova.domain.context import ContextBundle
 from nova.domain.enums import BlockType, NovaPhase, SectionKind, StepStatus
@@ -61,6 +62,14 @@ log = logging.getLogger(__name__)
 
 def policy_for(state: NovaState, d: AgentDeps) -> AutonomyPolicy:
     return AutonomyPolicy(mode=state.autonomy, allow_auto_external_writes=d.settings.policy_allow_auto_external_writes)
+
+
+def constrained_tools(d: AgentDeps, state: NovaState, declared: list[str]) -> list[str]:
+    """A Skill's tools under the mission's constraints: secret (C3) context never goes with a tool that writes out."""
+    tools = effective_tools(declared)
+    if not withholds_external_writes(max((i.classification for i in state.context_items), default=0)):
+        return tools
+    return [t for t in tools if not d.tools.get(t).external_write]
 
 
 def citation_index(state: NovaState) -> dict[str, Citation]:
@@ -155,7 +164,7 @@ async def execute_skill(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
     else:
         sub = skill.steps[out.substep_index]
         fills = sub.fills
-    tools_allowed = effective_tools(skill.tools) if state.tool_iterations < d.settings.max_tool_iterations else []
+    tools_allowed = constrained_tools(d, state, skill.tools) if state.tool_iterations < d.settings.max_tool_iterations else []
 
     schema = d.artifacts.output_schema(artifact_type, fills, with_tools=bool(tools_allowed))
     if is_edit:
@@ -398,7 +407,7 @@ async def execute_tools(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
     needs_approval = []
     for request in state.pending_tool_requests:
         try:
-            tool = d.tools.authorize(request, allowed=effective_tools(skill.tools), permissions=d.permissions)
+            tool = d.tools.authorize(request, allowed=constrained_tools(d, state, skill.tools), permissions=d.permissions)
         except ToolDenied as exc:
             results.append(ToolResult(tool=request.tool, status="denied", error=str(exc)))
             continue

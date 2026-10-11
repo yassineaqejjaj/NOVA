@@ -63,6 +63,7 @@ class RunManifest(BaseModel):
     release_id: str | None = None
     replay_of: str | None = None  # run_id of the execution this one replays
     overrides: dict[str, str] = Field(default_factory=dict)  # what a replay changed: context, model, snapshot, policy
+    team: list[dict[str, Any]] = Field(default_factory=list)  # specialist agents of the plan (domain/assembly.py)
 
 
 def build_run_manifest(
@@ -83,6 +84,7 @@ def build_run_manifest(
     ids: dict[str, str | None] | None = None,
     overrides: dict[str, str] | None = None,
     project_slug: str | None = None,
+    team: list[dict[str, Any]] | None = None,
 ) -> RunManifest:
     """Assemble the manifest from already-known facts (no I/O)."""
     policies = {
@@ -114,6 +116,7 @@ def build_run_manifest(
         policies=policies,
         skills=[ManifestSkill(skill_id=s, version=v) for s, v in skills],
         overrides=dict(overrides or {}),
+        team=list(team or []),
     )
     manifest.release_id = next((p.release_id for p in policies.values() if p.release_id and p.canary), None) or next(
         (p.release_id for p in policies.values() if p.release_id), None
@@ -152,4 +155,5 @@ def manifest_from_state(
         ids=ids,
         overrides=overrides,
         project_slug=state.project_slug,
+        team=[m.model_dump(mode="json") for m in state.plan.team] if state.plan else [],
     )

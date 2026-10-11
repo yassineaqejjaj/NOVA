@@ -348,3 +348,19 @@ See `integration-analysis.md` §3 (G-O1…G-O6, G-F1…G-F5).
   Skill content hashes always use the canonical English definitions.
 * **Content** — what users, ORBIT or the model write is never translated; NOVA answers in the language of the request.
 * **Orb color** — `user_preferences.orb_color` (coral, rose, violet, ocean, emerald, amber, graphite), Settings → NOVA’s orb.
+
+---
+
+## Dynamic team assembly
+
+The plan is no longer only a list of Skills picked from a fixed catalog: it is a *team* chosen from what is known
+about the mission (`domain/assembly.py`).
+
+* **Measured performance (FORGE).** Between Skills that fit a request about equally well, the one FORGE scored
+  better (latest training baseline, `services/skill_scores.py`) is preferred. The adjustment is a bounded
+  tie-breaker (±1.5 router points); it never replaces a Skill that matches the request and never applies to a Skill
+  the user named (`/skill`).
+* **Mission constraints (ORBIT).** When the context served for the mission includes C3 (secret) material, tools
+  that write to an external system are withheld from every step (the plan states it in its assumptions).
+* **The team.** `plan.team` lists the specialist agents that carry the plan, their Skills and the mean FORGE score
+  of those Skills; it is kept in the run manifest (`team`) so a replay or an experiment can compare compositions.

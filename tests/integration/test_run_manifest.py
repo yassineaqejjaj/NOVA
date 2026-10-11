@@ -85,3 +85,20 @@ async def test_model_calls_are_recorded_and_priced(user, project, llm, orbit, fo
     assert stored.usage["llm_calls"] == len(rows)
     assert stored.usage["cost_usd"] == round(float(total), 6)
     assert stored.usage["cost_usd"] >= 0
+
+
+async def test_the_plan_records_the_team_and_the_manifest_keeps_it(user, project, llm, orbit, forge):
+    async with db.session_scope() as session:
+        conversation = await create_conversation(session, user, project_id=project, title=None)
+        _, _, task = await submit(
+            session,
+            user,
+            conversation,
+            ComposerInput(text="Create a PRD for scheduled CSV exports in FORGE", project_id=project),
+            {s.id for s in get_skill_registry().all()},
+        )
+        task_id = str(task.id)
+    assert await run_task(task_id, "start") == "completed"
+    async with db.session_scope() as session:
+        manifest = (await session.get(Task, uuid.UUID(task_id))).run_manifest
+    assert manifest["team"] == [{"agent": "product", "skills": ["prd"], "score": None}]

@@ -31,7 +31,7 @@ from nova.domain.state import NovaState
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import get_publisher
 from nova.infra.models import ContextRetrievalReference, Task, WorkflowExecution
-from nova.services import learning, llm_calls, providers
+from nova.services import learning, llm_calls, providers, skill_scores
 from nova.services.access import effective_permissions
 from nova.services.execution_store import SqlExecutionStore, emit_event
 from nova.services.users import get_user, principal_for
@@ -65,6 +65,8 @@ async def build_deps(
         assert user is not None
         principal = principal_for(user)
         permissions = await effective_permissions(session, principal, project_id)
+    async with session_scope() as session:
+        scores = await skill_scores.latest(session)
     settings = get_settings()
     org_llm = providers.llm()
     llm = org_llm if origin == ExecutionOrigin.forge_protocol else await providers.llm_for_user(principal_user_id)
@@ -101,6 +103,7 @@ async def build_deps(
         settings=settings,
         llm=llm,
         skill_llms=skill_llms,
+        skill_scores=scores,
         context=providers.context(),
         skills=get_skill_registry(),
         artifacts=get_artifact_registry(),
