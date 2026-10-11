@@ -13,6 +13,7 @@ from sqlalchemy import select
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import ExecutionPaused
 from nova.agent.providers.factory import build_llm_provider
+from nova.agent.providers.fallback import FallbackProvider, fallback_breakers
 from nova.agent.providers.recording import RecordingProvider
 from nova.agent.runtime import AgentRuntime, open_checkpointer
 from nova.agent.tools.registry import get_tool_registry
@@ -64,15 +65,23 @@ async def build_deps(
         principal = principal_for(user)
         permissions = await effective_permissions(session, principal, project_id)
     settings = get_settings()
-    llm = providers.llm() if origin == ExecutionOrigin.forge_protocol else await providers.llm_for_user(principal_user_id)
+    org_llm = providers.llm()
+    llm = org_llm if origin == ExecutionOrigin.forge_protocol else await providers.llm_for_user(principal_user_id)
+    pricing = Pricing(settings.llm_price_input_per_mtok, settings.llm_price_output_per_mtok, settings.llm_price_table)
+
+    def recorded(provider: Any) -> Any:  # every attempt is recorded, including the failed ones that trigger a fallback
+        return RecordingProvider(provider, llm_calls.recorder_for(task_id), pricing) if task_id else provider
+
     if model_override:  # replay: the organization's provider with another (allow-listed) model; no personal key
-        llm = build_llm_provider(settings.model_copy(update={"llm_model": model_override}))
-    if task_id:
-        llm = RecordingProvider(
-            llm,
-            llm_calls.recorder_for(task_id),
-            Pricing(settings.llm_price_input_per_mtok, settings.llm_price_output_per_mtok, settings.llm_price_table),
-        )
+        llm = recorded(build_llm_provider(settings.model_copy(update={"llm_model": model_override})))
+    elif settings.llm_fallback_models and llm is org_llm:  # never for a user's own key: their data stays where they chose
+        chain = [
+            org_llm,
+            *(build_llm_provider(settings.model_copy(update={"llm_model": m})) for m in settings.llm_fallback_models),
+        ]
+        llm = FallbackProvider([recorded(p) for p in chain], fallback_breakers(chain, settings))
+    else:
+        llm = recorded(llm)
     return AgentDeps(
         settings=settings,
         llm=llm,

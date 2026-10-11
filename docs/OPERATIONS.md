@@ -66,3 +66,14 @@ and `com.nova.llm-tunnel` (`supervisor.py`: Cloudflare quick tunnel; every new U
 `NOVA_LLM_BASE_URL` on `api`, `worker`, `beat`; a tunnel deleted by Cloudflare is recreated). State and logs live in
 `~/.nova-llm-tunnel/` (key `0600`). LM Studio must keep its server running (Developer → Start server, or "start on
 login"). The Mac must stay awake for NOVA to answer.
+
+---
+
+## Model fallback and circuit breaker
+
+`NOVA_LLM_FALLBACK_MODELS` (JSON list, default empty) names models tried in order when the main one fails
+*transiently* (overload, timeout, connection error); same provider and base URL, another model name. A model that
+fails `NOVA_LLM_CIRCUIT_FAILURES` times in a row (default 3) is skipped for `NOVA_LLM_CIRCUIT_COOLDOWN_SECONDS`
+(default 60), then probed once. Non-retryable errors (bad request, refused content) are never retried elsewhere,
+streams only fall back before the first chunk, and a user's own key (bring your own model) never falls back to the
+organization's models. Every attempt, failed ones included, is a row of `llm_calls`.
