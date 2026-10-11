@@ -24,11 +24,12 @@ def invalidate() -> None:
     _cache = None
 
 
-def learning(policy: AgentPolicy, release_id: str | None = None) -> AgentLearning:
+def learning(policy: AgentPolicy, release_id: str | None = None, canary: bool = False) -> AgentLearning:
     return AgentLearning(
         policy_id=str(policy.id),
         version=policy.version,
         release_id=release_id,
+        canary=canary,
         standards=list(policy.standards),
         skills=dict(policy.skills),
     )
@@ -54,7 +55,7 @@ async def _canaries(session: AsyncSession) -> list[dict[str, Any]]:
             "release_id": str(r.id),
             "agent": r.agent,
             "percent": r.canary_percent,
-            "learning": learning(p, release_id=str(r.id)).model_dump(),
+            "learning": learning(p, release_id=str(r.id), canary=True).model_dump(),
         }
         for r, p in rows
     ]
@@ -71,7 +72,13 @@ async def snapshot(session: AsyncSession, policy_id: str | None = None, user_id:
     if _cache and time.monotonic() - _cache[0] < ACTIVE_CACHE_SECONDS:
         active, canaries = dict(_cache[1]), _cache[2]
     else:
-        active = {agent: learning(p).model_dump() for agent, p in (await active_policies(session)).items()}
+        released = {
+            r.policy_id: str(r.id) for r in (await session.scalars(select(Release).where(Release.status == "active"))).all()
+        }
+        active = {
+            agent: learning(p, release_id=released.get(p.id)).model_dump()
+            for agent, p in (await active_policies(session)).items()
+        }
         canaries = await _canaries(session)
         _cache = (time.monotonic(), active, canaries)
         active = dict(active)
@@ -127,3 +134,10 @@ async def activate(session: AsyncSession, policy: AgentPolicy) -> AgentPolicy | 
     await session.flush()
     invalidate()
     return previous
+
+
+def release_of(snapshot: dict[str, Any]) -> str | None:
+    """The release a snapshot was served under: a canary the user is in first, else the active release."""
+    entries = [v for v in snapshot.values() if isinstance(v, dict) and v.get("release_id")]
+    chosen = next((v for v in entries if v.get("canary")), entries[0] if entries else None)
+    return chosen["release_id"] if chosen else None

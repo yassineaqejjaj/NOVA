@@ -143,6 +143,9 @@ class Settings(BaseSettings):
     release_canary_min_runs: int = Field(default=20, ge=1, le=10000)  # canary executions before a verdict
     release_max_failure_increase: float = Field(default=0.10, ge=0, le=1)  # rollback above this failure-rate gap
     release_approval: Literal["none", "full"] = "full"  # "full": a healthy canary waits for an administrator
+    # After it goes live, FORGE keeps comparing the release with the one it replaced (observed runs).
+    release_watch_days: int = Field(default=7, ge=1, le=90)  # how long an active release stays under watch
+    release_health_rollback: bool = True  # roll back on a significant drop in success or rise in failures
 
     # --- Voice (self-hosted speech-to-text / text-to-speech service) ---------------------------------
     voice_url: str = ""  # self-hosted voice service (empty: not deployed)

@@ -125,3 +125,15 @@ really happened — outcome, skills, tokens, steps, the run manifest (agent vers
 as an observed run scored by deterministic rules on a small structured result (`nova-production` config; no text
 of the request, answer or context leaves NOVA). Failures are reported too. Releases can then be compared on real
 traffic (FORGE `GET /analytics/releases/compare`).
+
+### FORGE watch of a live release
+
+An activated release stays under watch for `NOVA_RELEASE_WATCH_DAYS` (default 7). Every 10 minutes the worker
+asks FORGE (`GET /analytics/releases/compare`) to compare the release's **observed** runs with those of the
+release it replaced (see *Observed capture*): only a *significant* drop in success rate or rise in failures, and
+a minimum effect, counts; too few runs never raises an alert. In that case the release is **rolled back
+automatically** (the previous policy is restored, the reason is kept and audited) unless
+`NOVA_RELEASE_HEALTH_ROLLBACK=false`. Cost and latency rises are shown on the release but never withdraw it. Every
+check is stored on the release (`evidence.health`) and shown on the training page. FORGE being unreachable changes
+nothing. Runs are attributed to the release they were served under whether it was a canary or already active
+(`tasks.release_id`); the canary's control group is everyone not served by that release.

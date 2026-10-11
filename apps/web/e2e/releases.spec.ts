@@ -57,6 +57,15 @@ test("a healthy canary shows its comparison and an administrator approves it", a
   const approved = await mock(page, [
     release({}),
     release({ id: "44444444-4444-4444-8444-444444444444", label: "product v2", status: "rolled_back", reason: "Échecs 50% contre 5% pour les autres.", decided_by: "system", decided_at: now }),
+    release({
+      id: "55555555-5555-4555-8555-555555555555",
+      label: "product v1",
+      status: "active",
+      reason: "Approuvée par un administrateur.",
+      decided_by: "66666666-6666-4666-8666-666666666666",
+      decided_at: now,
+      evidence: { delta: 3.2, health: { status: "healthy", reason: "ok", alerts: [], checked_at: now } },
+    }),
   ]);
   await signIn(page);
   await page.goto("/team/training?agent=product");
@@ -72,6 +81,7 @@ test("a healthy canary shows its comparison and an administrator approves it", a
   // History
   await expect(section.getByText("Rolled back")).toBeVisible();
   await expect(section.getByText("Échecs 50% contre 5% pour les autres.")).toBeVisible();
+  await expect(section.getByText("FORGE watch · no degradation on real traffic")).toBeVisible();
 
   page.once("dialog", (dialog) => dialog.accept());
   await section.getByRole("button", { name: "Approve for everyone" }).click();

@@ -70,6 +70,13 @@ class ForgeClient:
         page = await self._request("GET", "/evaluation-configs", params={"page_size": 100})
         return next((c for c in page.get("items", []) if c.get("key") == key), None)
 
+    async def compare_releases(self, release_id: str, baseline_release_id: str | None, days: int = 14) -> dict[str, Any]:
+        """A release against its baseline on observed runs: ``{status, reason, alerts[], release, baseline}``."""
+        params: dict[str, Any] = {"release_id": release_id, "days": days}
+        if baseline_release_id:
+            params["baseline_release_id"] = baseline_release_id
+        return await self._request("GET", "/analytics/releases/compare", params=params)
+
     async def create_observed_run(self, body: dict[str, Any]) -> dict[str, Any]:
         """Ingest a run NOVA already executed (idempotent on ``external_id``); FORGE evaluates it."""
         return await self._request("POST", "/runs/observed", json=body)

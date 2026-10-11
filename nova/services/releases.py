@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import get_settings
@@ -136,6 +137,7 @@ async def _activate(session: AsyncSession, release: Release, actor_id: str | Non
         cycle = await session.get(TrainingCycle, policy.cycle_id)
         if cycle is not None:
             cycle.status = "promoted"
+    learning.invalidate()
     await _record(session, release, "activated", actor_id, why)
 
 
@@ -168,7 +170,9 @@ async def stats(session: AsyncSession, release: Release) -> tuple[Cohort, Cohort
         failed = await session.scalar(select(func.count(Task.id)).where(*base, Task.status == "failed")) or 0
         return Cohort(runs=int(runs), failed=int(failed))
 
-    return await cohort(Task.release_id == release.id), await cohort(Task.release_id.is_(None))
+    return await cohort(Task.release_id == release.id), await cohort(
+        or_(Task.release_id.is_(None), Task.release_id != release.id)
+    )
 
 
 async def evaluate(session: AsyncSession, release: Release) -> CanaryVerdict:
@@ -247,3 +251,75 @@ async def mark_policy_rolled_back(session: AsyncSession, policy_id: uuid.UUID, a
         release.status, release.reason = ReleaseStatus.rolled_back.value, "Retour à la version précédente."
         release.decided_by, release.decided_at = actor_id or "system", utcnow()
         await _record(session, release, "rolled_back", actor_id, release.reason)
+
+
+#: FORGE alerts that justify withdrawing a live release; cost and latency rises are reported, not acted on.
+ROLLBACK_ALERTS = ("pass_rate_drop", "failure_rate_rise")
+
+
+async def _baseline_release_id(session: AsyncSession, release: Release) -> str | None:
+    """The release that served the policy this one replaced (``None``: runs before any release)."""
+    if release.baseline_policy_id is None:
+        return None
+    previous = await session.scalar(
+        select(Release)
+        .where(Release.policy_id == release.baseline_policy_id, Release.id != release.id)
+        .order_by(Release.created_at.desc())
+    )
+    return str(previous.id) if previous is not None else None
+
+
+async def watch_active(session: AsyncSession, client: Any) -> list[dict[str, Any]]:
+    """Ask FORGE whether each recently activated release is degrading real traffic; roll back when it clearly is.
+
+    FORGE compares the release's observed runs with its baseline's (significant drop *and* a minimum effect,
+    never an alert on too few runs). The verdict is kept on the release; only a drop in success rate or a rise
+    in failures withdraws it, and only when ``release_health_rollback`` is on.
+    """
+    settings = get_settings()
+    since = utcnow() - timedelta(days=settings.release_watch_days)
+    live = (
+        await session.scalars(select(Release).where(Release.status == ReleaseStatus.active.value, Release.decided_at >= since))
+    ).all()
+    results: list[dict[str, Any]] = []
+    for release in live:
+        try:
+            health = await client.compare_releases(
+                str(release.id), await _baseline_release_id(session, release), days=settings.release_watch_days
+            )
+        except Exception as exc:  # FORGE being down must not disturb NOVA, nor roll anything back
+            log.warning("FORGE health of release %s unavailable: %s", release.id, exc)
+            continue
+        alerts = [a for a in health.get("alerts") or [] if a.get("kind") in ROLLBACK_ALERTS]
+        release.evidence = {
+            **release.evidence,
+            "health": {
+                "status": health.get("status"),
+                "reason": health.get("reason"),
+                "alerts": [a.get("message") for a in health.get("alerts") or []],
+                "checked_at": utcnow().isoformat(),
+            },
+        }
+        acted = False
+        if health.get("status") == "degraded" and alerts and settings.release_health_rollback:
+            try:
+                await rollback(session, release.id, None, "FORGE : " + " ".join(a["message"] for a in alerts))
+                acted = True
+            except ReleaseError as exc:
+                log.warning("Release %s could not be rolled back: %s", release.id, exc.message)
+        else:
+            await _record(session, release, "health_checked", None, f"FORGE : {health.get('status')}")
+        results.append({"release_id": str(release.id), "status": health.get("status"), "rolled_back": acted})
+    return results
+
+
+async def watch() -> int:
+    """Periodic entry point (worker beat): returns how many releases were rolled back."""
+    from nova.infra.db import session_scope
+    from nova.services import providers
+
+    client = providers.forge_watch_client()
+    if client is None:
+        return 0
+    async with session_scope() as session:
+        return sum(1 for r in await watch_active(session, client) if r["rolled_back"])

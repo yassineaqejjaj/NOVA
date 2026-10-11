@@ -36,6 +36,10 @@ const M = defineMessages({
     system: "automatically",
     manual: "applied by an administrator",
     history: "History",
+    watch: "FORGE watch",
+    healthy: "no degradation on real traffic",
+    degraded: "degradation detected",
+    insufficient_data: "not enough runs yet",
   },
   fr: {
     title: "Déploiements",
@@ -57,6 +61,10 @@ const M = defineMessages({
     system: "automatiquement",
     manual: "appliquée par un administrateur",
     history: "Historique",
+    watch: "Surveillance FORGE",
+    healthy: "aucune dégradation sur le trafic réel",
+    degraded: "dégradation détectée",
+    insufficient_data: "pas encore assez d'exécutions",
   },
 });
 
@@ -187,6 +195,11 @@ export function ReleasesSection({ agent }: { agent: AgentProfile }) {
                 </span>
               </div>
               {r.reason ? <p className="text-muted">{r.reason}</p> : null}
+              {r.status === "active" && r.evidence.health?.status ? (
+                <p className="text-subtle" title={r.evidence.health.alerts.join(" · ") || undefined}>
+                  {t("watch")} · {t(r.evidence.health.status)} · {timeAgo(r.evidence.health.checked_at)}
+                </p>
+              ) : null}
             </li>
           ))}
         </ol>

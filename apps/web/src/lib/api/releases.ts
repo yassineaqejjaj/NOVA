@@ -24,7 +24,14 @@ export interface ReleaseView {
   canary_percent: number;
   policy_id: string;
   baseline_policy_id: string | null;
-  evidence: { delta?: number | null; baseline_mean?: number | null; candidate_mean?: number | null; manual?: boolean };
+  evidence: {
+    delta?: number | null;
+    baseline_mean?: number | null;
+    candidate_mean?: number | null;
+    manual?: boolean;
+    /** FORGE's last comparison of a live release with the one it replaced. */
+    health?: { status: "healthy" | "degraded" | "insufficient_data" | null; reason: string | null; alerts: string[]; checked_at: string };
+  };
   reason: string;
   decided_by: string | null;
   created_at: string;

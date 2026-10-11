@@ -264,3 +264,131 @@ async def test_release_api_is_readable_by_all_and_decided_by_admins(app, user):
     for action in ("evaluate", "approve", "rollback"):
         assert (await member.post(f"/api/v1/releases/{release.id}/{action}")).status_code == 403
     assert (await member.get("/api/v1/releases/not-a-uuid")).status_code == 404
+
+
+# --- Active releases are attributed too, and FORGE keeps watching them ------------------------------------
+
+
+async def _live_release(monkeypatch) -> Release:
+    """A release that already went live (no canary, no approval) with a previous release behind it."""
+    monkeypatch.setattr(get_settings(), "release_approval", "none")
+    first = await _start(percent=0)
+    async with db.session_scope() as session:
+        later = AgentPolicy(
+            agent="product",
+            version=await learning.next_version(session, AgentProfile.product),
+            status="candidate",
+            skills={"prd": ["Cite the rule"]},
+        )
+        session.add(later)
+        await session.flush()
+        second = await releases.start(session, later, None, {})
+        assert second.status == "active" and str(second.baseline_policy_id) == str(first.policy_id)
+        session.expunge(second)
+        return second
+
+
+async def test_an_active_release_is_attributed_to_the_runs_it_serves(user, monkeypatch):
+    monkeypatch.setattr(get_settings(), "release_approval", "none")
+    release = await _start(percent=0)  # goes live at once
+    async with db.session_scope() as session:
+        snapshot = await learning.snapshot(session, None, user_id=user.user_id)
+    assert learning.release_of(snapshot) == str(release.id) and snapshot["product"]["canary"] is False
+
+
+async def test_a_canary_user_is_attributed_to_the_canary_rather_than_the_active_release(user, monkeypatch):
+    monkeypatch.setattr(get_settings(), "release_approval", "none")
+    await _start(percent=0)  # active release
+    canary = await _start(percent=100)  # everyone is in the canary of the next one
+    async with db.session_scope() as session:
+        snapshot = await learning.snapshot(session, None, user_id=user.user_id)
+    assert snapshot["product"]["canary"] is True and learning.release_of(snapshot) == str(canary.id)
+
+
+async def test_the_control_group_of_a_canary_includes_runs_served_by_the_active_release(user, monkeypatch):
+    monkeypatch.setattr(get_settings(), "release_approval", "none")
+    live = await _start(percent=0)
+    canary = await _start(percent=100)
+    await _traffic(user, canary.id, completed=3, failed=1, canary=True)
+    await _traffic(user, live.id, completed=6, failed=2, canary=True)  # runs of the active release: not NULL
+    async with db.session_scope() as session:
+        canary_cohort, control = await releases.stats(session, await session.get(Release, canary.id))
+    assert (canary_cohort.runs, canary_cohort.failed) == (4, 1)
+    assert (control.runs, control.failed) == (8, 2)
+
+
+class FakeForge:
+    def __init__(self, health=None, error=None) -> None:
+        self.health, self.error, self.calls = health or {}, error, []
+
+    async def compare_releases(self, release_id, baseline_release_id, days=14):
+        self.calls.append((release_id, baseline_release_id, days))
+        if self.error:
+            raise self.error
+        return self.health
+
+
+def _health(status, *kinds):
+    return {
+        "status": status,
+        "reason": "r",
+        "alerts": [{"kind": k, "message": f"alert {k}"} for k in kinds],
+    }
+
+
+async def _watch(client):
+    async with db.session_scope() as session:
+        return await releases.watch_active(session, client)
+
+
+async def test_a_live_release_that_degrades_real_traffic_is_rolled_back_by_forge_health(user, monkeypatch):
+    release = await _live_release(monkeypatch)
+    forge = FakeForge(_health("degraded", "pass_rate_drop"))
+    assert await _watch(forge) == [{"release_id": str(release.id), "status": "degraded", "rolled_back": True}]
+    previous = await _reload(release.id)
+    assert previous.status == "rolled_back" and previous.reason.startswith("FORGE : alert pass_rate_drop")
+    assert await _policy_status(release.baseline_policy_id) == "active"
+    # FORGE was asked about the release against the one it replaced.
+    assert forge.calls[0][0] == str(release.id) and forge.calls[0][1] is not None
+    async with db.session_scope() as session:  # back to the previous release's policy (v1), not the original v0
+        assert (await learning.snapshot(session))["product"]["version"] == 1
+
+
+async def test_healthy_or_inconclusive_verdicts_and_cost_alerts_never_roll_back(user, monkeypatch):
+    release = await _live_release(monkeypatch)
+    for health in (
+        _health("healthy"),
+        _health("insufficient_data"),
+        _health("degraded", "cost_per_success_rise", "latency_p95_rise"),
+    ):
+        outcome = await _watch(FakeForge(health))
+        assert outcome[0]["rolled_back"] is False
+        assert (await _reload(release.id)).status == "active"
+    kept = (await _reload(release.id)).evidence["health"]
+    assert kept["status"] == "degraded" and kept["alerts"] == ["alert cost_per_success_rise", "alert latency_p95_rise"]
+
+
+async def test_the_watch_can_be_switched_off_and_survives_forge_being_down(user, monkeypatch):
+    release = await _live_release(monkeypatch)
+    monkeypatch.setattr(get_settings(), "release_health_rollback", False)
+    assert (await _watch(FakeForge(_health("degraded", "pass_rate_drop"))))[0]["rolled_back"] is False
+    monkeypatch.setattr(get_settings(), "release_health_rollback", True)
+    assert await _watch(FakeForge(error=RuntimeError("FORGE unreachable"))) == []
+    assert (await _reload(release.id)).status == "active"
+
+
+async def test_only_recently_activated_releases_are_watched(user, monkeypatch):
+    release = await _live_release(monkeypatch)
+    from datetime import timedelta
+
+    async with db.session_scope() as session:
+        row = await session.get(Release, release.id)
+        row.decided_at = row.decided_at - timedelta(days=get_settings().release_watch_days + 1)
+    forge = FakeForge(_health("degraded", "pass_rate_drop"))
+    assert await _watch(forge) == [] and forge.calls == []
+
+
+async def test_watch_without_a_configured_forge_does_nothing(user, monkeypatch):
+    await _live_release(monkeypatch)
+    monkeypatch.setattr(get_settings(), "forge_api_key", "")
+    assert await releases.watch() == 0

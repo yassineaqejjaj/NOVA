@@ -38,7 +38,8 @@ class ManifestContext(BaseModel):
 class ManifestPolicy(BaseModel):
     policy_id: str | None = None
     version: int = 0
-    release_id: str | None = None  # the canary release this policy was served under, if any
+    release_id: str | None = None  # the release (canary or active) this policy was served under, if any
+    canary: bool = False
 
 
 class ManifestSkill(BaseModel):
@@ -86,7 +87,10 @@ def build_run_manifest(
     """Assemble the manifest from already-known facts (no I/O)."""
     policies = {
         str(profile): ManifestPolicy(
-            policy_id=raw.get("policy_id"), version=int(raw.get("version") or 0), release_id=raw.get("release_id")
+            policy_id=raw.get("policy_id"),
+            version=int(raw.get("version") or 0),
+            release_id=raw.get("release_id"),
+            canary=bool(raw.get("canary")),
         )
         for profile, raw in (learning or {}).items()
         if isinstance(raw, dict)
@@ -111,7 +115,9 @@ def build_run_manifest(
         skills=[ManifestSkill(skill_id=s, version=v) for s, v in skills],
         overrides=dict(overrides or {}),
     )
-    manifest.release_id = next((p.release_id for p in policies.values() if p.release_id), None)
+    manifest.release_id = next((p.release_id for p in policies.values() if p.release_id and p.canary), None) or next(
+        (p.release_id for p in policies.values() if p.release_id), None
+    )
     for key, value in (ids or {}).items():
         if key in ("experiment_id", "eval_suite_id", "release_id", "replay_of"):
             setattr(manifest, key, value)

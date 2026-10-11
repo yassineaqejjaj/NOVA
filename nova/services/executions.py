@@ -165,8 +165,8 @@ async def _run_segment(
             initial_input["learning"] = await learning.snapshot(
                 session, initial_input.get("learning_policy_id"), user_id=user_id if origin in TRAFFIC_ORIGINS else None
             )
-            canary = next((v["release_id"] for v in initial_input["learning"].values() if v.get("release_id")), None)
-            task.release_id = uuid.UUID(canary) if canary else None  # lets the release compare its runs with the rest
+            served = learning.release_of(initial_input["learning"])
+            task.release_id = uuid.UUID(served) if served else None  # lets a release be compared with the rest
             task.input = {**task.input, "learning": initial_input["learning"]}  # kept for retries and FORGE metadata
         if "started_at" not in initial_input:
             initial_input["started_at"] = utcnow().isoformat()

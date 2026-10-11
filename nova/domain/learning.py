@@ -35,7 +35,8 @@ class AgentLearning(BaseModel):
 
     policy_id: str | None = None
     version: int = 0
-    release_id: str | None = None  # set when the policy is a canary the user was assigned to
+    release_id: str | None = None  # the release this policy was served under (canary or active), if any
+    canary: bool = False  # served because the user is in the canary share, not because it is active for everyone
     standards: list[str] = Field(default_factory=list)
     skills: dict[str, list[str]] = Field(default_factory=dict)
 
