@@ -3,8 +3,9 @@
 The default capture re-executes the request inside FORGE, under whichever version is active *then*: its score
 says nothing about the release the user actually got. An observed run reports what really happened — outcome,
 skills, tokens, the run manifest (agent version, snapshot, policies, release) — and is scored by deterministic
-rules on a small structured result, so releases can be compared on real traffic. The user's request and the
-answer are not sent beyond the usual capture (input intent, redacted); the structured result carries no text.
+rules on a small structured result, so releases can be compared on real traffic. Neither the answer nor the context
+is ever sent. The user's request is sent (redacted of personal data) only with ``NOVA_FORGE_CAPTURE_INTENT=true``;
+by default FORGE sees which Skills ran, not what was asked.
 """
 
 from __future__ import annotations
@@ -109,6 +110,14 @@ def observed_output(record: ExecutionRecord) -> dict[str, Any]:
     }
 
 
+def _prompt(record: ExecutionRecord, include_intent: bool) -> str:
+    """What FORGE shows as the request: the user's words only when the organization opted in (redacted), else the Skills."""
+    if include_intent:
+        return str(redact_obj(record.user_intent[:2000]))
+    skills = ", ".join(s.skill_id for s in record.skills) or "none"
+    return f"[request text not sent] Skills: {skills}"
+
+
 def _events(record: ExecutionRecord) -> list[dict[str, Any]]:
     """Steps as Agent Protocol events: one per skill (with its duration), one per tool used."""
     events: list[dict[str, Any]] = []
@@ -132,7 +141,12 @@ def _events(record: ExecutionRecord) -> list[dict[str, Any]]:
 
 
 def observed_run_body(
-    record: ExecutionRecord, *, agent_version_id: str, scenario_id: str, evaluation_config_id: str | None = None
+    record: ExecutionRecord,
+    *,
+    agent_version_id: str,
+    scenario_id: str,
+    evaluation_config_id: str | None = None,
+    include_intent: bool = False,
 ) -> dict[str, Any]:
     """``POST /runs/observed`` body (FORGE docs/OBSERVED_RUNS.md): real outcome, usage, manifest and steps."""
     output = observed_output(record)
@@ -147,7 +161,7 @@ def observed_run_body(
         "scenario_id": scenario_id,
         "evaluation_config_id": evaluation_config_id,
         "external_id": f"nova-task:{record.task_id}",
-        "input": redact_obj({"prompt": record.user_intent[:2000], "context": {}}),
+        "input": {"prompt": _prompt(record, include_intent), "context": {}},
         "output_text": f"{output['outcome']}: {len(record.skills)} compétence(s), {len(record.artifact_ids)} livrable(s)",
         "output_json": output,
         "execution_status": output["outcome"],
