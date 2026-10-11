@@ -82,6 +82,13 @@ class Settings(BaseSettings):
     llm_fallback_models: list[str] = Field(default_factory=list)
     llm_circuit_failures: int = Field(default=3, ge=1, le=100)
     llm_circuit_cooldown_seconds: float = Field(default=60.0, ge=1, le=3600)
+    # Spending limits (0 = unlimited). Cost needs the prices below; tokens always work. Checked before every model call.
+    run_cost_budget_usd: float = Field(default=0.0, ge=0)
+    run_token_budget: int = Field(default=0, ge=0)
+    user_daily_cost_budget_usd: float = Field(default=0.0, ge=0)
+    # Model per Skill for the generation steps (skill id -> model), restricted to the models NOVA is already
+    # allowed to use (the main one, the fallbacks, the replay allow-list). Others are ignored.
+    llm_skill_models: dict[str, str] = Field(default_factory=dict)
     # Models a replay may switch to (empty: replays keep the configured model). Guards cost: a replay is a real run.
     replay_models: list[str] = Field(default_factory=list)
     # Cost model (USD per million tokens). 0 = self-hosted: calls are recorded with a cost of 0.

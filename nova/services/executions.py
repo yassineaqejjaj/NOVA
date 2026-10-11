@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import ExecutionPaused
+from nova.agent.providers.budget import BudgetedProvider, BudgetExceeded
 from nova.agent.providers.factory import build_llm_provider
 from nova.agent.providers.fallback import FallbackProvider, fallback_breakers
 from nova.agent.providers.recording import RecordingProvider
@@ -69,12 +70,14 @@ async def build_deps(
     llm = org_llm if origin == ExecutionOrigin.forge_protocol else await providers.llm_for_user(principal_user_id)
     pricing = Pricing(settings.llm_price_input_per_mtok, settings.llm_price_output_per_mtok, settings.llm_price_table)
 
+    uses_org_model = llm is org_llm  # false for a user's own key (bring your own model): their data stays where they chose
+
     def recorded(provider: Any) -> Any:  # every attempt is recorded, including the failed ones that trigger a fallback
         return RecordingProvider(provider, llm_calls.recorder_for(task_id), pricing) if task_id else provider
 
     if model_override:  # replay: the organization's provider with another (allow-listed) model; no personal key
         llm = recorded(build_llm_provider(settings.model_copy(update={"llm_model": model_override})))
-    elif settings.llm_fallback_models and llm is org_llm:  # never for a user's own key: their data stays where they chose
+    elif settings.llm_fallback_models and uses_org_model:
         chain = [
             org_llm,
             *(build_llm_provider(settings.model_copy(update={"llm_model": m})) for m in settings.llm_fallback_models),
@@ -82,9 +85,22 @@ async def build_deps(
         llm = FallbackProvider([recorded(p) for p in chain], fallback_breakers(chain, settings))
     else:
         llm = recorded(llm)
+    skill_llms: dict[str, Any] = {}
+    if uses_org_model and not model_override:  # routing only ever uses the organization's models
+        allowed = {settings.llm_model, *settings.llm_fallback_models, *settings.replay_models}
+        for skill_id, model in settings.llm_skill_models.items():
+            if model in allowed:
+                skill_llms[skill_id] = recorded(build_llm_provider(settings.model_copy(update={"llm_model": model})))
+            else:
+                log.warning("Model %s routed to Skill %s is not an allowed model: ignored", model, skill_id)
+    if task_id and (settings.run_cost_budget_usd or settings.run_token_budget or settings.user_daily_cost_budget_usd):
+        check = llm_calls.budget_check(task_id, principal_user_id, settings)
+        llm = BudgetedProvider(llm, check)
+        skill_llms = {k: BudgetedProvider(v, check) for k, v in skill_llms.items()}
     return AgentDeps(
         settings=settings,
         llm=llm,
+        skill_llms=skill_llms,
         context=providers.context(),
         skills=get_skill_registry(),
         artifacts=get_artifact_registry(),
@@ -266,6 +282,8 @@ async def _manifest_for(state: NovaState, initial_input: dict[str, Any]) -> dict
 
 
 def _friendly(exc: Exception) -> str:
+    if isinstance(exc, BudgetExceeded):
+        return f"{exc.message} NOVA stopped before spending more; completed steps were kept."
     if isinstance(exc, LLMError):
         return "The inference server did not respond correctly. You can retry: NOVA resumes from the last completed step."
     if isinstance(exc, ContextError):

@@ -176,13 +176,14 @@ async def execute_skill(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
         tools_allowed=tools_allowed,
         edit_instruction=state.intent if is_edit else None,
     )
-    result = await d.llm.structured_output(messages, RawStepOutput, json_schema=schema)
+    writer = d.llm_for(skill.id)
+    result = await writer.structured_output(messages, RawStepOutput, json_schema=schema)
     if not is_edit and not result.value.tool_requests and not any(map(_has_content, result.value.sections.values())):
         # Neither tools nor content (sections are optional when tools may be requested, and a concise model may
         # leave a section empty when input data is missing): ask once more, explicitly, for every section.
         strict = d.artifacts.output_schema(artifact_type, fills, with_tools=False)
         nudge = LLMMessage(role="user", content=EMPTY_STEP_NUDGE)
-        retry = await d.llm.structured_output([*messages, nudge], RawStepOutput, json_schema=strict)
+        retry = await writer.structured_output([*messages, nudge], RawStepOutput, json_schema=strict)
         result = retry.model_copy(
             update={"usage": result.usage.add(retry.usage), "latency_ms": result.latency_ms + retry.latency_ms}
         )
@@ -303,7 +304,7 @@ async def validate_step(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[s
         schema = d.artifacts.output_schema(artifact_type, targets, with_tools=False)
         schema["properties"]["sections"]["required"] = []
         revised = await _optional(
-            d.llm.structured_output(
+            d.llm_for(skill.id).structured_output(
                 prompts.skill_step_messages(
                     state,
                     skill,

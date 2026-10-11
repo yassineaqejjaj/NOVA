@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from nova.agent.ports import ExecutionStore
 from nova.agent.tools.registry import ToolRegistry
@@ -28,3 +28,8 @@ class AgentDeps:
     evaluation: EvaluationSink | None = None
     design: DesignProvider | None = None  # Figma; None: tools answer 'Connect Figma in Settings'
     permissions: frozenset[Permission] = frozenset()  # effective permissions of the user on the project
+    skill_llms: dict[str, LLMProvider] = field(default_factory=dict)  # per-Skill model for generation steps
+
+    def llm_for(self, skill_id: str) -> LLMProvider:
+        """The model that writes a Skill's output: its routed model when configured, else the main one."""
+        return self.skill_llms.get(skill_id, self.llm)
