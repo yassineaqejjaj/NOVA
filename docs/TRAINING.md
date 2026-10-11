@@ -137,3 +137,14 @@ automatically** (the previous policy is restored, the reason is kept and audited
 check is stored on the release (`evidence.health`) and shown on the training page. FORGE being unreachable changes
 nothing. Runs are attributed to the release they were served under whether it was a canary or already active
 (`tasks.release_id`); the canary's control group is everyone not served by that release.
+
+### Checking the loop against a real FORGE
+
+`tests/cross_instance/test_forge_roundtrip.py` drives NOVA against a **real** FORGE: 12 healthy executions under a
+first release, 12 failing ones under a second, observed capture into FORGE, evaluation by FORGE's worker, FORGE's
+release comparison and NOVA's automatic rollback. It is skipped unless a FORGE is reachable:
+
+    NOVA_E2E_FORGE_URL=http://127.0.0.1:8101 NOVA_E2E_FORGE_KEY=fgk_… uv run pytest tests/cross_instance -q
+
+The FORGE needs its API **and** a worker, a key with the admin role (the first capture creates the scenario and the
+rules-only evaluation config) and a throwaway database: the test writes agents, scenarios and runs into it.
