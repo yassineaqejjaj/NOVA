@@ -33,3 +33,32 @@ def test_package_snapshot_and_snapshot_endpoints_shapes():
     assert (
         snapshot({"name": "plan", "version": 2, "content": "c", "items": [], "request_id": "x", "content_hash": "h"}).version == 2
     )
+
+
+def test_a_validated_learning_from_orbit_is_served_as_cited_untrusted_context():
+    """ORION: ORBIT serves verified learnings as memory items of kind ``learning``; NOVA cites them like any
+    source and wraps them as untrusted data (never as instructions)."""
+    from nova.agent.prompts import context_block
+
+    package = {
+        "request_id": "r1",
+        "items": [
+            {
+                "citation": "S2",
+                "candidate_type": "memory",
+                "id": "m1",
+                "memory_item_id": "6a6a6a6a-0000-4000-8000-000000000001",
+                "title": "Citer la règle métier",
+                "memory_kind": "learning",
+                "excerpt": "Quand une règle de remboursement est servie, la citer mot pour mot.",
+                "classification": 1,
+                "scores": {"final": 0.8},
+                "reason_code": "INCLUDED",
+            }
+        ],
+    }
+    bundle = context_bundle(package, "atlas", "http://orbit")
+    item = bundle.items[0]
+    assert item.memory_kind == "learning" and item.citation == "S2" and item.kind == "memory"
+    rendered = context_block(bundle.items)
+    assert "memory/learning" in rendered and "S2" in rendered and "CONTEXT (cite with the label)" in rendered
