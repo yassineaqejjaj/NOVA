@@ -21,12 +21,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import get_settings
 from nova.domain.llm import LLMMessage
+from nova.domain.release import in_canary
 from nova.domain.sdlc_policy import LESSON_STAGES, SDLC_AGENT, SdlcLessons, merge_lessons
 from nova.domain.trust import TRUST_RULES, detect_injection
 from nova.infra.db import aware, session_scope, utcnow
-from nova.infra.models import AgentPolicy, IntegrationReference, SdlcRun
+from nova.infra.models import AgentPolicy, IntegrationReference, Release, SdlcRun
 from nova.integrations.forge.client import ForgeError
-from nova.services import providers
+from nova.services import providers, releases
 from nova.services.audit import audit
 from nova.services.sdlc_metrics import run_evaluation
 
@@ -44,14 +45,42 @@ async def active_policy(session: AsyncSession) -> AgentPolicy | None:
     return await session.scalar(select(AgentPolicy).where(AgentPolicy.agent == SDLC_AGENT, AgentPolicy.status == "active"))
 
 
-def snapshot_of(policy: AgentPolicy) -> dict[str, Any]:
-    return {"id": str(policy.id), "version": policy.version, "standards": list(policy.standards), "stages": dict(policy.skills)}
+def snapshot_of(policy: AgentPolicy, release_id: str | None = None, canary: bool = False) -> dict[str, Any]:
+    snap: dict[str, Any] = {
+        "id": str(policy.id),
+        "version": policy.version,
+        "standards": list(policy.standards),
+        "stages": dict(policy.skills),
+    }
+    if release_id:
+        snap.update(release_id=release_id, canary=canary)  # what the run was served under (domain/release.py)
+    return snap
 
 
-async def active_snapshot(session: AsyncSession) -> dict[str, Any] | None:
-    """The lessons a new run starts with (``None`` before the first improvement: the prompts alone)."""
+async def active_snapshot(session: AsyncSession, user_id: str | None = None) -> dict[str, Any] | None:
+    """The lessons a new run starts with (``None`` before the first improvement: the prompts alone).
+
+    A user inside a running canary's stable share gets the candidate's lessons instead; the snapshot says which
+    release it was served under, so the release can be compared with the rest (services/releases.py).
+    """
+    if user_id:
+        rows = (
+            await session.execute(
+                select(Release, AgentPolicy)
+                .join(AgentPolicy, AgentPolicy.id == Release.policy_id)
+                .where(
+                    Release.agent == SDLC_AGENT, Release.status.in_(("canary", "awaiting_approval")), Release.canary_percent > 0
+                )
+            )
+        ).all()
+        for release, candidate in rows:
+            if in_canary(str(release.id), user_id, release.canary_percent) and (candidate.standards or candidate.skills):
+                return snapshot_of(candidate, str(release.id), canary=True)
     policy = await active_policy(session)
-    return snapshot_of(policy) if policy is not None and (policy.standards or policy.skills) else None
+    if policy is None or not (policy.standards or policy.skills):
+        return None
+    live = await session.scalar(select(Release.id).where(Release.policy_id == policy.id, Release.status == "active"))
+    return snapshot_of(policy, str(live) if live else None)
 
 
 async def _next_version(session: AsyncSession) -> int:
@@ -111,9 +140,17 @@ async def version_stats(session: AsyncSession) -> dict[int, dict[str, Any]]:
     }
 
 
-def policy_view(policy: AgentPolicy, stats: dict[int, dict[str, Any]]) -> dict[str, Any]:
+def policy_view(policy: AgentPolicy, stats: dict[int, dict[str, Any]], release: Release | None = None) -> dict[str, Any]:
     s = stats.get(policy.version, {})
     return {
+        "release": {
+            "id": str(release.id),
+            "status": release.status,
+            "canary_percent": release.canary_percent,
+            "reason": release.reason,
+        }
+        if release
+        else None,
         "id": str(policy.id),
         "version": policy.version,
         "status": policy.status,
@@ -139,6 +176,14 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
         )
     )
     active = next((p for p in policies if p.status == "active"), None)
+    by_policy = {
+        r.policy_id: r
+        for r in await session.scalars(
+            select(Release)
+            .where(Release.agent == SDLC_AGENT, Release.policy_id.in_([p.id for p in policies]))
+            .order_by(Release.created_at)
+        )
+    }  # the latest release of each policy
     starting = {  # before the first lesson: the prompts alone (nothing stored yet)
         "id": "base", "version": 0, "status": "active", "summary": "Version de départ : prompts sans leçon apprise.", "standards": [],
         "stages": {}, "advice": [], "parent_id": None, "created_at": None, "activated_at": None,
@@ -149,8 +194,9 @@ async def overview(session: AsyncSession) -> dict[str, Any]:
         "enabled": settings.sdlc_improvement,
         "auto_deploy": settings.sdlc_improvement_auto_deploy,
         "threshold": settings.sdlc_improvement_threshold,
-        "active": policy_view(active, stats) if active else (starting if not policies else None),
-        "history": [policy_view(p, stats) for p in policies],
+        "active": policy_view(active, stats, by_policy.get(active.id)) if active else (starting if not policies else None),
+        "history": [policy_view(p, stats, by_policy.get(p.id)) for p in policies],
+        "release": {"canary_percent": settings.release_canary_percent, "approval": settings.release_approval},
     }
 
 
@@ -183,6 +229,7 @@ async def rollback(session: AsyncSession, *, actor_id: str | None, reason: str) 
     if parent is None:
         return None
     await activate(session, parent, actor_id=actor_id, reason=f"rollback of v{bad.version}: {reason}")
+    await releases.mark_policy_rolled_back(session, bad.id, actor_id)
     bad.status, bad.retired_at = "rejected", utcnow()
     bad.summary = f"{bad.summary} — rejetée : {reason}"[:1000]
     await session.flush()
@@ -294,6 +341,8 @@ async def improve() -> dict[str, Any]:
     client = providers.forge_client()
     if not settings.sdlc_improvement or client is None:
         return {"status": "disabled"}
+    async with session_scope() as session:
+        await releases.evaluate_open(session)  # a running canary may have enough runs for a verdict
     rolled_back = await guard()
     async with session_scope() as session:
         refs = list(
@@ -366,8 +415,10 @@ async def improve() -> dict[str, Any]:
             await session.flush()
             outcome = "candidate"
             if settings.sdlc_improvement_auto_deploy:
-                await activate(session, policy, actor_id=None, reason=policy.summary)
-                outcome = "deployed"
+                release = await releases.start(
+                    session, policy, None, {"source": "sdlc_improvement", "evidence_runs": len(evidence)}
+                )
+                outcome = {"active": "deployed", "canary": "canary", "awaiting_approval": "awaiting_approval"}[release.status]
         for ref in pending:
             row = await session.get(IntegrationReference, ref.id)
             if row is not None:

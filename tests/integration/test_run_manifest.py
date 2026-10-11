@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import uuid
 
+from sqlalchemy import select
+
+from nova.domain.enums import AutonomyMode
 from nova.domain.outputs import IntentClassification
 from nova.infra import db
 from nova.infra.models import Task
@@ -102,3 +105,76 @@ async def test_the_plan_records_the_team_and_the_manifest_keeps_it(user, project
     async with db.session_scope() as session:
         manifest = (await session.get(Task, uuid.UUID(task_id))).run_manifest
     assert manifest["team"] == [{"agent": "product", "skills": ["prd"], "score": None}]
+
+
+async def _plan_steps(user, project, llm, orbit, verdict, missing):
+    orbit.sufficiency, orbit.missing = verdict, missing
+    llm.intent = lambda m: IntentClassification(
+        kind="run_workflow", goal="PRD", candidate_skill_ids=["prd", "problem-framing"], context_query="scheduled CSV exports"
+    )
+    async with db.session_scope() as session:
+        conversation = await create_conversation(session, user, project_id=project, title=None)
+        _, _, task = await submit(
+            session,
+            user,
+            conversation,
+            ComposerInput(
+                text="Create a PRD for scheduled CSV exports in FORGE",
+                project_id=project,
+                autonomy=AutonomyMode.execute_automatically,
+            ),
+            {s.id for s in get_skill_registry().all()},
+        )
+        task_id = str(task.id)
+    assert await run_task(task_id, "start") == "completed"
+    async with db.session_scope() as session:
+        stored = await session.get(Task, uuid.UUID(task_id))
+        from nova.infra.models import TaskStep
+
+        steps = (await session.scalars(select(TaskStep).where(TaskStep.task_id == stored.id).order_by(TaskStep.position))).all()
+        return [s.skill_id for s in steps], stored.run_manifest
+
+
+async def test_an_insufficient_context_puts_a_discovery_step_first(user, project, llm, orbit, forge):
+    skills, manifest = await _plan_steps(user, project, llm, orbit, "insufficient", ["refund policy"])
+    assert skills[0] == "problem-framing" and "prd" in skills  # gather what is missing, then write the PRD
+    assert manifest["context"]["sufficiency"] == "insufficient"
+    assert manifest["team"][0]["skills"][0] == "problem-framing"
+
+
+async def test_a_sufficient_or_partial_context_keeps_the_plan_as_it_is(user, project, llm, orbit, forge):
+    for verdict in ("sufficient", "partial", None):
+        skills, manifest = await _plan_steps(user, project, llm, orbit, verdict, [])
+        assert skills == ["prd"] and manifest["context"]["sufficiency"] == verdict
+
+
+async def test_compositions_that_worked_for_a_kind_of_request_become_router_bonuses(user):
+    from nova.domain.assembly import MAX_COMPOSITION_BONUS
+    from nova.services import compositions
+
+    category = f"cat-{uuid.uuid4().hex[:6]}"  # the test database is shared: a category of our own
+    manifest = {"category": category, "skills": [{"skill_id": "problem-framing"}, {"skill_id": "prd"}]}
+    async with db.session_scope() as session:
+        for _ in range(6):
+            session.add(
+                Task(
+                    user_id=uuid.UUID(user.user_id),
+                    objective="x",
+                    status="completed",
+                    origin="interactive",
+                    run_manifest=manifest,
+                )
+            )
+        session.add(  # a failed run of another composition, and a replay: neither shapes the prior
+            Task(user_id=uuid.UUID(user.user_id), objective="x", status="failed", origin="interactive",
+                 run_manifest={"category": category, "skills": [{"skill_id": "persona"}]})
+        )  # fmt: skip
+        session.add(
+            Task(user_id=uuid.UUID(user.user_id), objective="x", status="completed", origin="replay",
+                 run_manifest={"category": category, "skills": [{"skill_id": "persona"}]})
+        )  # fmt: skip
+    compositions.invalidate()
+    async with db.session_scope() as session:
+        bonuses = await compositions.priors(session, category)
+        assert bonuses == {"problem-framing": MAX_COMPOSITION_BONUS, "prd": MAX_COMPOSITION_BONUS}
+        assert await compositions.priors(session, "no-such-category") == {}

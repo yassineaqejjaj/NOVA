@@ -10,7 +10,7 @@ from nova.agent import prompts
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import NodeFailure, deps, node, now_iso, plan_block, progress, set_phase, upsert
 from nova.agent.snapshots import effective_tools
-from nova.domain.assembly import build_team, withholds_external_writes
+from nova.domain.assembly import build_team, discovery_step, withholds_external_writes
 from nova.domain.enums import ExecutionOrigin, NovaPhase, StepStatus
 from nova.domain.outputs import ExecutionPlan, ExecutionStep, MissingInput, PlanOutput
 from nova.domain.permissions import AutonomyPolicy, action_permission
@@ -35,6 +35,7 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
     await progress(d, state, "plan", "Planning the work", "running")
 
     router = SkillRouter(d.skills)
+    history = await d.composition_priors(c.category.value) if d.composition_priors and c.category else {}
     candidates = router.candidates(
         f"{state.intent}\n{c.goal}",
         category=c.category,
@@ -43,9 +44,10 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
         hinted=c.candidate_skill_ids,
         preferred_methods=state.preferences.get("preferred_methods"),
         performance=d.skill_scores,
+        bonuses=history,
     )
     if not candidates:
-        candidates = router.candidates(c.goal, hinted=c.candidate_skill_ids, performance=d.skill_scores) or []
+        candidates = router.candidates(c.goal, hinted=c.candidate_skill_ids, performance=d.skill_scores, bonuses=history) or []
     if state.agent_scope:  # one specialist evaluated alone (FORGE training run): only its own Skills
         candidates = [cand for cand in candidates if cand.skill.agent == state.agent_scope]
     if not candidates:
@@ -123,6 +125,25 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
             )
         ]
 
+    gather = discovery_step(
+        [(cand.skill.id, cand.skill.category.value) for cand in candidates],
+        [s.skill_id for s in steps if s.skill_id],
+        state.context_sufficiency,
+        max_steps - len(steps),
+    )
+    if gather:  # ORBIT says the context cannot support the work: gather what is missing first
+        found = d.skills.get(gather)
+        steps.insert(
+            0,
+            ExecutionStep(
+                id=_slug(found.name, 0),
+                title=_shown(found, lang, "name"),
+                skill_id=found.id,
+                skill_version=found.version,
+                goal=_shown(found, lang, "summary"),
+                rationale="The project context is insufficient for this request: gather what is missing first",
+            ),
+        )
     chosen = [d.skills.get(s.skill_id) for s in steps if s.skill_id]
     declared = {(s.id, i.name) for s in chosen for i in s.inputs if i.required and i.ask}
     missing = [m for m in plan_out.missing_inputs if (m.skill_id, m.key) in declared or any(m.key == k for _, k in declared)]
@@ -134,6 +155,13 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
         and any(
             d.tools.get(t).external_write for s in steps if s.skill_id for t in effective_tools(d.skills.get(s.skill_id).tools)
         )
+        else []
+    )
+    insufficient_note = (
+        [
+            f"ORBIT reports the context insufficient (missing: {', '.join(state.context_missing[:5])}): unverified points are flagged."
+        ]
+        if state.context_sufficiency == "insufficient" and state.context_missing
         else []
     )
     policy = AutonomyPolicy(mode=state.autonomy, allow_auto_external_writes=d.settings.policy_allow_auto_external_writes)
@@ -149,7 +177,7 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
         steps=steps,
         requires_user_input=bool(missing),
         missing_inputs=missing,
-        assumptions=[*plan_out.assumptions, *withheld_note],
+        assumptions=[*plan_out.assumptions, *withheld_note, *insufficient_note],
         confirmed=not needs_confirmation,
         team=build_team([(s.skill_id, d.skills.get(s.skill_id).agent.value) for s in steps if s.skill_id], d.skill_scores),
     )

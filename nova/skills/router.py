@@ -103,6 +103,7 @@ class SkillRouter:
         hinted: list[str] | None = None,
         preferred_methods: list[str] | None = None,
         performance: dict[str, float] | None = None,
+        bonuses: dict[str, float] | None = None,
         limit: int = 8,
     ) -> list[Candidate]:
         words = _tokens(intent)
@@ -141,6 +142,10 @@ class SkillRouter:
             if score > 0 and measured is not None and skill.id not in explicit:
                 score += performance_bonus(measured)  # a tie-breaker between Skills that fit about equally well
                 reasons.append(f"FORGE score {measured:.0f}")
+            together = (bonuses or {}).get(skill.id)
+            if score > 0 and together and skill.id not in explicit:
+                score += together  # part of a composition that worked on this kind of request
+                reasons.append("worked well in this composition before")
             if score > 0:
                 scored.append(Candidate(skill, score, tuple(reasons)))
         scored.sort(key=lambda c: (-c.score, c.skill.id))

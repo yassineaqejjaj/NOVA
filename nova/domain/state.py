@@ -114,6 +114,8 @@ class NovaState(BaseModel):
     context_items: list[ContextItem] = Field(default_factory=list)
     context_warnings: list[str] = Field(default_factory=list)
     context_issue: ContextIssue | None = None
+    context_sufficiency: str | None = None  # ORBIT: is the served context enough for the task?
+    context_missing: list[str] = Field(default_factory=list)
 
     # Planning & execution
     plan: ExecutionPlan | None = None

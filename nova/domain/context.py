@@ -67,6 +67,8 @@ class ContextBundle(BaseModel):
     tokens_used: int = 0
     latency_ms: float | None = None
     snapshot: SnapshotRef | None = None  # base snapshot ORBIT actually applied to this retrieval
+    sufficiency: str | None = None  # ORBIT verdict: sufficient | partial | insufficient
+    missing: list[str] = Field(default_factory=list)  # sub-topics no served item covers
 
     @property
     def max_classification(self) -> int:

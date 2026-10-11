@@ -276,6 +276,7 @@ class FakeForge:
         self.versions: list[dict[str, Any]] = []
         self.scenarios: dict[str, dict[str, Any]] = {}
         self.observed: dict[str, dict[str, Any]] = {}
+        self.observed_bodies: dict[str, dict[str, Any]] = {}  # what NOVA really sent, per external id
         self.bodies: list[dict[str, Any]] = []
         self.down = False
         self.score: float | None = None
@@ -334,6 +335,7 @@ class FakeForge:
     async def create_observed_run(self, body: dict[str, Any]) -> dict[str, Any]:
         self._check()
         self.bodies.append(body)
+        self.observed_bodies.setdefault(body["external_id"], body)
         return self.observed.setdefault(body["external_id"], {"id": f"run-{len(self.observed) + 1}", "status": "evaluating"})
 
     async def get_run(self, run_id: str) -> dict[str, Any]:

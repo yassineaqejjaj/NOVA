@@ -47,7 +47,7 @@ async def _canaries(session: AsyncSession) -> list[dict[str, Any]]:
         await session.execute(
             select(Release, AgentPolicy)
             .join(AgentPolicy, AgentPolicy.id == Release.policy_id)
-            .where(Release.status.in_(("canary", "awaiting_approval")), Release.canary_percent > 0)
+            .where(Release.status.in_(("canary", "awaiting_approval")), Release.canary_percent > 0, Release.agent != "sdlc")
         )
     ).all()
     return [

@@ -11,8 +11,8 @@ from sqlalchemy import delete, select
 from nova.config import get_settings
 from nova.domain.sdlc_policy import SdlcLessons
 from nova.infra import db
-from nova.infra.models import AgentPolicy, AuditEvent, IntegrationReference, SdlcRun, User
-from nova.services import providers, sdlc_forge, sdlc_improvement
+from nova.infra.models import AgentPolicy, AuditEvent, IntegrationReference, Release, SdlcRun, User
+from nova.services import learning, providers, sdlc_forge, sdlc_improvement
 from nova_api.main import create_app
 from tests.conftest import scalar
 from tests.support.fake_github import FakeForge, FakeGitHub, SdlcLLM
@@ -29,8 +29,12 @@ async def app():
 
 
 @pytest_asyncio.fixture
-async def world():
+async def world(monkeypatch):
+    settings = get_settings()  # direct deployment: the canary and approval have their own tests (further down)
+    monkeypatch.setattr(settings, "release_canary_percent", 0)
+    monkeypatch.setattr(settings, "release_approval", "none")
     async with db.session_scope() as session:  # a clean slate: policies and FORGE references are global
+        await session.execute(delete(Release).where(Release.agent == "sdlc"))
         await session.execute(delete(AgentPolicy).where(AgentPolicy.agent == "sdlc"))
         await session.execute(delete(IntegrationReference).where(IntegrationReference.system == "forge"))
     gh, forge, model = FakeGitHub(), FakeForge(), SdlcLLM()
@@ -39,6 +43,7 @@ async def world():
     providers.override("llm", model)
     yield gh, forge, model
     async with db.session_scope() as session:  # leave no lesson behind for the other tests
+        await session.execute(delete(Release).where(Release.agent == "sdlc"))
         await session.execute(delete(AgentPolicy).where(AgentPolicy.agent == "sdlc"))
         await session.execute(delete(IntegrationReference).where(IntegrationReference.system == "forge"))
 
@@ -105,7 +110,7 @@ async def test_a_run_scored_below_the_threshold_teaches_the_agent_and_a_new_vers
     assert active["standards"] == GOOD.standards  # the injection and the file path were refused
     assert active["stages"] == GOOD.stages  # the repository name and the URL too
     assert (active["advice"] == GOOD.advice and "1 run" in active["summary"]) or "leçon" in active["summary"]
-    assert await scalar(select(AuditEvent).where(AuditEvent.action == "sdlc.policy.activate")) is not None
+    assert await scalar(select(AuditEvent).where(AuditEvent.action == "release.activated")) is not None  # recorded as a release
 
     evidence = next(prompt for name, prompt in model.calls if name == "SdlcLessons")
     assert "quality.ci_first_pass" in evidence and "linters avant de pousser" in evidence  # FORGE's scores and recommendations
@@ -236,3 +241,99 @@ async def test_too_few_runs_never_trigger_a_rollback(app, world):
             session.add(SdlcRun(id=run_id, user_id=uuid.UUID(owner), kind="feature", title="t", repo=REPO, status="completed", stages=[], log=[], context={"policy": {"version": version}}, usage={}))  # fmt: skip
             session.add(IntegrationReference(system="forge", kind="sdlc_run", nova_type="sdlc_run", nova_id=str(run_id), external_id=f"f-{run_id}", data={"composite_score": score, "passed": False}))  # fmt: skip
     assert await sdlc_improvement.guard() is False
+
+
+# --- The new policy goes through a release: canary, verdict, approval, rollback ---------------------------------
+
+
+async def _learn(client, forge, model):
+    """A run scored below the threshold teaches the agent: the candidate version is created and released."""
+    first = await run(client)
+    forge.results[forge_id(first)] = (35.0, False)
+    forge.status = "completed"
+    model.lessons = GOOD
+    await sdlc_forge.sync()
+    return first
+
+
+async def _sdlc_release() -> Release:
+    async with db.session_scope() as session:
+        release = await session.scalar(select(Release).where(Release.agent == "sdlc").order_by(Release.created_at.desc()))
+        session.expunge(release)
+        return release
+
+
+async def test_a_new_sdlc_policy_starts_as_a_canary_and_the_runs_it_serves_are_attributed(app, world, monkeypatch):
+    _, forge, model = world
+    settings = get_settings()
+    monkeypatch.setattr(settings, "release_canary_percent", 100)  # everyone is in the share, to make it observable
+    monkeypatch.setattr(settings, "release_approval", "full")
+    client = await login(app)
+    await _learn(client, forge, model)
+
+    release = await _sdlc_release()
+    assert release.status == "canary" and release.agent == "sdlc" and release.canary_percent == 100
+    view = (await client.get(f"{API}/sdlc/policy")).json()
+    assert view["active"]["version"] == 0  # the version for everyone is unchanged
+    assert view["history"][0]["version"] == 1 and view["history"][0]["release"]["status"] == "canary"
+    assert view["release"] == {"canary_percent": 100, "approval": "full"}
+
+    second = await run(client, goal="Add a hello function next to greet")
+    async with db.session_scope() as session:
+        row = await session.get(SdlcRun, uuid.UUID(second["id"]))
+        assert row.context["policy"]["version"] == 1  # served the candidate's lessons
+        assert row.context["policy"]["release_id"] == str(release.id) and row.context["policy"]["canary"] is True
+        assert "sdlc" not in await learning.snapshot(session, None, user_id=str(row.user_id))  # chat agents never see it
+    sent = forge.observed_bodies[f"nova-sdlc:{second['id']}"]
+    assert sent["release_id"] == str(release.id) and f"release:{release.id}" in sent["tags"]
+
+
+async def test_a_healthy_sdlc_canary_waits_for_approval_then_goes_live(app, world, monkeypatch):
+    _, forge, model = world
+    settings = get_settings()
+    monkeypatch.setattr(settings, "release_canary_percent", 100)
+    monkeypatch.setattr(settings, "release_approval", "full")
+    monkeypatch.setattr(settings, "release_canary_min_runs", 1)
+    member, admin = await login(app), await login(app, admin=True)
+    await _learn(member, forge, model)
+    await run(member, goal="Add a hello function next to greet")  # one run under the canary, completed
+
+    assert (await sdlc_improvement.improve())["status"] == "idle"  # the tick evaluates the canary
+    release = await _sdlc_release()
+    assert release.status == "awaiting_approval"
+    assert (await member.post(f"{API}/releases/{release.id}/approve")).status_code == 403
+    approved = await admin.post(f"{API}/releases/{release.id}/approve")
+    assert approved.status_code == 200 and approved.json()["status"] == "active"
+    assert (await member.get(f"{API}/sdlc/policy")).json()["active"]["version"] == 1
+
+
+async def test_a_degraded_sdlc_canary_is_rolled_back_and_its_lessons_rejected(app, world, monkeypatch):
+    _, forge, model = world
+    settings = get_settings()
+    monkeypatch.setattr(settings, "release_canary_percent", 100)
+    monkeypatch.setattr(settings, "release_canary_min_runs", 1)
+    client = await login(app)
+    await _learn(client, forge, model)
+    served = await run(client, goal="Add a hello function next to greet")
+    async with db.session_scope() as session:  # that run ends badly
+        (await session.get(SdlcRun, uuid.UUID(served["id"]))).status = "failed"
+
+    await sdlc_improvement.improve()
+    release = await _sdlc_release()
+    assert release.status == "rolled_back" and "100%" in release.reason
+    async with db.session_scope() as session:
+        policy = await session.get(AgentPolicy, release.policy_id)
+        assert policy.status == "rejected"
+        assert await sdlc_improvement.active_snapshot(session, user_id="anyone") is None  # back to the prompts alone
+
+
+async def test_a_manual_activation_and_a_rollback_are_recorded_as_releases(app, world):
+    _, forge, model = world
+    # (the default test settings deploy directly; this checks the admin endpoints leave a release trail)
+    member, admin = await login(app), await login(app, admin=True)
+    await _learn(member, forge, model)
+    release = await _sdlc_release()
+    assert release.status == "active" and release.decided_by == "system"  # the world fixture deploys at once
+    back = await admin.post(f"{API}/sdlc/policy/rollback")
+    assert back.status_code == 200
+    assert (await _sdlc_release()).status == "rolled_back"

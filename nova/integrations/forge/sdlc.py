@@ -174,11 +174,13 @@ def observed_run_body(
     output = observed_output(run)
     usage = run.usage or {}
     lines = [f"- {s['key']}: {s['status']}" + (f" — {s['summary']}" if s["summary"] else "") for s in output["stages"]]
+    release_id = ((run.context or {}).get("policy") or {}).get("release_id")
     return {
         "agent_version_id": agent_version_id,
         "scenario_id": scenario_id,
         "evaluation_config_id": evaluation_config_id,
         "external_id": f"nova-sdlc:{run.id}",
+        **({"release_id": release_id} if release_id else {}),
         "input": redact_obj(
             {"prompt": f"[{run.kind}] {run.title}\n{(run.goal or '')[:2000]}".strip(), "context": {"repository": run.repo}}
         ),
@@ -193,5 +195,12 @@ def observed_run_body(
             "output_tokens": int(usage.get("output_tokens", 0)),
             "model_calls": int(usage.get("model_calls", 0)),
         },
-        "tags": ["nova", "nova-sdlc", f"kind:{run.kind}", f"autonomy:{run.autonomy}", f"model:{run.model or 'unknown'}"][:20],
+        "tags": [
+            "nova",
+            "nova-sdlc",
+            f"kind:{run.kind}",
+            f"autonomy:{run.autonomy}",
+            f"model:{run.model or 'unknown'}",
+            *([f"release:{release_id}"] if release_id else []),
+        ][:20],
     }

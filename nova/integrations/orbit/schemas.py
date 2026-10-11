@@ -63,6 +63,7 @@ class OrbitContextPackage(_Out):
     candidates_count: int = 0
     timings: dict[str, Any] = Field(default_factory=dict)  # ORBIT adds structured entries (e.g. per-round details)
     warnings: list[str] = Field(default_factory=list)
+    sufficiency: dict[str, Any] | None = None  # ORBIT's verdict: is this context enough for the task?
     snapshot: OrbitSnapshotRef | None = None
 
 

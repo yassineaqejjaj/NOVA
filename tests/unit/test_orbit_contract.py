@@ -62,3 +62,19 @@ def test_a_validated_learning_from_orbit_is_served_as_cited_untrusted_context():
     assert item.memory_kind == "learning" and item.citation == "S2" and item.kind == "memory"
     rendered = context_block(bundle.items)
     assert "memory/learning" in rendered and "S2" in rendered and "CONTEXT (cite with the label)" in rendered
+
+
+def test_orbits_sufficiency_verdict_and_missing_topics_reach_the_bundle():
+    package = {
+        "request_id": "r",
+        "sufficiency": {
+            "verdict": "insufficient",
+            "score": 0.2,
+            "missing_subtopics": ["refund policy", "SLA"],
+            "covered_subtopics": [],
+        },
+    }
+    bundle = context_bundle(package, "atlas", "http://orbit")
+    assert bundle.sufficiency == "insufficient" and bundle.missing == ["refund policy", "SLA"]
+    plain = context_bundle({"request_id": "r"}, "atlas", "http://orbit")
+    assert plain.sufficiency is None and plain.missing == []

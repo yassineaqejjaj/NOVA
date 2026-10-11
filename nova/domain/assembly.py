@@ -51,3 +51,60 @@ def build_team(steps: Iterable[tuple[str, str]], scores: Mapping[str, float]) ->
         known = [scores[s] for s in member.skills if s in scores]
         member.score = round(sum(known) / len(known), 1) if known else None
     return list(members.values())
+
+
+# --- Sufficiency-aware assembly ------------------------------------------------------------------------------------
+
+DISCOVERY = "discovery"
+
+
+def discovery_step(
+    candidates: Iterable[tuple[str, str]], planned: Iterable[str], sufficiency: str | None, steps_left: int
+) -> str | None:
+    """The Skill to put first when ORBIT says the context cannot support the work (``None``: nothing to add).
+
+    ``candidates`` are ``(skill_id, category)`` best first, already ranked against the request: only a discovery
+    Skill that *fits the request* is considered, and never when one is already planned or the plan is full.
+    """
+    if sufficiency != "insufficient" or steps_left <= 0:
+        return None
+    planned = set(planned)
+    discovery = [s for s, category in candidates if category == DISCOVERY]
+    if not discovery or planned & set(discovery):
+        return None
+    return discovery[0]
+
+
+# --- Compositions that worked before ---------------------------------------------------------------------------------
+
+MIN_COMPOSITION_RUNS = 5  # runs of the same composition before its record counts
+MIN_COMPOSITION_SUCCESS = 0.8
+MAX_COMPOSITION_BONUS = 1.0
+
+
+def composition_bonuses(history: Iterable[tuple[tuple[str, ...], bool]]) -> dict[str, float]:
+    """Router bonus per Skill from how compositions fared on requests of the same category.
+
+    ``history`` is ``(skills in order, succeeded)`` for past executions. The best composition with enough runs and
+    a high success rate lends a small bonus to each of its Skills, so a proven combination is favoured when
+    candidates are otherwise close. Never decisive (<= ``MAX_COMPOSITION_BONUS``), never negative: a composition
+    that failed is simply not encouraged.
+    """
+    runs: dict[tuple[str, ...], list[bool]] = {}
+    for skills, ok in history:
+        if skills:
+            runs.setdefault(skills, []).append(ok)
+    proven = [
+        (sum(v) / len(v), len(v), skills)
+        for skills, v in runs.items()
+        if len(v) >= MIN_COMPOSITION_RUNS and sum(v) / len(v) >= MIN_COMPOSITION_SUCCESS
+    ]
+    if not proven:
+        return {}
+    rate, _, best = max(proven)
+    bonus = (
+        round(MAX_COMPOSITION_BONUS * (rate - MIN_COMPOSITION_SUCCESS) / (1 - MIN_COMPOSITION_SUCCESS), 3)
+        if rate < 1
+        else MAX_COMPOSITION_BONUS
+    )
+    return dict.fromkeys(best, max(0.1, bonus))

@@ -31,6 +31,7 @@ class ManifestContext(BaseModel):
     snapshot_name: str | None = None
     snapshot_version: int | None = None
     items: int = 0
+    sufficiency: str | None = None  # ORBIT: sufficient | partial | insufficient
     max_classification: int = 0
     token_budget: int | None = None
 
@@ -64,6 +65,7 @@ class RunManifest(BaseModel):
     replay_of: str | None = None  # run_id of the execution this one replays
     overrides: dict[str, str] = Field(default_factory=dict)  # what a replay changed: context, model, snapshot, policy
     team: list[dict[str, Any]] = Field(default_factory=list)  # specialist agents of the plan (domain/assembly.py)
+    category: str | None = None  # kind of request, so compositions can be compared across runs
 
 
 def build_run_manifest(
@@ -85,6 +87,8 @@ def build_run_manifest(
     overrides: dict[str, str] | None = None,
     project_slug: str | None = None,
     team: list[dict[str, Any]] | None = None,
+    category: str | None = None,
+    sufficiency: str | None = None,
 ) -> RunManifest:
     """Assemble the manifest from already-known facts (no I/O)."""
     policies = {
@@ -110,6 +114,7 @@ def build_run_manifest(
             snapshot_name=snapshot_name,
             snapshot_version=snapshot_version,
             items=items,
+            sufficiency=sufficiency,
             max_classification=max_classification,
             token_budget=token_budget,
         ),
@@ -117,6 +122,7 @@ def build_run_manifest(
         skills=[ManifestSkill(skill_id=s, version=v) for s, v in skills],
         overrides=dict(overrides or {}),
         team=list(team or []),
+        category=category,
     )
     manifest.release_id = next((p.release_id for p in policies.values() if p.release_id and p.canary), None) or next(
         (p.release_id for p in policies.values() if p.release_id), None
@@ -156,4 +162,6 @@ def manifest_from_state(
         overrides=overrides,
         project_slug=state.project_slug,
         team=[m.model_dump(mode="json") for m in state.plan.team] if state.plan else [],
+        category=state.classification.category.value if state.classification and state.classification.category else None,
+        sufficiency=state.context_sufficiency,
     )
