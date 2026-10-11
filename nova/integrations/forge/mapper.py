@@ -90,7 +90,15 @@ def run_body(agent_version_id: str, scenario_id: str, record: ExecutionRecord) -
     snapshot = ((record.manifest or {}).get("context") or {}).get("snapshot_id")
     if snapshot:
         tags.append(f"context-snapshot:{snapshot}")
-    return {"agent_version_id": agent_version_id, "scenario_ids": [scenario_id], "repetitions": 1, "tags": tags[:20]}
+    body: dict[str, Any] = {
+        "agent_version_id": agent_version_id,
+        "scenario_ids": [scenario_id],
+        "repetitions": 1,
+        "tags": tags[:20],
+    }
+    if record.manifest:  # the production run's manifest travels with the FORGE run (FORGE derives the snapshot from it)
+        body["manifest"] = record.manifest
+    return body
 
 
 def usefulness_evaluation(useful: bool, comment: str | None) -> dict[str, Any]:

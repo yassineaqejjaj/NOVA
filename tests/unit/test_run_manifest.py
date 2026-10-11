@@ -48,3 +48,24 @@ def test_later_phase_ids_are_accepted_and_unknown_keys_ignored():
     m = _manifest(ids={"experiment_id": "e1", "release_id": "r1", "bogus": "x"})
     assert m.experiment_id == "e1" and m.release_id == "r1"
     assert not hasattr(m, "bogus")
+
+
+def test_forge_run_body_carries_the_production_manifest_and_snapshot_tag():
+    from nova.domain.evaluation import ExecutionRecord
+    from nova.integrations.forge.mapper import run_body
+
+    manifest = _manifest().model_dump(mode="json")
+    record = ExecutionRecord(
+        task_id="t1",
+        trace_id=None,
+        user_intent="x",
+        origin="interactive",
+        agent_version="0.1.0",
+        model="m",
+        status="completed",
+        manifest=manifest,
+    )
+    body = run_body("av-1", "sc-1", record)
+    assert body["manifest"]["context"]["snapshot_id"] == "launch@v4"
+    assert "context-snapshot:launch@v4" in body["tags"]
+    assert "manifest" not in run_body("av-1", "sc-1", record.model_copy(update={"manifest": None}))
