@@ -255,6 +255,7 @@ async def test_training_api_is_readable_by_all_and_managed_by_admins(app, fake_f
     overview = (await member.get("/api/v1/training")).json()
     assert {a["agent"] for a in overview["agents"]} == {p.value for p in AgentProfile}
     assert overview["can_manage"] is False and overview["missing"] == []
+    assert overview["release"] == {"canary_percent": 10, "approval": "full"}  # how a validated version reaches everyone
     assert (await member.post("/api/v1/training/agents/product/cycles")).status_code == 403
 
     admin = await _client(app, admin=True)

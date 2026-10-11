@@ -122,6 +122,7 @@ async def overview(principal: CurrentPrincipal, session: SessionDep) -> dict[str
     return {
         "missing": training.missing_configuration(settings),
         "auto_promote": settings.training_auto_promote,
+        "release": {"canary_percent": settings.release_canary_percent, "approval": settings.release_approval},
         "interval_days": settings.training_interval_days,
         "repetitions": settings.training_repetitions,
         "forge_url": settings.forge_public_url,
