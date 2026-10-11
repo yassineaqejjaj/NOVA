@@ -37,7 +37,9 @@ def test_a_completed_run_reports_outcome_usage_manifest_and_steps_without_any_te
     assert body["manifest"]["context"]["snapshot_id"] == "launch@v4" and "release:rel-1" in body["tags"]
     assert [e["type"] for e in body["events"]] == ["custom", "tool_call"] and body["events"][0]["duration_ms"] == 1200.0
     blob = str(body)
-    assert "SECRET ANSWER TEXT" not in blob and "private excerpt" not in blob  # nothing the user said or read leaves
+    assert "SECRET ANSWER TEXT" not in blob and "private excerpt" not in blob  # the answer and the context never leave
+    assert "Create a PRD for CSV exports" not in blob  # nor, by default, what the user asked
+    assert body["input"]["prompt"] == "[request text not sent] Skills: prd"
 
 
 def test_a_failed_run_carries_its_errors_and_incomplete_skills():
@@ -58,3 +60,11 @@ def test_the_scenario_rules_read_exactly_the_structured_result():
     assert paths <= set(production.observed_output(record())) and len(paths) == 3
     gate = production.evaluation_config_body()["gates"][0]
     assert gate["target"] == "completed" and gate["cap"] < 70  # an unfinished run can never pass
+
+
+def test_the_request_text_is_sent_only_on_opt_in_and_then_redacted():
+    secret = record(user_intent="Draft the contract for jane.doe@example.com, budget 1.2M")
+    off = production.observed_run_body(secret, agent_version_id="av", scenario_id="sc")
+    assert "jane.doe" not in str(off) and "contract" not in str(off)
+    on = production.observed_run_body(secret, agent_version_id="av", scenario_id="sc", include_intent=True)
+    assert "contract" in on["input"]["prompt"] and "jane.doe@example.com" not in on["input"]["prompt"]  # PII masked

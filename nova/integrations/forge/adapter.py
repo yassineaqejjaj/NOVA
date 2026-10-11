@@ -147,7 +147,11 @@ class ForgeEvaluationSink:
         scenario_id, config_id = await self._production_ids()
         run = await self.client.create_observed_run(
             production.observed_run_body(
-                record, agent_version_id=version_id, scenario_id=scenario_id, evaluation_config_id=config_id
+                record,
+                agent_version_id=version_id,
+                scenario_id=scenario_id,
+                evaluation_config_id=config_id,
+                include_intent=self.settings.forge_capture_intent,
             )
         )
         return EvaluationReference(

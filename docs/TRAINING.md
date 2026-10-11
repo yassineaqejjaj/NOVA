@@ -122,9 +122,13 @@ but is recorded as a release. API: `GET /releases`, `GET /releases/{id}`, `POST 
 By default a captured execution is *re-executed* inside FORGE under whichever version is active at that moment:
 its score says nothing about the release the user actually got. In `observed` mode FORGE instead receives what
 really happened — outcome, skills, tokens, steps, the run manifest (agent version, snapshot, policies, release) —
-as an observed run scored by deterministic rules on a small structured result (`nova-production` config; no text
-of the request, answer or context leaves NOVA). Failures are reported too. Releases can then be compared on real
+as an observed run scored by deterministic rules on a small structured result (`nova-production` config; no answer
+or context text, and no request text unless `NOVA_FORGE_CAPTURE_INTENT=true`). Failures are reported too. Releases can then be compared on real
 traffic (FORGE `GET /analytics/releases/compare`).
+
+> **What leaves NOVA.** Never the answer or the context. The user's request is sent (redacted of personal data) only
+> with `NOVA_FORGE_CAPTURE_INTENT=true`; by default FORGE receives which Skills ran, not what was asked, because a
+> request can hold confidential (C2) or secret (C3) material.
 
 ### FORGE watch of a live release
 

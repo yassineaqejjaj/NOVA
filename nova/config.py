@@ -121,6 +121,9 @@ class Settings(BaseSettings):
     # "reexecute": FORGE replays the request under the version active at that moment (comparable across versions);
     # "observed": FORGE receives what really happened, with the run manifest (release monitoring, failures included).
     forge_capture_mode: Literal["reexecute", "observed"] = "reexecute"
+    # Observed capture reports outcomes, never text. The user's request (redacted of personal data) is only sent when
+    # this is on: it may hold confidential (C2) or secret (C3) material, so it is off unless the organization opts in.
+    forge_capture_intent: bool = False
     forge_timeout_seconds: float = 20.0
     # FORGE `nova` credential (Settings → Credentials) whose secret is NOVA_FORGE_INBOUND_TOKEN: FORGE uses it to
     # authenticate when it calls NOVA back. Agent versions registered by NOVA reference it.

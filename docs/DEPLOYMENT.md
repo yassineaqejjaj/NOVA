@@ -157,3 +157,78 @@ The Google button is shown disabled ("Soon") until a Google identity provider is
   Create real users there (or federate your IdP) and disable the demo user for a real rollout.
 * Backups: enable Railway PostgreSQL backups on both databases.
 * Rollback: Railway → service → Deployments → Redeploy a previous one; Vercel → Deployments → Promote.
+
+## Enabling the release watch (observed capture + automatic rollback)
+
+Production already has `NOVA_FORGE_API_KEY`, `NOVA_FORGE_BASE_URL` and `NOVA_FORGE_CREDENTIAL_ID` on `api`, `worker` and
+`beat`; none of the capture or release variables is set, so the defaults apply (capture by re-execution, canary 10 %,
+administrator approval, rollback armed but with no observed data to act on). To make FORGE watch live releases:
+
+### 0. Before anything else
+
+The request text is **not** sent by default (`NOVA_FORGE_CAPTURE_INTENT=false`): FORGE only learns which Skills ran. Leave
+it that way unless the organization decides requests may leave NOVA, since a request can hold confidential (C2) or
+secret (C3) material. The answer and the context are never sent.
+
+### 1. In FORGE (once, by an administrator)
+
+* The `nova` API key must have the role **editor** (it ingests observed runs and reads release comparisons).
+* Create the rules-only evaluation configuration, otherwise FORGE grades NOVA's runs with its default configuration
+  (LLM judges). The first capture tries to create it but needs the maintainer role, which an editor key lacks:
+
+```bash
+curl -sS -X POST https://api-production-b165a.up.railway.app/api/v1/evaluation-configs \
+  -H "X-Forge-Key: $FORGE_ADMIN_KEY" -H "Content-Type: application/json" \
+  -d '{"key":"nova-production","name":"NOVA — production (règles uniquement)","description":"Notation déterministe des exécutions de production NOVA : règles du scénario sur output_json.","dimension_weights":{"quality":1.0},"pass_threshold":70,"gates":[{"id":"must-complete","kind":"rule","target":"completed","action":"cap","cap":50,"description":"Une exécution qui n'"'"'a pas abouti ne peut pas dépasser 50 (donc ne peut pas réussir)."}]}'
+```
+
+### 2. Stage A — capture on, rollback disarmed (watch it for about a week)
+
+The same variables go on `api`, `worker` **and** `beat`. `--skip-deploys` avoids three redeploys in a row:
+
+```bash
+for s in api worker beat; do railway variable set NOVA_FORGE_CAPTURE_MODE=observed NOVA_FORGE_CAPTURE_POLICY=all NOVA_RELEASE_HEALTH_ROLLBACK=false -s $s --skip-deploys; done
+```
+
+```bash
+for s in api worker beat; do railway redeploy -s $s -y; done
+```
+
+Check, after some traffic: FORGE shows runs with origin *observed* (`GET /api/v1/runs?origin=observed`), and
+`GET /api/v1/analytics/releases` groups them by release. Each live release then carries `evidence.health` (visible on the
+training page) with FORGE's verdict, without ever being rolled back.
+
+### 3. Stage B — arm the rollback
+
+```bash
+for s in api worker beat; do railway variable set NOVA_RELEASE_HEALTH_ROLLBACK=true -s $s --skip-deploys; done
+```
+
+```bash
+for s in api worker beat; do railway redeploy -s $s -y; done
+```
+
+### Reference
+
+| Variable | Value | Default |
+|---|---|---|
+| `NOVA_FORGE_CAPTURE_MODE` | `observed` | `reexecute` |
+| `NOVA_FORGE_CAPTURE_POLICY` | `all` (or `sampled` with `NOVA_FORGE_CAPTURE_SAMPLE_RATE`) | `on_feedback` |
+| `NOVA_FORGE_CAPTURE_INTENT` | `false` (keep) | `false` |
+| `NOVA_RELEASE_HEALTH_ROLLBACK` | `false` in stage A, `true` in stage B | `true` |
+| `NOVA_RELEASE_WATCH_DAYS` | days a live release stays under watch | `7` |
+| `NOVA_RELEASE_CANARY_PERCENT` / `_CANARY_MIN_RUNS` / `_MAX_FAILURE_INCREASE` / `_APPROVAL` | canary share, runs before a verdict, tolerated failure-rate gap, `full` = admin approval | `10` / `20` / `0.10` / `full` |
+
+FORGE raises no alert on fewer than 10 observed runs per side, so a low-traffic deployment learns slowly: prefer
+`NOVA_FORGE_CAPTURE_POLICY=all`.
+
+### Going back
+
+Unset the capture variables (the default is capture by re-execution). `railway variable delete` has no
+`--skip-deploys`: each deletion redeploys its service.
+
+```bash
+for s in api worker beat; do railway variable delete NOVA_FORGE_CAPTURE_MODE -s $s; railway variable delete NOVA_FORGE_CAPTURE_POLICY -s $s; done
+```
+
+A rollback of the capture never touches releases already decided.
