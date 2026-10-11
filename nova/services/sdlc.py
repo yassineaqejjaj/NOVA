@@ -706,7 +706,7 @@ async def create_run(
         title = (goal.strip().splitlines() or ["Change"])[0][:120]
     from nova.services.sdlc_improvement import active_snapshot
 
-    if policy := await active_snapshot(session):
+    if policy := await active_snapshot(session, user_id=user_id):
         context["policy"] = policy  # the lessons this run starts with stay fixed, even if a new version is deployed meanwhile
     run = SdlcRun(
         user_id=uuid.UUID(user_id),

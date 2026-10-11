@@ -15,6 +15,7 @@
     }
   },
   "include": [
+    ".next-dev/types/**/*.ts",
     ".next-e2e/types/**/*.ts",
     ".next/types/**/*.ts",
     "e2e/**/*.ts",
@@ -22,7 +23,7 @@
     "playwright.config.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
-    ".next-dev/types/**/*.ts"
+    ".next-dev-auth/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

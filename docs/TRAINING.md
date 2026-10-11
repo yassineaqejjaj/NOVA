@@ -148,3 +148,15 @@ release comparison and NOVA's automatic rollback. It is skipped unless a FORGE i
 
 The FORGE needs its API **and** a worker, a key with the admin role (the first capture creates the scenario and the
 rules-only evaluation config) and a throwaway database: the test writes agents, scenarios and runs into it.
+
+### The SDLC agent goes through releases too
+
+A new SDLC policy (lessons learned from runs FORGE scored below its threshold) is no longer applied at once: with
+`NOVA_SDLC_IMPROVEMENT_AUTO_DEPLOY` on, it starts a **release** like the chat agents' policies — a canary share of
+users first (`NOVA_RELEASE_CANARY_PERCENT`), a verdict on the SDLC runs it served against the others
+(`NOVA_RELEASE_CANARY_MIN_RUNS`, `NOVA_RELEASE_MAX_FAILURE_INCREASE`), then an administrator's approval
+(`NOVA_RELEASE_APPROVAL`). Each run records the release it was served under (`context.policy.release_id`) and FORGE
+receives it with the observed run, so the live release stays under FORGE's health watch and can be rolled back
+automatically. The existing guard (FORGE score clearly below the parent's) and the admin endpoints still work and now
+leave a release trail; `/releases` lists and decides SDLC releases like the others. With auto-deploy off the candidate
+still waits for an administrator, whose manual activation is recorded as a release.

@@ -41,6 +41,13 @@ class ReleaseError(Exception):
         self.code, self.message = code, message
 
 
+SDLC = "sdlc"  # the SDLC Autopilot's policies share the release machinery; their runs are SdlcRun rows
+
+
+def agent_name(agent: str) -> str:
+    return "SDLC Autopilot" if agent == SDLC else AGENTS[AgentProfile(agent)].name
+
+
 def _label(policy: AgentPolicy) -> str:
     return f"{policy.agent} v{policy.version}"
 
@@ -52,7 +59,7 @@ async def _record(session: AsyncSession, release: Release, action: str, actor_id
         action=f"release.{action}",
         target_type="release",
         target_id=str(release.id),
-        summary=f"{AGENTS[AgentProfile(release.agent)].name} · {release.label} : {summary}"[:500],
+        summary=f"{agent_name(release.agent)} · {release.label} : {summary}"[:500],
         details={"status": release.status, "policy_id": str(release.policy_id), "canary_percent": release.canary_percent},
     )
 
@@ -163,6 +170,8 @@ async def activate_directly(session: AsyncSession, policy: AgentPolicy, actor_id
 async def stats(session: AsyncSession, release: Release) -> tuple[Cohort, Cohort]:
     """``(canary, control)``: final executions with and without the release since the canary began."""
     since = release.canary_started_at or release.created_at
+    if release.agent == SDLC:
+        return await _sdlc_stats(session, release, since)
 
     async def cohort(*conditions: Any) -> Cohort:
         base = [Task.status.in_(FINAL), Task.origin.in_(TRAFFIC_ORIGINS), Task.created_at >= since, *conditions]
@@ -173,6 +182,24 @@ async def stats(session: AsyncSession, release: Release) -> tuple[Cohort, Cohort
     return await cohort(Task.release_id == release.id), await cohort(
         or_(Task.release_id.is_(None), Task.release_id != release.id)
     )
+
+
+async def _sdlc_stats(session: AsyncSession, release: Release, since: Any) -> tuple[Cohort, Cohort]:
+    """SDLC runs that reached a final state since the canary began: the ones served by the release, and the rest."""
+    from nova.infra.models import SdlcRun
+
+    rows = (
+        await session.scalars(
+            select(SdlcRun).where(SdlcRun.kind != "review", SdlcRun.status.in_(FINAL), SdlcRun.created_at >= since)
+        )
+    ).all()
+    served = [r for r in rows if ((r.context or {}).get("policy") or {}).get("release_id") == str(release.id)]
+    others = [r for r in rows if r not in served]
+
+    def cohort(runs: list[Any]) -> Cohort:
+        return Cohort(runs=len(runs), failed=sum(1 for r in runs if r.status == "failed"))
+
+    return cohort(served), cohort(others)
 
 
 async def evaluate(session: AsyncSession, release: Release) -> CanaryVerdict:

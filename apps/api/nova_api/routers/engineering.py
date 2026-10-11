@@ -17,7 +17,7 @@ from nova.infra.crypto import decrypt
 from nova.infra.db import get_session, utcnow
 from nova.infra.models import AgentPolicy, SdlcRun
 from nova.integrations.github.client import GitHubError
-from nova.services import github_accounts, llm_config, sdlc
+from nova.services import github_accounts, llm_config, releases, sdlc
 from nova.services import sdlc_improvement as improvement
 from nova.services.audit import audit
 from nova.services.dispatch import dispatch_sdlc
@@ -254,7 +254,9 @@ async def activate_policy(policy_id: str, principal: CurrentPrincipal, session: 
         policy = None
     if policy is None or policy.agent != SDLC_AGENT:
         raise ApiError(404, "not_found", "Not found, or you don't have access.")
-    await improvement.activate(session, policy, actor_id=principal.user_id, reason="applied by an administrator")
+    await releases.activate_directly(
+        session, policy, principal.user_id
+    )  # the human decision is the approval; recorded as a release
     await session.commit()
     return await improvement.overview(session)
 
