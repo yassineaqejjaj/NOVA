@@ -69,3 +69,8 @@ def test_forge_run_body_carries_the_production_manifest_and_snapshot_tag():
     assert body["manifest"]["context"]["snapshot_id"] == "launch@v4"
     assert "context-snapshot:launch@v4" in body["tags"]
     assert "manifest" not in run_body("av-1", "sc-1", record.model_copy(update={"manifest": None}))
+
+
+def test_manifest_records_the_orbit_project_for_the_context_gap_loop():
+    m = _manifest(project_slug="atlas")
+    assert m.context.project_slug == "atlas" and m.context.retrieval_id == "req-9"

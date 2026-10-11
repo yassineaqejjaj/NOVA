@@ -26,6 +26,7 @@ def snapshot_id(name: str | None, version: int | None) -> str | None:
 
 class ManifestContext(BaseModel):
     retrieval_id: str | None = None  # ORBIT request_id
+    project_slug: str | None = None  # ORBIT project the context came from
     snapshot_id: str | None = None  # name@vN
     snapshot_name: str | None = None
     snapshot_version: int | None = None
@@ -79,6 +80,7 @@ def build_run_manifest(
     token_budget: int | None,
     ids: dict[str, str | None] | None = None,
     overrides: dict[str, str] | None = None,
+    project_slug: str | None = None,
 ) -> RunManifest:
     """Assemble the manifest from already-known facts (no I/O)."""
     policies = {
@@ -94,6 +96,7 @@ def build_run_manifest(
         model=model,
         context=ManifestContext(
             retrieval_id=retrieval_id,
+            project_slug=project_slug,
             snapshot_id=snapshot_id(snapshot_name, snapshot_version),
             snapshot_name=snapshot_name,
             snapshot_version=snapshot_version,
@@ -138,4 +141,5 @@ def manifest_from_state(
         token_budget=token_budget,
         ids=ids,
         overrides=overrides,
+        project_slug=state.project_slug,
     )
