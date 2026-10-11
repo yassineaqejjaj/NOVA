@@ -35,6 +35,7 @@ class AgentLearning(BaseModel):
 
     policy_id: str | None = None
     version: int = 0
+    release_id: str | None = None  # set when the policy is a canary the user was assigned to
     standards: list[str] = Field(default_factory=list)
     skills: dict[str, list[str]] = Field(default_factory=dict)
 

@@ -152,7 +152,10 @@ async def _start(profile: AgentProfile = AgentProfile.product) -> uuid.UUID:
         return (await training.start_cycle(session, profile)).id
 
 
-async def test_cycle_learns_on_every_skill_and_promotes_when_forge_validates(fake_forge):
+async def test_cycle_learns_on_every_skill_and_promotes_when_forge_validates(fake_forge, monkeypatch):
+    settings = get_settings()  # direct promotion: the canary has its own tests (test_releases.py)
+    monkeypatch.setattr(settings, "release_canary_percent", 0)
+    monkeypatch.setattr(settings, "release_approval", "none")
     cycle_id = await _start()
     product_skills = training.agent_skills(get_skill_registry(), AgentProfile.product)
 
@@ -321,3 +324,23 @@ async def test_cycles_are_manual_by_default(fake_forge, monkeypatch):
     assert await training.start_due_cycles() == 0  # nothing starts on its own
     monkeypatch.setattr(get_settings(), "training_interval_days", 7)
     assert await training.start_due_cycles() == len(AgentProfile)  # opt-in schedule: one cycle per agent
+
+
+async def test_a_validated_candidate_starts_a_canary_by_default(fake_forge):
+    from nova.infra.models import Release
+
+    cycle_id = await _start()
+    await training.advance(cycle_id)
+    fake_forge.run_status = "completed"
+    await training.advance(cycle_id)
+    fake_forge.experiment_status = "completed"
+    await training.advance(cycle_id)
+    cycle = await _cycle(cycle_id)
+    assert cycle.status == "validated" and cycle.result["decision"]["promote"]  # not applied to everyone yet
+    async with db.session_scope() as session:
+        release = await session.get(Release, uuid.UUID(cycle.result["release_id"]))
+        assert release.status == "canary" and release.canary_percent == 10 and release.agent == "product"
+        assert release.evidence["delta"] is not None and release.evidence["cycle_id"] == str(cycle_id)
+        candidate = await session.get(AgentPolicy, cycle.candidate_policy_id)
+        assert candidate.status == "candidate"  # the active policy is unchanged
+        assert (await learning.snapshot(session))["product"]["version"] == 0

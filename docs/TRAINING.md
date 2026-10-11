@@ -93,3 +93,26 @@ it, apply a retired version again or restore the previous one. API: `GET /api/v1
 Training scenarios use a **synthetic C1 project** only (`nova/domain/training_pack.py`): no ORBIT content is
 sent to FORGE for training. Production captures (`NOVA_FORGE_CAPTURE_POLICY`) keep the classification of the
 ORBIT context they used and are created **private** in FORGE when it is C2 (confidential) or C3 (secret).
+
+---
+
+## Releases: canary, approval, rollback
+
+A candidate policy FORGE validated no longer reaches everyone at once (`services/releases.py`,
+`domain/release.py`):
+
+1. **Canary** — it is served to a *stable* share of users (`NOVA_RELEASE_CANARY_PERCENT`, default 10; the same
+   user always gets the same version). FORGE evaluation calls and replays never see it.
+2. **Verdict** — once the canary has `NOVA_RELEASE_CANARY_MIN_RUNS` final executions (default 20), its failure
+   rate is compared with the other executions of the same period. More than
+   `NOVA_RELEASE_MAX_FAILURE_INCREASE` (default +10 points) worse → **rolled back automatically**.
+3. **Approval** — a healthy canary waits for an administrator (`NOVA_RELEASE_APPROVAL=full`, default) before
+   reaching everyone; `none` lets it go live by itself. `NOVA_RELEASE_CANARY_PERCENT=0` skips the canary.
+4. **Rollback** — an administrator can withdraw a release at any time; an active one gives way to the policy it
+   replaced.
+
+Every execution records the release it ran under (`tasks.release_id`, `run_manifest.release_id`, and per agent in
+`run_manifest.policies`), and FORGE receives it with the run (`release:<id>` tag, `release_id` link). Applying a
+policy by hand (`POST /training/policies/{id}/activate`) skips the canary — the human decision is the approval —
+but is recorded as a release. API: `GET /releases`, `GET /releases/{id}`, `POST /releases/{id}/evaluate|approve|rollback`
+(decisions are admin-only). The SDLC agent keeps its own guard (`services/sdlc_improvement.py`).

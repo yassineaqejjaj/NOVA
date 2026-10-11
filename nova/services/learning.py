@@ -11,21 +11,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.domain.agents import AgentProfile
 from nova.domain.learning import AgentLearning
+from nova.domain.release import in_canary
 from nova.infra.db import utcnow
-from nova.infra.models import AgentPolicy
+from nova.infra.models import AgentPolicy, Release
 
 ACTIVE_CACHE_SECONDS = 30.0
-_active_cache: tuple[float, dict[str, Any]] | None = None
+_cache: tuple[float, dict[str, Any], list[dict[str, Any]]] | None = None
 
 
 def invalidate() -> None:
-    global _active_cache
-    _active_cache = None
+    global _cache
+    _cache = None
 
 
-def learning(policy: AgentPolicy) -> AgentLearning:
+def learning(policy: AgentPolicy, release_id: str | None = None) -> AgentLearning:
     return AgentLearning(
-        policy_id=str(policy.id), version=policy.version, standards=list(policy.standards), skills=dict(policy.skills)
+        policy_id=str(policy.id),
+        version=policy.version,
+        release_id=release_id,
+        standards=list(policy.standards),
+        skills=dict(policy.skills),
     )
 
 
@@ -35,19 +40,45 @@ async def active_policies(session: AsyncSession) -> dict[str, AgentPolicy]:
     return {p.agent: p for p in rows}
 
 
-async def snapshot(session: AsyncSession, policy_id: str | None = None) -> dict[str, Any]:
+async def _canaries(session: AsyncSession) -> list[dict[str, Any]]:
+    """Running canary releases: ``{release_id, agent, percent, learning}`` (the candidate's lessons)."""
+    rows = (
+        await session.execute(
+            select(Release, AgentPolicy)
+            .join(AgentPolicy, AgentPolicy.id == Release.policy_id)
+            .where(Release.status.in_(("canary", "awaiting_approval")), Release.canary_percent > 0)
+        )
+    ).all()
+    return [
+        {
+            "release_id": str(r.id),
+            "agent": r.agent,
+            "percent": r.canary_percent,
+            "learning": learning(p, release_id=str(r.id)).model_dump(),
+        }
+        for r, p in rows
+    ]
+
+
+async def snapshot(session: AsyncSession, policy_id: str | None = None, user_id: str | None = None) -> dict[str, Any]:
     """Lessons applied to one execution: the active policy of every agent, or ``policy_id`` for its agent.
 
-    The snapshot is stored in the execution state, so a resumed or retried execution keeps the lessons it
-    started with even if a policy is promoted meanwhile (reproducibility).
+    With a ``user_id`` (production traffic), a user inside a running canary's stable share gets the candidate's
+    lessons for that agent. The snapshot is stored in the execution state, so a resumed or retried execution
+    keeps the lessons it started with even if a policy is promoted meanwhile (reproducibility).
     """
-    global _active_cache
-    if _active_cache and time.monotonic() - _active_cache[0] < ACTIVE_CACHE_SECONDS:
-        active = dict(_active_cache[1])
+    global _cache
+    if _cache and time.monotonic() - _cache[0] < ACTIVE_CACHE_SECONDS:
+        active, canaries = dict(_cache[1]), _cache[2]
     else:
         active = {agent: learning(p).model_dump() for agent, p in (await active_policies(session)).items()}
-        _active_cache = (time.monotonic(), active)
+        canaries = await _canaries(session)
+        _cache = (time.monotonic(), active, canaries)
         active = dict(active)
+    if user_id:
+        for canary in canaries:
+            if in_canary(canary["release_id"], user_id, canary["percent"]):
+                active[canary["agent"]] = canary["learning"]
     if policy_id:
         try:
             policy = await session.get(AgentPolicy, uuid.UUID(str(policy_id)))

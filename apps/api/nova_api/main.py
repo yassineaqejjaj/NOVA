@@ -30,6 +30,7 @@ from nova_api.routers import (
     forge_protocol,
     me,
     missions,
+    releases,
     training,
     voice,
     work,
@@ -74,7 +75,20 @@ def create_app() -> FastAPI:
 
     api = APIRouter(prefix="/api/v1")
     api.include_router(auth.router)
-    for module in (me, figma, engineering, work, conversations, executions, artifacts, context, voice, missions, training):
+    for module in (
+        me,
+        figma,
+        engineering,
+        work,
+        conversations,
+        executions,
+        artifacts,
+        context,
+        voice,
+        missions,
+        training,
+        releases,
+    ):
         api.include_router(module.router)
     app.include_router(api)
     app.include_router(forge_protocol.router)

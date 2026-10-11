@@ -24,6 +24,7 @@ from nova.domain.enums import EventType, ExecutionOrigin, NovaPhase, TaskStatus
 from nova.domain.llm import LLMError
 from nova.domain.manifest import manifest_from_state
 from nova.domain.pricing import Pricing
+from nova.domain.release import TRAFFIC_ORIGINS
 from nova.domain.state import NovaState
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import get_publisher
@@ -152,7 +153,11 @@ async def _run_segment(
         user_id, project_id, origin, initial_input = str(task.user_id), task.project_id, task.origin, dict(task.input)
         if mode != "resume" and "learning" not in initial_input:
             # Lessons the agents learned from FORGE, frozen for the whole execution (services/learning.py)
-            initial_input["learning"] = await learning.snapshot(session, initial_input.get("learning_policy_id"))
+            initial_input["learning"] = await learning.snapshot(
+                session, initial_input.get("learning_policy_id"), user_id=user_id if origin in TRAFFIC_ORIGINS else None
+            )
+            canary = next((v["release_id"] for v in initial_input["learning"].values() if v.get("release_id")), None)
+            task.release_id = uuid.UUID(canary) if canary else None  # lets the release compare its runs with the rest
             task.input = {**task.input, "learning": initial_input["learning"]}  # kept for retries and FORGE metadata
         initial_input.pop("learning_policy_id", None)
         message_id = str(task.message_id) if task.message_id else None

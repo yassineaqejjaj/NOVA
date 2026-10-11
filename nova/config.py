@@ -131,6 +131,11 @@ class Settings(BaseSettings):
     # Time FORGE gives one training run (a multi-step Skill on a small model needs more than FORGE's 120 s default)
     training_run_timeout_seconds: int = Field(default=600, ge=60, le=3600)
     training_auto_promote: bool = True  # promote a candidate policy when FORGE validates it
+    # Releases (docs/TRAINING.md): a validated candidate goes through a canary before reaching everyone.
+    release_canary_percent: int = Field(default=10, ge=0, le=100)  # share of users; 0 = no canary
+    release_canary_min_runs: int = Field(default=20, ge=1, le=10000)  # canary executions before a verdict
+    release_max_failure_increase: float = Field(default=0.10, ge=0, le=1)  # rollback above this failure-rate gap
+    release_approval: Literal["none", "full"] = "full"  # "full": a healthy canary waits for an administrator
 
     # --- Voice (self-hosted speech-to-text / text-to-speech service) ---------------------------------
     voice_url: str = ""  # self-hosted voice service (empty: not deployed)

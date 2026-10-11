@@ -43,7 +43,7 @@ from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import AgentPolicy, TrainingCycle
 from nova.integrations.forge import mapper
 from nova.integrations.forge.client import ForgeClient, ForgeError
-from nova.services import learning, providers
+from nova.services import learning, providers, releases
 from nova.services.audit import audit
 from nova.skills.registry import SkillRegistry, get_skill_registry
 
@@ -500,8 +500,10 @@ async def _decide(session: AsyncSession, cycle: TrainingCycle, client: ForgeClie
         cycle.result = {**cycle.result, "awaiting_approval": True}
         await _finish(session, cycle, "validated")
         return
-    await learning.activate(session, candidate)
-    await _finish(session, cycle, "promoted")
+    release = await releases.start(session, candidate, cycle, {**cycle.result.get("experiment", {}), "cycle_id": str(cycle.id)})
+    cycle.result = {**cycle.result, "release_id": str(release.id)}
+    # Active at once (no canary, no approval): promoted. Otherwise the release is on its way: validated until it goes live.
+    await _finish(session, cycle, "promoted" if release.status == "active" else "validated")
 
 
 # --- Manual actions -----------------------------------------------------------------------------------
@@ -519,7 +521,7 @@ async def promote(session: AsyncSession, policy_id: uuid.UUID, actor_id: str | N
         if cycle is None or cycle.status != "validated":
             raise TrainingError("conflict", "Cette version n'a pas été validée par FORGE.")
         cycle.status = "promoted"
-    await learning.activate(session, policy)
+    await releases.activate_directly(session, policy, actor_id)
     await audit(
         session,
         actor_id=actor_id,
@@ -540,6 +542,7 @@ async def rollback(session: AsyncSession, profile: AgentProfile, actor_id: str |
     if previous is None:
         raise TrainingError("conflict", "La version précédente est introuvable.")
     await learning.activate(session, previous)
+    await releases.mark_policy_rolled_back(session, active.id, actor_id)
     await audit(
         session,
         actor_id=actor_id,

@@ -90,6 +90,8 @@ def run_body(agent_version_id: str, scenario_id: str, record: ExecutionRecord) -
     snapshot = ((record.manifest or {}).get("context") or {}).get("snapshot_id")
     if snapshot:
         tags.append(f"context-snapshot:{snapshot}")
+    if (record.manifest or {}).get("release_id"):
+        tags.append(f"release:{record.manifest['release_id']}")
     body: dict[str, Any] = {
         "agent_version_id": agent_version_id,
         "scenario_ids": [scenario_id],
