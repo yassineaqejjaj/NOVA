@@ -136,6 +136,7 @@ async def build_execution_record(state: NovaState, d: AgentDeps) -> ExecutionRec
         usage=state.usage,
         status=state.status,
         errors=[e.message for e in state.errors],
+        started_at=state.started_at,
         finished_at=datetime.now(UTC),
         manifest=manifest.model_dump(mode="json"),
     )
@@ -155,7 +156,11 @@ async def emit_forge_trace(state: NovaState, runtime: Runtime[AgentDeps]) -> dic
     span.set_attribute("gen_ai.usage.output_tokens", state.usage.output_tokens)
     if state.origin in (ExecutionOrigin.forge_protocol, ExecutionOrigin.replay) or d.evaluation is None:
         return {}
-    if state.status != "completed" or not should_capture(d.settings.forge_capture_policy, d.settings.forge_capture_sample_rate):
+    # Observed capture reports what really happened, failures included: that is what release monitoring needs.
+    capturable = ("completed", "failed") if d.settings.forge_capture_mode == "observed" else ("completed",)
+    if state.status not in capturable or not should_capture(
+        d.settings.forge_capture_policy, d.settings.forge_capture_sample_rate
+    ):
         return {}
     try:
         record = await build_execution_record(state, d)

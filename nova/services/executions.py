@@ -168,6 +168,9 @@ async def _run_segment(
             canary = next((v["release_id"] for v in initial_input["learning"].values() if v.get("release_id")), None)
             task.release_id = uuid.UUID(canary) if canary else None  # lets the release compare its runs with the rest
             task.input = {**task.input, "learning": initial_input["learning"]}  # kept for retries and FORGE metadata
+        if "started_at" not in initial_input:
+            initial_input["started_at"] = utcnow().isoformat()
+            task.input = {**task.input, "started_at": initial_input["started_at"]}  # kept for retries and FORGE capture
         initial_input.pop("learning_policy_id", None)
         message_id = str(task.message_id) if task.message_id else None
         await emit_event(session, get_publisher(), tid, EventType.task, {"status": "running"})

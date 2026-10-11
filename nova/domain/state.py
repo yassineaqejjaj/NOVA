@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -98,6 +99,7 @@ class NovaState(BaseModel):
     excluded_context_refs: list[str] = Field(default_factory=list)
     attachments: list[dict[str, str]] = Field(default_factory=list)  # {name, text}
     provided_context: list[ContextItem] = Field(default_factory=list)  # FORGE protocol context
+    started_at: datetime | None = None  # when the execution first started (kept across retries)
     snapshot_override: SnapshotRef | None = None  # replay: ORBIT base snapshot instead of the user's reference
     preferences: dict[str, Any] = Field(default_factory=dict)
     # Lessons of the agents' policies applied to this execution ({profile: AgentLearning}), snapshotted at start

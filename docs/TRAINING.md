@@ -116,3 +116,12 @@ Every execution records the release it ran under (`tasks.release_id`, `run_manif
 policy by hand (`POST /training/policies/{id}/activate`) skips the canary — the human decision is the approval —
 but is recorded as a release. API: `GET /releases`, `GET /releases/{id}`, `POST /releases/{id}/evaluate|approve|rollback`
 (decisions are admin-only). The SDLC agent keeps its own guard (`services/sdlc_improvement.py`).
+
+### Observed capture (`NOVA_FORGE_CAPTURE_MODE=observed`)
+
+By default a captured execution is *re-executed* inside FORGE under whichever version is active at that moment:
+its score says nothing about the release the user actually got. In `observed` mode FORGE instead receives what
+really happened — outcome, skills, tokens, steps, the run manifest (agent version, snapshot, policies, release) —
+as an observed run scored by deterministic rules on a small structured result (`nova-production` config; no text
+of the request, answer or context leaves NOVA). Failures are reported too. Releases can then be compared on real
+traffic (FORGE `GET /analytics/releases/compare`).

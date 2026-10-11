@@ -111,6 +111,9 @@ class Settings(BaseSettings):
     forge_inbound_token: str = DEV_FORGE_INBOUND_TOKEN  # bearer FORGE sends to the NOVA Agent Protocol
     forge_capture_policy: Literal["off", "on_feedback", "sampled", "all"] = "on_feedback"
     forge_capture_sample_rate: float = 0.1
+    # "reexecute": FORGE replays the request under the version active at that moment (comparable across versions);
+    # "observed": FORGE receives what really happened, with the run manifest (release monitoring, failures included).
+    forge_capture_mode: Literal["reexecute", "observed"] = "reexecute"
     forge_timeout_seconds: float = 20.0
     # FORGE `nova` credential (Settings → Credentials) whose secret is NOVA_FORGE_INBOUND_TOKEN: FORGE uses it to
     # authenticate when it calls NOVA back. Agent versions registered by NOVA reference it.
