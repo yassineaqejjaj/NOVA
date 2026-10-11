@@ -156,6 +156,8 @@ class FakeContextProvider:
     def __init__(self, items: list[ContextItem] | None = None) -> None:
         self.items = items or [context_item(1, "FORGE Vision v2", memory_kind="decision"), context_item(2, "Q4 Objectives")]
         self.error: ContextError | None = None
+        self.sufficiency: str | None = None  # the verdict ORBIT attaches to what it serves
+        self.missing: list[str] = []
         self.queries: list[ContextQuery] = []
         self.feedback: list[tuple[str, bool]] = []
         self.changes: list[ContextChange] = []
@@ -198,6 +200,8 @@ class FakeContextProvider:
             items=list(self.items),
             warnings=[],
             excluded_count=2,
+            sufficiency=self.sufficiency,
+            missing=list(self.missing),
         )
 
     async def list_projects(self, user_id: str) -> list[ContextProjectInfo]:

@@ -57,3 +57,43 @@ def test_secret_context_withholds_every_tool_that_writes_to_an_external_system()
     c3 = constrained_tools(d, _state(3), declared)
     assert "propose_orbit_decision" not in c3 and "publish_artifact_to_orbit" not in c3
     assert "search_orbit" in c3 and "get_artifact" in c3  # reading stays possible
+
+
+# --- Sufficiency-aware assembly and compositions that worked before ---------------------------------------------------
+
+
+def test_a_discovery_skill_goes_first_only_when_orbit_says_the_context_is_insufficient():
+    from nova.domain.assembly import discovery_step
+
+    ranked = [("prd", "definition"), ("problem-framing", "discovery"), ("persona", "discovery")]
+    assert discovery_step(ranked, ["prd"], "insufficient", 3) == "problem-framing"  # the best-ranked discovery Skill
+    for verdict in ("sufficient", "partial", None):
+        assert discovery_step(ranked, ["prd"], verdict, 3) is None  # only a clear "insufficient" changes the plan
+    assert discovery_step(ranked, ["prd"], "insufficient", 0) is None  # no room left
+    assert discovery_step(ranked, ["prd", "persona"], "insufficient", 3) is None  # a discovery step is already there
+    assert discovery_step([("prd", "definition")], ["prd"], "insufficient", 3) is None  # none fits the request
+
+
+def test_a_composition_needs_enough_runs_and_a_high_success_rate_to_lend_a_bonus():
+    from nova.domain.assembly import MAX_COMPOSITION_BONUS, composition_bonuses
+
+    good = (("problem-framing", "prd"), True)
+    assert composition_bonuses([good] * 4) == {}  # too few runs
+    assert composition_bonuses([good] * 3 + [(("problem-framing", "prd"), False)] * 3) == {}  # 50 % success
+    perfect = composition_bonuses([good] * 6)
+    assert perfect == {"problem-framing": MAX_COMPOSITION_BONUS, "prd": MAX_COMPOSITION_BONUS}
+    decent = composition_bonuses([good] * 9 + [(("problem-framing", "prd"), False)])  # 90 %: a smaller nudge
+    assert 0.1 <= decent["prd"] < MAX_COMPOSITION_BONUS
+    best = composition_bonuses([good] * 6 + [(("prd",), True)] * 5 + [(("prd",), False)] * 3)
+    assert set(best) == {"problem-framing", "prd"}  # the best proven composition wins, a worse one adds nothing
+    assert composition_bonuses([((), True)] * 10) == {}
+
+
+def test_the_router_adds_the_composition_bonus_but_never_for_an_explicit_choice():
+    router = SkillRouter(get_skill_registry())
+    base = {c.skill.id: c.score for c in router.candidates("write a PRD for scheduled exports", limit=30)}
+    boosted = router.candidates("write a PRD for scheduled exports", bonuses={"prd": 1.0}, limit=30)
+    found = next(c for c in boosted if c.skill.id == "prd")
+    assert found.score == base["prd"] + 1.0 and "worked well in this composition before" in found.reasons
+    explicit = router.candidates("write a PRD", explicit=["prd"], bonuses={"prd": 1.0}, limit=30)
+    assert "worked well in this composition before" not in next(c for c in explicit if c.skill.id == "prd").reasons

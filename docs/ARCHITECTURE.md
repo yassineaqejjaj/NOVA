@@ -364,3 +364,11 @@ about the mission (`domain/assembly.py`).
   that write to an external system are withheld from every step (the plan states it in its assumptions).
 * **The team.** `plan.team` lists the specialist agents that carry the plan, their Skills and the mean FORGE score
   of those Skills; it is kept in the run manifest (`team`) so a replay or an experiment can compare compositions.
+* **Context sufficiency (ORBIT).** ORBIT's verdict on the served context (`sufficient` / `partial` / `insufficient`,
+  with the missing sub-topics) now reaches NOVA. Only a clear `insufficient`, and only when a *discovery* Skill that
+  fits the request is among the candidates and the plan has room, puts that Skill first ("gather what is missing, then
+  produce"); the plan states what is missing in its assumptions. `partial` or absent verdicts change nothing.
+* **Compositions that worked.** The run manifest keeps the request category and the Skills used; for a new request of
+  the same category, the best composition with at least 5 production runs and 80 % success lends its Skills a small
+  router bonus (`services/compositions.py`, at most +1.0, never negative, never over an explicit `/skill`). A
+  composition that failed is simply not encouraged.

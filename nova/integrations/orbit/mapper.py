@@ -91,6 +91,8 @@ def context_bundle(package: dict[str, Any], project_slug: str, orbit_public_url:
         candidates_count=pkg.candidates_count,
         tokens_used=pkg.tokens_used,
         snapshot=SnapshotRef(name=pkg.snapshot.name, version=pkg.snapshot.version) if pkg.snapshot else None,
+        sufficiency=(pkg.sufficiency or {}).get("verdict"),
+        missing=[str(m) for m in (pkg.sufficiency or {}).get("missing_subtopics") or []][:10],
         latency_ms=total if isinstance(total := pkg.timings.get("total"), int | float) else None,
     )
 

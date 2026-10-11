@@ -31,7 +31,7 @@ from nova.domain.state import NovaState
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import get_publisher
 from nova.infra.models import ContextRetrievalReference, Task, WorkflowExecution
-from nova.services import learning, llm_calls, providers, skill_scores
+from nova.services import compositions, learning, llm_calls, providers, skill_scores
 from nova.services.access import effective_permissions
 from nova.services.execution_store import SqlExecutionStore, emit_event
 from nova.services.users import get_user, principal_for
@@ -104,6 +104,7 @@ async def build_deps(
         llm=llm,
         skill_llms=skill_llms,
         skill_scores=scores,
+        composition_priors=_composition_priors,
         context=providers.context(),
         skills=get_skill_registry(),
         artifacts=get_artifact_registry(),
@@ -113,6 +114,11 @@ async def build_deps(
         evaluation=None if origin == ExecutionOrigin.forge_protocol else providers.evaluation(),
         permissions=permissions,
     )
+
+
+async def _composition_priors(category: str) -> dict[str, float]:
+    async with session_scope() as session:
+        return await compositions.priors(session, category)
 
 
 async def _set_status(task_id: uuid.UUID, status: TaskStatus, **values: Any) -> None:

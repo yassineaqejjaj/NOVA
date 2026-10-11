@@ -146,6 +146,7 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
     excluded = 0
     retrieval_id = None
     snapshot_ref = None
+    sufficiency, missing_topics = None, []
 
     # Explicit context pinned by the user ("Add context") is re-used from what ORBIT served before.
     if state.pinned_context_ref_ids:
@@ -196,6 +197,7 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
                 excluded = bundle.excluded_count
                 retrieval_id = bundle.retrieval_id
                 snapshot_ref = bundle.snapshot
+                sufficiency, missing_topics = bundle.sufficiency, bundle.missing
             except ContextError as exc:
                 title, message = ERROR_COPY.get(exc.code, ERROR_COPY["unavailable"])
                 await upsert(d, state, warning_block(title, message, ERROR_ACTIONS.get(exc.code, []), key="context_warning"))
@@ -246,5 +248,11 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
     elif state.context_mode == "auto" and state.project_slug and "context_issue" not in updates:
         await progress(d, state, "context", "Retrieving context", "completed", "No relevant context found")
 
-    updates.update(context_items=items, context_warnings=warnings, context_retrieval_id=retrieval_id)
+    updates.update(
+        context_items=items,
+        context_warnings=warnings,
+        context_retrieval_id=retrieval_id,
+        context_sufficiency=sufficiency,
+        context_missing=missing_topics,
+    )
     return updates
