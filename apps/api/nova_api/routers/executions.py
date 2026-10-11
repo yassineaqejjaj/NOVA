@@ -22,6 +22,8 @@ from nova.services.access import require_task
 from nova.services.audit import audit
 from nova.services.dispatch import dispatch
 from nova.services.execution_store import emit_event
+from nova.services.replay import ReplayError, ReplayOptions, create_replay, list_replays
+from nova.services.replay import summary as replay_summary
 from nova_api.auth import CurrentPrincipal
 from nova_api.errors import ApiError
 
@@ -177,3 +179,31 @@ async def retry(task_id: str, principal: CurrentPrincipal, session: SessionDep) 
     await session.commit()
     await dispatch(str(task.id), "retry")
     return {"status": "queued"}
+
+
+@router.post("/{task_id}/replay", status_code=202)
+async def replay(task_id: str, body: ReplayOptions, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """Re-run a finished execution as a new task with other context, model or lessons (the original is untouched)."""
+    try:
+        task = await create_replay(session, principal, task_id, body)
+    except ReplayError as exc:
+        raise ApiError(409 if exc.code == "not_finished" else 422, exc.code, exc.message) from exc
+    await audit(
+        session,
+        actor_id=principal.user_id,
+        action="execution.replay",
+        target_type="task",
+        target_id=str(task.id),
+        summary=f"Replay of {task_id}",
+        project_id=task.project_id,
+        details={"of": task_id, "options": body.model_dump(mode="json")},
+    )
+    await session.commit()
+    await dispatch(str(task.id), "start")
+    return {"id": str(task.id), "status": "queued", "replay_of": task_id}
+
+
+@router.get("/{task_id}/replays")
+async def replays(task_id: str, principal: CurrentPrincipal, session: SessionDep) -> list[dict[str, Any]]:
+    """The replays of an execution: what each one changed, how it ended and what it cost."""
+    return [replay_summary(t) for t in await list_replays(session, principal, task_id)]

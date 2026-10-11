@@ -74,6 +74,7 @@ class ExecutionOrigin(StrEnum):
     interactive = "interactive"
     forge_protocol = "forge_protocol"  # FORGE evaluation call (NOVA Agent Protocol)
     scheduled = "scheduled"
+    replay = "replay"  # a past run re-executed with other context / model / policy (never interactive, never writes out)
 
 
 class AuthorType(StrEnum):

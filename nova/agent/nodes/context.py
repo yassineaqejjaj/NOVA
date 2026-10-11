@@ -188,6 +188,7 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
                         source_kinds=plan.source_kinds,
                         session_id=state.conversation_id,
                         max_classification=d.settings.policy_max_classification,
+                        base_snapshot=state.snapshot_override,
                     ),
                 )
                 items += bundle.items

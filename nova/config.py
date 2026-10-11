@@ -78,6 +78,8 @@ class Settings(BaseSettings):
     # Extra completion budget for reasoning models (Gemma 4, Qwen 3…): their hidden reasoning counts against max_tokens.
     llm_reasoning_tokens: int = Field(default=0, ge=0, le=32768)
     llm_temperature: float = 0.2
+    # Models a replay may switch to (empty: replays keep the configured model). Guards cost: a replay is a real run.
+    replay_models: list[str] = Field(default_factory=list)
     # Cost model (USD per million tokens). 0 = self-hosted: calls are recorded with a cost of 0.
     llm_price_input_per_mtok: float = Field(default=0.0, ge=0)
     llm_price_output_per_mtok: float = Field(default=0.0, ge=0)

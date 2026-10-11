@@ -153,7 +153,7 @@ async def emit_forge_trace(state: NovaState, runtime: Runtime[AgentDeps]) -> dic
     span.set_attribute("nova.artifacts", [a.artifact_id for a in state.artifacts])
     span.set_attribute("gen_ai.usage.input_tokens", state.usage.input_tokens)
     span.set_attribute("gen_ai.usage.output_tokens", state.usage.output_tokens)
-    if state.origin == ExecutionOrigin.forge_protocol or d.evaluation is None:
+    if state.origin in (ExecutionOrigin.forge_protocol, ExecutionOrigin.replay) or d.evaluation is None:
         return {}
     if state.status != "completed" or not should_capture(d.settings.forge_capture_policy, d.settings.forge_capture_sample_rate):
         return {}

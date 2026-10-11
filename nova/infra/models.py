@@ -286,6 +286,7 @@ class Task(Base):
     waiting_for: Mapped[dict | None] = mapped_column(JSONType)  # interrupt payload when waiting_user
     error: Mapped[str | None] = mapped_column(Text)
     usage: Mapped[dict] = mapped_column(JSONType, default=dict)
+    replay_of: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tasks.id", ondelete="SET NULL"), index=True)
     run_manifest: Mapped[dict | None] = mapped_column(JSONType)  # domain/manifest.py: what shaped this run (ORION join key)
     scheduled_for: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = _created()

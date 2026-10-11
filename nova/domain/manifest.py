@@ -59,6 +59,7 @@ class RunManifest(BaseModel):
     eval_suite_id: str | None = None
     release_id: str | None = None
     replay_of: str | None = None  # run_id of the execution this one replays
+    overrides: dict[str, str] = Field(default_factory=dict)  # what a replay changed: context, model, snapshot, policy
 
 
 def build_run_manifest(
@@ -77,6 +78,7 @@ def build_run_manifest(
     max_classification: int,
     token_budget: int | None,
     ids: dict[str, str | None] | None = None,
+    overrides: dict[str, str] | None = None,
 ) -> RunManifest:
     """Assemble the manifest from already-known facts (no I/O)."""
     policies = {
@@ -101,6 +103,7 @@ def build_run_manifest(
         ),
         policies=policies,
         skills=[ManifestSkill(skill_id=s, version=v) for s, v in skills],
+        overrides=dict(overrides or {}),
     )
     for key, value in (ids or {}).items():
         if key in ("experiment_id", "eval_suite_id", "release_id", "replay_of"):
@@ -116,6 +119,7 @@ def manifest_from_state(
     snapshot_name: str | None = None,
     snapshot_version: int | None = None,
     ids: dict[str, str | None] | None = None,
+    overrides: dict[str, str] | None = None,
 ) -> RunManifest:
     """The manifest of an execution state; the snapshot comes from the stored ORBIT context reference."""
     return build_run_manifest(
@@ -133,4 +137,5 @@ def manifest_from_state(
         max_classification=max((i.classification for i in state.context_items), default=0),
         token_budget=token_budget,
         ids=ids,
+        overrides=overrides,
     )

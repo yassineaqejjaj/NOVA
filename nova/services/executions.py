@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import ExecutionPaused
+from nova.agent.providers.factory import build_llm_provider
 from nova.agent.providers.recording import RecordingProvider
 from nova.agent.runtime import AgentRuntime, open_checkpointer
 from nova.agent.tools.registry import get_tool_registry
@@ -48,7 +49,13 @@ class RetryableExecutionError(Exception):
     """Infrastructure failure: the worker retries the task from its last checkpoint."""
 
 
-async def build_deps(principal_user_id: str, project_id: uuid.UUID | None, origin: str, task_id: str | None = None) -> AgentDeps:
+async def build_deps(
+    principal_user_id: str,
+    project_id: uuid.UUID | None,
+    origin: str,
+    task_id: str | None = None,
+    model_override: str | None = None,
+) -> AgentDeps:
     """The ports of one execution. With a ``task_id`` every model call is recorded (tokens, cost, latency)."""
     async with session_scope() as session:
         user = await get_user(session, principal_user_id)
@@ -57,6 +64,8 @@ async def build_deps(principal_user_id: str, project_id: uuid.UUID | None, origi
         permissions = await effective_permissions(session, principal, project_id)
     settings = get_settings()
     llm = providers.llm() if origin == ExecutionOrigin.forge_protocol else await providers.llm_for_user(principal_user_id)
+    if model_override:  # replay: the organization's provider with another (allow-listed) model; no personal key
+        llm = build_llm_provider(settings.model_copy(update={"llm_model": model_override}))
     if task_id:
         llm = RecordingProvider(
             llm,
@@ -149,7 +158,7 @@ async def _run_segment(
         message_id = str(task.message_id) if task.message_id else None
         await emit_event(session, get_publisher(), tid, EventType.task, {"status": "running"})
 
-    deps = await build_deps(user_id, project_id, origin, task_id)
+    deps = await build_deps(user_id, project_id, origin, task_id, model_override=initial_input.get("model_override"))
     parent = extract(traceparent) if traceparent else otel_context.get_current()
     settings = get_settings()
     try:
@@ -231,6 +240,7 @@ async def _manifest_for(state: NovaState, initial_input: dict[str, Any]) -> dict
             snapshot_name=snapshot_name,
             snapshot_version=snapshot_version,
             ids=initial_input.get("manifest_ids"),
+            overrides=initial_input.get("replay_overrides"),
         )
         return manifest.model_dump(mode="json")
     except Exception:
