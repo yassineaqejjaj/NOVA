@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from nova.domain.assembly import TeamMember
 from nova.domain.enums import IntentKind, SkillCategory, StepStatus
 
 
@@ -122,6 +123,7 @@ class ExecutionPlan(BaseModel):
     assumptions: list[str] = Field(default_factory=list)
     confirmed: bool = False
     workflow_id: str | None = None
+    team: list[TeamMember] = Field(default_factory=list)  # the specialist agents carrying the plan (domain/assembly.py)
 
     def step(self, step_id: str) -> ExecutionStep | None:
         return next((s for s in self.steps if s.id == step_id), None)

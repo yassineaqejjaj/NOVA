@@ -11,6 +11,7 @@ from nova.agent.nodes.common import deps, node, progress, set_phase, upsert
 from nova.agent.snapshots import retrieve_with_reference
 from nova.domain.blocks import Block, warning_block
 from nova.domain.context import ContextBundle, ContextError, ContextItem, ContextQuery, SnapshotRef
+from nova.domain.context_plan import plan_context
 from nova.domain.enums import CLASSIFICATION_LABELS, BlockType, ExecutionOrigin, IntentKind, NovaPhase
 from nova.domain.permissions import action_permission
 from nova.domain.state import ContextIssue, NovaState
@@ -167,8 +168,14 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
             await progress(d, state, "context", "Retrieving context", "skipped", "No project selected")
         else:
             await progress(d, state, "context", "Retrieving context", "running")
-            purpose = PURPOSE_BY_CATEGORY.get(c.category.value if c and c.category else "general", "general")
-            query = (c.context_query if c and c.context_query else state.intent)[:7000]
+            category_purpose = PURPOSE_BY_CATEGORY.get(c.category.value if c and c.category else "general", "general")
+            plan = plan_context(
+                [d.skills.get(s).expected_context for s in (c.candidate_skill_ids if c else []) if d.skills.has(s)],
+                default_budget=d.settings.orbit_default_token_budget,
+                default_purpose=category_purpose,
+            )
+            purpose = plan.purpose
+            query = plan.augment((c.context_query if c and c.context_query else state.intent)[:7000])
             try:
                 bundle = await retrieve_with_reference(
                     d,
@@ -177,9 +184,11 @@ async def retrieve_orbit_context(state: NovaState, runtime: Runtime[AgentDeps]) 
                         project_slug=state.project_slug,
                         task=query,
                         purpose=purpose,
-                        token_budget=d.settings.orbit_default_token_budget,
+                        token_budget=plan.token_budget,
+                        source_kinds=plan.source_kinds,
                         session_id=state.conversation_id,
                         max_classification=d.settings.policy_max_classification,
+                        base_snapshot=state.snapshot_override,
                     ),
                 )
                 items += bundle.items

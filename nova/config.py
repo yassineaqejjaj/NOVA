@@ -78,6 +78,23 @@ class Settings(BaseSettings):
     # Extra completion budget for reasoning models (Gemma 4, Qwen 3…): their hidden reasoning counts against max_tokens.
     llm_reasoning_tokens: int = Field(default=0, ge=0, le=32768)
     llm_temperature: float = 0.2
+    # Self-healing: models tried, in order, when the main one fails transiently; a circuit breaker skips a model that keeps failing.
+    llm_fallback_models: list[str] = Field(default_factory=list)
+    llm_circuit_failures: int = Field(default=3, ge=1, le=100)
+    llm_circuit_cooldown_seconds: float = Field(default=60.0, ge=1, le=3600)
+    # Spending limits (0 = unlimited). Cost needs the prices below; tokens always work. Checked before every model call.
+    run_cost_budget_usd: float = Field(default=0.0, ge=0)
+    run_token_budget: int = Field(default=0, ge=0)
+    user_daily_cost_budget_usd: float = Field(default=0.0, ge=0)
+    # Model per Skill for the generation steps (skill id -> model), restricted to the models NOVA is already
+    # allowed to use (the main one, the fallbacks, the replay allow-list). Others are ignored.
+    llm_skill_models: dict[str, str] = Field(default_factory=dict)
+    # Models a replay may switch to (empty: replays keep the configured model). Guards cost: a replay is a real run.
+    replay_models: list[str] = Field(default_factory=list)
+    # Cost model (USD per million tokens). 0 = self-hosted: calls are recorded with a cost of 0.
+    llm_price_input_per_mtok: float = Field(default=0.0, ge=0)
+    llm_price_output_per_mtok: float = Field(default=0.0, ge=0)
+    llm_price_table: dict[str, tuple[float, float]] = Field(default_factory=dict)  # model -> (input, output)
 
     # --- ORBIT --------------------------------------------------------------------------------
     orbit_base_url: str = "http://localhost:8000"
@@ -101,6 +118,9 @@ class Settings(BaseSettings):
     forge_inbound_token: str = DEV_FORGE_INBOUND_TOKEN  # bearer FORGE sends to the NOVA Agent Protocol
     forge_capture_policy: Literal["off", "on_feedback", "sampled", "all"] = "on_feedback"
     forge_capture_sample_rate: float = 0.1
+    # "reexecute": FORGE replays the request under the version active at that moment (comparable across versions);
+    # "observed": FORGE receives what really happened, with the run manifest (release monitoring, failures included).
+    forge_capture_mode: Literal["reexecute", "observed"] = "reexecute"
     forge_timeout_seconds: float = 20.0
     # FORGE `nova` credential (Settings → Credentials) whose secret is NOVA_FORGE_INBOUND_TOKEN: FORGE uses it to
     # authenticate when it calls NOVA back. Agent versions registered by NOVA reference it.
@@ -125,6 +145,14 @@ class Settings(BaseSettings):
     # Time FORGE gives one training run (a multi-step Skill on a small model needs more than FORGE's 120 s default)
     training_run_timeout_seconds: int = Field(default=600, ge=60, le=3600)
     training_auto_promote: bool = True  # promote a candidate policy when FORGE validates it
+    # Releases (docs/TRAINING.md): a validated candidate goes through a canary before reaching everyone.
+    release_canary_percent: int = Field(default=10, ge=0, le=100)  # share of users; 0 = no canary
+    release_canary_min_runs: int = Field(default=20, ge=1, le=10000)  # canary executions before a verdict
+    release_max_failure_increase: float = Field(default=0.10, ge=0, le=1)  # rollback above this failure-rate gap
+    release_approval: Literal["none", "full"] = "full"  # "full": a healthy canary waits for an administrator
+    # After it goes live, FORGE keeps comparing the release with the one it replaced (observed runs).
+    release_watch_days: int = Field(default=7, ge=1, le=90)  # how long an active release stays under watch
+    release_health_rollback: bool = True  # roll back on a significant drop in success or rise in failures
 
     # --- Voice (self-hosted speech-to-text / text-to-speech service) ---------------------------------
     voice_url: str = ""  # self-hosted voice service (empty: not deployed)

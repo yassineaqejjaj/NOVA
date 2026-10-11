@@ -50,12 +50,17 @@ async def on_task_settled(task_id: str) -> None:
     """A NOVA execution reached completion, a failure or a question: the goal it serves moves forward."""
     import uuid as _uuid
 
-    from nova.services import goals
+    from nova.services import goals, releases
 
     async with session_scope() as session:
         task = await session.get(Task, _uuid.UUID(task_id))
         goal_id = (task.input or {}).get("goal_id") if task is not None and task.origin == "goal" else None
         ids = await goals.advance_open_goals(session, goal_id=_uuid.UUID(goal_id)) if goal_id else []
+    try:
+        async with session_scope() as session:
+            await releases.evaluate_open(session)  # a running canary may have enough runs for a verdict
+    except Exception:  # release bookkeeping must never fail the execution that triggered it
+        log.exception("Canary evaluation after %s failed", task_id)
     for tid in ids:
         await dispatch(tid, "start")
 

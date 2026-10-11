@@ -286,6 +286,9 @@ class Task(Base):
     waiting_for: Mapped[dict | None] = mapped_column(JSONType)  # interrupt payload when waiting_user
     error: Mapped[str | None] = mapped_column(Text)
     usage: Mapped[dict] = mapped_column(JSONType, default=dict)
+    release_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)  # canary release this run applied
+    replay_of: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tasks.id", ondelete="SET NULL"), index=True)
+    run_manifest: Mapped[dict | None] = mapped_column(JSONType)  # domain/manifest.py: what shaped this run (ORION join key)
     scheduled_for: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = _created()
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -441,6 +444,25 @@ class ContextRetrievalReference(Base):
     max_classification: Mapped[int] = mapped_column(Integer, default=0)
     snapshot_name: Mapped[str | None] = mapped_column(String(200))  # ORBIT base snapshot applied (reference only)
     snapshot_version: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _created()
+
+
+class LLMCall(Base):
+    """One call to the model during a run: what it cost and how long it took (never the prompt or the answer)."""
+
+    __tablename__ = "llm_calls"
+    __table_args__ = (Index("ix_llm_calls_task_seq", "task_id", "seq"),)
+    id: Mapped[uuid.UUID] = _pk()
+    task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
+    seq: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(20))  # generate | structured | stream
+    model: Mapped[str | None] = mapped_column(String(200))
+    input_tokens: Mapped[int | None] = mapped_column(Integer)  # NULL when the provider did not report usage (stream)
+    output_tokens: Mapped[int | None] = mapped_column(Integer)
+    cost_usd: Mapped[float | None] = mapped_column(Float)
+    latency_ms: Mapped[float] = mapped_column(Float, default=0.0)
+    status: Mapped[str] = mapped_column(String(10), default="ok")  # ok | error
+    error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created()
 
 
@@ -631,6 +653,26 @@ class AgentPolicy(Base):
     created_at: Mapped[datetime] = _created()
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Release(Base):
+    """A candidate policy on its way to everyone (domain/release.py): canary → approval → active, or rolled back."""
+
+    __tablename__ = "releases"
+    __table_args__ = (Index("ix_releases_agent_status", "agent", "status"),)
+    id: Mapped[uuid.UUID] = _pk()
+    agent: Mapped[str] = mapped_column(String(20))
+    policy_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent_policies.id", ondelete="CASCADE"))
+    baseline_policy_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)  # the active policy it replaces
+    label: Mapped[str] = mapped_column(String(40))  # e.g. "product v3"
+    status: Mapped[str] = mapped_column(String(20), default="canary")
+    canary_percent: Mapped[int] = mapped_column(Integer, default=0)
+    evidence: Mapped[dict] = mapped_column(JSONType, default=dict)  # FORGE experiment and scores that validated it
+    reason: Mapped[str] = mapped_column(Text, default="")  # last decision, in words
+    decided_by: Mapped[str | None] = mapped_column(String(64))  # user id, or "system"
+    created_at: Mapped[datetime] = _created()
+    canary_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class TrainingCycle(Base):

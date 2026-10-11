@@ -69,6 +69,8 @@ export interface CycleView {
 export interface TrainingOverview {
   missing: string[];
   auto_promote: boolean;
+  /** How a validated version reaches everyone (docs/TRAINING.md « Releases »). */
+  release: { canary_percent: number; approval: "none" | "full" };
   interval_days: number;
   repetitions: number;
   forge_url: string;

@@ -66,3 +66,28 @@ and `com.nova.llm-tunnel` (`supervisor.py`: Cloudflare quick tunnel; every new U
 `NOVA_LLM_BASE_URL` on `api`, `worker`, `beat`; a tunnel deleted by Cloudflare is recreated). State and logs live in
 `~/.nova-llm-tunnel/` (key `0600`). LM Studio must keep its server running (Developer → Start server, or "start on
 login"). The Mac must stay awake for NOVA to answer.
+
+---
+
+## Model fallback and circuit breaker
+
+`NOVA_LLM_FALLBACK_MODELS` (JSON list, default empty) names models tried in order when the main one fails
+*transiently* (overload, timeout, connection error); same provider and base URL, another model name. A model that
+fails `NOVA_LLM_CIRCUIT_FAILURES` times in a row (default 3) is skipped for `NOVA_LLM_CIRCUIT_COOLDOWN_SECONDS`
+(default 60), then probed once. Non-retryable errors (bad request, refused content) are never retried elsewhere,
+streams only fall back before the first chunk, and a user's own key (bring your own model) never falls back to the
+organization's models. Every attempt, failed ones included, is a row of `llm_calls`.
+
+---
+
+## Spending limits and per-Skill models
+
+* `NOVA_RUN_COST_BUDGET_USD`, `NOVA_RUN_TOKEN_BUDGET`, `NOVA_USER_DAILY_COST_BUDGET_USD` (default 0 = unlimited). They
+  are checked **before** each model call, so a runaway run stops with a clear message ("This task reached its cost
+  limit…") instead of a surprise bill; completed steps are kept and nothing is retried or sent to a fallback model.
+  Cost needs the prices (`NOVA_LLM_PRICE_*`, see *Model fallback*); tokens always work. The daily user limit sums the
+  user's calls since midnight UTC.
+* `NOVA_LLM_SKILL_MODELS` (JSON, skill id → model) makes another model write a Skill's generation and revision
+  steps, e.g. a cheaper one for summaries. Only models NOVA is already allowed to use count (the main model,
+  `NOVA_LLM_FALLBACK_MODELS`, `NOVA_REPLAY_MODELS`); any other is ignored with a warning. A user's own key is never
+  rerouted. FORGE's `GET /analytics/efficiency` suggests where a cheaper model is as good.

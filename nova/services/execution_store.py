@@ -267,6 +267,8 @@ class SqlExecutionStore:
                     project_slug=r.project_slug,
                     items=[ContextItem.model_validate(i) for i in r.items],
                     created_at=r.created_at.isoformat(),
+                    snapshot_name=r.snapshot_name,
+                    snapshot_version=r.snapshot_version,
                 )
                 for r in rows
             ]

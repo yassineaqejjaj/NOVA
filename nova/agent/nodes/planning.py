@@ -9,6 +9,8 @@ from langgraph.runtime import Runtime
 from nova.agent import prompts
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import NodeFailure, deps, node, now_iso, plan_block, progress, set_phase, upsert
+from nova.agent.snapshots import effective_tools
+from nova.domain.assembly import build_team, withholds_external_writes
 from nova.domain.enums import ExecutionOrigin, NovaPhase, StepStatus
 from nova.domain.outputs import ExecutionPlan, ExecutionStep, MissingInput, PlanOutput
 from nova.domain.permissions import AutonomyPolicy, action_permission
@@ -40,9 +42,10 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
         explicit=state.skill_refs,
         hinted=c.candidate_skill_ids,
         preferred_methods=state.preferences.get("preferred_methods"),
+        performance=d.skill_scores,
     )
     if not candidates:
-        candidates = router.candidates(c.goal, hinted=c.candidate_skill_ids) or []
+        candidates = router.candidates(c.goal, hinted=c.candidate_skill_ids, performance=d.skill_scores) or []
     if state.agent_scope:  # one specialist evaluated alone (FORGE training run): only its own Skills
         candidates = [cand for cand in candidates if cand.skill.agent == state.agent_scope]
     if not candidates:
@@ -125,6 +128,14 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
     missing = [m for m in plan_out.missing_inputs if (m.skill_id, m.key) in declared or any(m.key == k for _, k in declared)]
     missing = [m for m in missing if m.key not in state.user_inputs][:3] if can_ask else []
 
+    withheld_note = (
+        ["The context includes C3 (secret) material: tools that write to external systems are withheld."]
+        if withholds_external_writes(max((i.classification for i in state.context_items), default=0))
+        and any(
+            d.tools.get(t).external_write for s in steps if s.skill_id for t in effective_tools(d.skills.get(s.skill_id).tools)
+        )
+        else []
+    )
     policy = AutonomyPolicy(mode=state.autonomy, allow_auto_external_writes=d.settings.policy_allow_auto_external_writes)
     creates = any(d.skills.get(s.skill_id).outputs.mode == "create" for s in steps if s.skill_id)
     create_permission = action_permission("artifacts.create", state.autonomy, state.preferences.get("action_permissions"))
@@ -138,8 +149,9 @@ async def plan_execution(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[
         steps=steps,
         requires_user_input=bool(missing),
         missing_inputs=missing,
-        assumptions=plan_out.assumptions,
+        assumptions=[*plan_out.assumptions, *withheld_note],
         confirmed=not needs_confirmation,
+        team=build_team([(s.skill_id, d.skills.get(s.skill_id).agent.value) for s in steps if s.skill_id], d.skill_scores),
     )
     plan.workflow_id = await d.store.save_plan(state.task_id, plan)
     new_state = state.model_copy(update={"plan": plan})

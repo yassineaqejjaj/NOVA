@@ -16,6 +16,7 @@ from nova.artifacts.render import render_markdown
 from nova.domain.blocks import error_block, text_block
 from nova.domain.enums import ExecutionOrigin, IntentKind, NovaPhase, StepStatus
 from nova.domain.evaluation import ExecutionRecord, SkillUse
+from nova.domain.manifest import manifest_from_state
 from nova.domain.state import NovaState
 
 log = logging.getLogger(__name__)
@@ -93,6 +94,18 @@ async def build_execution_record(state: NovaState, d: AgentDeps) -> ExecutionRec
             outputs.append(render_markdown(snapshot.content, d.artifacts.get(snapshot.type)))
     if state.answer:
         outputs.append(state.answer.text)
+    snapshot_name, snapshot_version = None, None
+    if state.context_reference_id:
+        refs = await d.store.get_context_references([state.context_reference_id], state.user_id)
+        if refs:
+            snapshot_name, snapshot_version = refs[0].snapshot_name, refs[0].snapshot_version
+    manifest = manifest_from_state(
+        state,
+        agent_version=d.settings.version,
+        token_budget=d.settings.orbit_default_token_budget,
+        snapshot_name=snapshot_name,
+        snapshot_version=snapshot_version,
+    )
     return ExecutionRecord(
         task_id=state.task_id,
         trace_id=state.trace_id,
@@ -123,7 +136,9 @@ async def build_execution_record(state: NovaState, d: AgentDeps) -> ExecutionRec
         usage=state.usage,
         status=state.status,
         errors=[e.message for e in state.errors],
+        started_at=state.started_at,
         finished_at=datetime.now(UTC),
+        manifest=manifest.model_dump(mode="json"),
     )
 
 
@@ -139,9 +154,13 @@ async def emit_forge_trace(state: NovaState, runtime: Runtime[AgentDeps]) -> dic
     span.set_attribute("nova.artifacts", [a.artifact_id for a in state.artifacts])
     span.set_attribute("gen_ai.usage.input_tokens", state.usage.input_tokens)
     span.set_attribute("gen_ai.usage.output_tokens", state.usage.output_tokens)
-    if state.origin == ExecutionOrigin.forge_protocol or d.evaluation is None:
+    if state.origin in (ExecutionOrigin.forge_protocol, ExecutionOrigin.replay) or d.evaluation is None:
         return {}
-    if state.status != "completed" or not should_capture(d.settings.forge_capture_policy, d.settings.forge_capture_sample_rate):
+    # Observed capture reports what really happened, failures included: that is what release monitoring needs.
+    capturable = ("completed", "failed") if d.settings.forge_capture_mode == "observed" else ("completed",)
+    if state.status not in capturable or not should_capture(
+        d.settings.forge_capture_policy, d.settings.forge_capture_sample_rate
+    ):
         return {}
     try:
         record = await build_execution_record(state, d)

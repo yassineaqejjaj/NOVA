@@ -12,6 +12,10 @@ from sqlalchemy import select
 
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import ExecutionPaused
+from nova.agent.providers.budget import BudgetedProvider, BudgetExceeded
+from nova.agent.providers.factory import build_llm_provider
+from nova.agent.providers.fallback import FallbackProvider, fallback_breakers
+from nova.agent.providers.recording import RecordingProvider
 from nova.agent.runtime import AgentRuntime, open_checkpointer
 from nova.agent.tools.registry import get_tool_registry
 from nova.artifacts.registry import get_artifact_registry
@@ -20,11 +24,14 @@ from nova.domain.blocks import error_block
 from nova.domain.context import ContextError
 from nova.domain.enums import EventType, ExecutionOrigin, NovaPhase, TaskStatus
 from nova.domain.llm import LLMError
+from nova.domain.manifest import manifest_from_state
+from nova.domain.pricing import Pricing
+from nova.domain.release import TRAFFIC_ORIGINS
 from nova.domain.state import NovaState
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import get_publisher
-from nova.infra.models import Task, WorkflowExecution
-from nova.services import learning, providers
+from nova.infra.models import ContextRetrievalReference, Task, WorkflowExecution
+from nova.services import learning, llm_calls, providers, skill_scores
 from nova.services.access import effective_permissions
 from nova.services.execution_store import SqlExecutionStore, emit_event
 from nova.services.users import get_user, principal_for
@@ -45,15 +52,58 @@ class RetryableExecutionError(Exception):
     """Infrastructure failure: the worker retries the task from its last checkpoint."""
 
 
-async def build_deps(principal_user_id: str, project_id: uuid.UUID | None, origin: str) -> AgentDeps:
+async def build_deps(
+    principal_user_id: str,
+    project_id: uuid.UUID | None,
+    origin: str,
+    task_id: str | None = None,
+    model_override: str | None = None,
+) -> AgentDeps:
+    """The ports of one execution. With a ``task_id`` every model call is recorded (tokens, cost, latency)."""
     async with session_scope() as session:
         user = await get_user(session, principal_user_id)
         assert user is not None
         principal = principal_for(user)
         permissions = await effective_permissions(session, principal, project_id)
+    async with session_scope() as session:
+        scores = await skill_scores.latest(session)
+    settings = get_settings()
+    org_llm = providers.llm()
+    llm = org_llm if origin == ExecutionOrigin.forge_protocol else await providers.llm_for_user(principal_user_id)
+    pricing = Pricing(settings.llm_price_input_per_mtok, settings.llm_price_output_per_mtok, settings.llm_price_table)
+
+    uses_org_model = llm is org_llm  # false for a user's own key (bring your own model): their data stays where they chose
+
+    def recorded(provider: Any) -> Any:  # every attempt is recorded, including the failed ones that trigger a fallback
+        return RecordingProvider(provider, llm_calls.recorder_for(task_id), pricing) if task_id else provider
+
+    if model_override:  # replay: the organization's provider with another (allow-listed) model; no personal key
+        llm = recorded(build_llm_provider(settings.model_copy(update={"llm_model": model_override})))
+    elif settings.llm_fallback_models and uses_org_model:
+        chain = [
+            org_llm,
+            *(build_llm_provider(settings.model_copy(update={"llm_model": m})) for m in settings.llm_fallback_models),
+        ]
+        llm = FallbackProvider([recorded(p) for p in chain], fallback_breakers(chain, settings))
+    else:
+        llm = recorded(llm)
+    skill_llms: dict[str, Any] = {}
+    if uses_org_model and not model_override:  # routing only ever uses the organization's models
+        allowed = {settings.llm_model, *settings.llm_fallback_models, *settings.replay_models}
+        for skill_id, model in settings.llm_skill_models.items():
+            if model in allowed:
+                skill_llms[skill_id] = recorded(build_llm_provider(settings.model_copy(update={"llm_model": model})))
+            else:
+                log.warning("Model %s routed to Skill %s is not an allowed model: ignored", model, skill_id)
+    if task_id and (settings.run_cost_budget_usd or settings.run_token_budget or settings.user_daily_cost_budget_usd):
+        check = llm_calls.budget_check(task_id, principal_user_id, settings)
+        llm = BudgetedProvider(llm, check)
+        skill_llms = {k: BudgetedProvider(v, check) for k, v in skill_llms.items()}
     return AgentDeps(
-        settings=get_settings(),
-        llm=providers.llm() if origin == ExecutionOrigin.forge_protocol else await providers.llm_for_user(principal_user_id),
+        settings=settings,
+        llm=llm,
+        skill_llms=skill_llms,
+        skill_scores=scores,
         context=providers.context(),
         skills=get_skill_registry(),
         artifacts=get_artifact_registry(),
@@ -131,13 +181,20 @@ async def _run_segment(
         user_id, project_id, origin, initial_input = str(task.user_id), task.project_id, task.origin, dict(task.input)
         if mode != "resume" and "learning" not in initial_input:
             # Lessons the agents learned from FORGE, frozen for the whole execution (services/learning.py)
-            initial_input["learning"] = await learning.snapshot(session, initial_input.get("learning_policy_id"))
+            initial_input["learning"] = await learning.snapshot(
+                session, initial_input.get("learning_policy_id"), user_id=user_id if origin in TRAFFIC_ORIGINS else None
+            )
+            served = learning.release_of(initial_input["learning"])
+            task.release_id = uuid.UUID(served) if served else None  # lets a release be compared with the rest
             task.input = {**task.input, "learning": initial_input["learning"]}  # kept for retries and FORGE metadata
+        if "started_at" not in initial_input:
+            initial_input["started_at"] = utcnow().isoformat()
+            task.input = {**task.input, "started_at": initial_input["started_at"]}  # kept for retries and FORGE capture
         initial_input.pop("learning_policy_id", None)
         message_id = str(task.message_id) if task.message_id else None
         await emit_event(session, get_publisher(), tid, EventType.task, {"status": "running"})
 
-    deps = await build_deps(user_id, project_id, origin)
+    deps = await build_deps(user_id, project_id, origin, task_id, model_override=initial_input.get("model_override"))
     parent = extract(traceparent) if traceparent else otel_context.get_current()
     settings = get_settings()
     try:
@@ -176,7 +233,8 @@ async def _run_segment(
             phase=NovaPhase.waiting_user.value,
             trace_id=state.trace_id,
             model=state.model,
-            usage=state.usage.model_dump(),
+            usage={**state.usage.model_dump(), **await llm_calls.totals(task_id)},
+            **await _manifest_values(state, initial_input),
         )
         return TaskStatus.waiting_user
     status = STATE_TO_STATUS.get(state.status, TaskStatus.completed)
@@ -187,14 +245,48 @@ async def _run_segment(
         status,
         trace_id=state.trace_id,
         model=state.model,
-        usage=state.usage.model_dump(),
+        usage={**state.usage.model_dump(), **await llm_calls.totals(task_id)},
         error=state.errors[-1].message if state.errors and status == TaskStatus.failed else None,
         phase=state.phase.value,
+        **await _manifest_values(state, initial_input),
     )
     return status
 
 
+async def _manifest_values(state: NovaState, initial_input: dict[str, Any]) -> dict[str, Any]:
+    """``run_manifest`` as keyword values for ``_set_status``; empty when it could not be built (keeps an earlier one)."""
+    manifest = await _manifest_for(state, initial_input)
+    return {"run_manifest": manifest} if manifest else {}
+
+
+async def _manifest_for(state: NovaState, initial_input: dict[str, Any]) -> dict[str, Any] | None:
+    """The run manifest of this segment. Best effort: bookkeeping must never change an execution's outcome."""
+    try:
+        snapshot_name, snapshot_version = None, None
+        if state.context_reference_id:
+            async with session_scope() as session:
+                ref = await session.get(ContextRetrievalReference, uuid.UUID(state.context_reference_id))
+                if ref is not None:
+                    snapshot_name, snapshot_version = ref.snapshot_name, ref.snapshot_version
+        settings = get_settings()
+        manifest = manifest_from_state(
+            state,
+            agent_version=settings.version,
+            token_budget=settings.orbit_default_token_budget,
+            snapshot_name=snapshot_name,
+            snapshot_version=snapshot_version,
+            ids=initial_input.get("manifest_ids"),
+            overrides=initial_input.get("replay_overrides"),
+        )
+        return manifest.model_dump(mode="json")
+    except Exception:
+        log.warning("Run manifest for %s could not be built", state.task_id, exc_info=True)
+        return None
+
+
 def _friendly(exc: Exception) -> str:
+    if isinstance(exc, BudgetExceeded):
+        return f"{exc.message} NOVA stopped before spending more; completed steps were kept."
     if isinstance(exc, LLMError):
         return "The inference server did not respond correctly. You can retry: NOVA resumes from the last completed step."
     if isinstance(exc, ContextError):

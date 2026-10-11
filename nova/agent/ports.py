@@ -40,6 +40,8 @@ class StoredContextReference(BaseModel):
     project_slug: str | None
     items: list[ContextItem]
     created_at: str | None = None
+    snapshot_name: str | None = None
+    snapshot_version: int | None = None
 
 
 class ExecutionStore(Protocol):

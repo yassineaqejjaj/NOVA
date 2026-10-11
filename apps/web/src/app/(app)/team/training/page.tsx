@@ -8,6 +8,7 @@ import { Suspense } from "react";
 
 import { AgentAvatar } from "@/components/agents/sub-agents";
 import { Page, PageHeader } from "@/components/shell/page";
+import { ReleasesSection } from "@/components/training/releases-section";
 import { AGENT_PROFILES, AGENTS, type AgentProfile } from "@/lib/agents";
 import {
   type AgentTraining,
@@ -30,14 +31,14 @@ const M = defineMessages({
   en: {
     title: "Agent training",
     description:
-      "FORGE evaluates each specialist on every one of its Skills. NOVA turns FORGE's feedback into lessons and applies them only once a FORGE experiment has validated them.",
+      "FORGE evaluates each specialist on every one of its Skills. NOVA turns FORGE's feedback into lessons and only releases them once a FORGE experiment has validated them.",
     back: "Your team",
     trainAll: "Train every agent",
     train: "Train",
     training: "Training…",
     notConfigured: "Training is not configured. Missing settings:",
-    autoPromote: (v: { days: number }) =>
-      v.days > 0 ? `Automatic promotion when FORGE validates · one cycle every ${v.days} days` : "Automatic promotion when FORGE validates · manual cycles only",
+    autoPromote: (v: { days: number; canary: number; approval: number }) =>
+      `${v.canary > 0 ? `When FORGE validates: ${v.canary}% canary first${v.approval ? ", then administrator approval" : ""}` : v.approval ? "When FORGE validates: administrator approval" : "Automatic promotion when FORGE validates"} · ${v.days > 0 ? `one cycle every ${v.days} days` : "manual cycles only"}`,
     manualPromote: "FORGE-validated versions wait for an administrator",
     active: (v: { v: number }) => `Learned version v${v.v}`,
     noPolicy: "Not trained yet",
@@ -70,16 +71,14 @@ const M = defineMessages({
   fr: {
     title: "Entraînement des agents",
     description:
-      "FORGE évalue chaque spécialiste sur chacune de ses compétences. NOVA transforme ses retours en leçons et ne les applique qu'après validation par une expérience FORGE.",
+      "FORGE évalue chaque spécialiste sur chacune de ses compétences. NOVA transforme ses retours en leçons et ne les déploie qu'après validation par une expérience FORGE.",
     back: "Votre équipe",
     trainAll: "Entraîner tous les agents",
     train: "Entraîner",
     training: "Entraînement…",
     notConfigured: "L'entraînement n'est pas configuré. Paramètres manquants :",
-    autoPromote: (v: { days: number }) =>
-      v.days > 0
-        ? `Promotion automatique si FORGE valide · un cycle tous les ${v.days} jours`
-        : "Promotion automatique si FORGE valide · cycles manuels uniquement",
+    autoPromote: (v: { days: number; canary: number; approval: number }) =>
+      `${v.canary > 0 ? `Si FORGE valide : déploiement progressif à ${v.canary} %${v.approval ? ", puis approbation d'un administrateur" : ""}` : v.approval ? "Si FORGE valide : approbation d'un administrateur" : "Promotion automatique si FORGE valide"} · ${v.days > 0 ? `un cycle tous les ${v.days} jours` : "cycles manuels uniquement"}`,
     manualPromote: "Les versions validées par FORGE attendent un administrateur",
     active: (v: { v: number }) => `Version apprise v${v.v}`,
     noPolicy: "Pas encore entraîné",
@@ -186,7 +185,7 @@ function Training() {
         </div>
       ) : null}
       {data ? (
-        <p className="mb-4 text-[12.5px] text-subtle">{data.auto_promote ? t("autoPromote", { days: data.interval_days }) : t("manualPromote")}</p>
+        <p className="mb-4 text-[12.5px] text-subtle">{data.auto_promote ? t("autoPromote", { days: data.interval_days, canary: data.release.canary_percent, approval: data.release.approval === "full" ? 1 : 0 }) : t("manualPromote")}</p>
       ) : null}
 
       {!data ? <Skeleton className="h-36" /> : null}
@@ -279,6 +278,8 @@ function AgentDetail({ agent }: { agent: AgentProfile }) {
     <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]" role="tabpanel" aria-label={AGENTS[agent].name[lang]}>
       <div className="min-w-0 space-y-5">
         {open ? <CurrentCycle cycle={open} canManage={data.can_manage} /> : null}
+
+        <ReleasesSection agent={agent} />
 
         <section className="rounded-[16px] border border-border bg-surface p-4">
           <h2 className="mb-2 text-[13px] font-semibold">{t("standards")}</h2>

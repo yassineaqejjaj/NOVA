@@ -86,6 +86,22 @@ def evaluation() -> EvaluationSink | None:
     return _cache["evaluation"]
 
 
+def forge_watch_client() -> Any:
+    """FORGE REST client for release monitoring (None when FORGE is not configured); tests override ``forge_client``."""
+    if "forge_client" in _overrides:
+        return _overrides["forge_client"]
+    settings = get_settings()
+    if not settings.forge_api_key:
+        return None
+    if "forge_watch_client" not in _cache:
+        from nova.integrations.forge.client import ForgeClient
+
+        _cache["forge_watch_client"] = ForgeClient(
+            settings.forge_base_url, settings.forge_api_key, timeout=settings.forge_timeout_seconds
+        )
+    return _cache["forge_watch_client"]
+
+
 def forge_client() -> Any:
     """FORGE REST client for SDLC ingestion (None when FORGE is not configured); tests override ``forge_client``."""
     if "forge_client" in _overrides:
