@@ -87,6 +87,9 @@ def scenario_body(record: ExecutionRecord) -> dict[str, Any]:
 
 def run_body(agent_version_id: str, scenario_id: str, record: ExecutionRecord) -> dict[str, Any]:
     tags = ["nova", f"nova-task:{record.task_id}"] + [f"skill:{s.skill_id}@{s.version}" for s in record.skills]
+    snapshot = ((record.manifest or {}).get("context") or {}).get("snapshot_id")
+    if snapshot:
+        tags.append(f"context-snapshot:{snapshot}")
     return {"agent_version_id": agent_version_id, "scenario_ids": [scenario_id], "repetitions": 1, "tags": tags[:20]}
 
 

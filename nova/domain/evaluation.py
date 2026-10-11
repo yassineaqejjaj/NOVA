@@ -44,6 +44,7 @@ class ExecutionRecord(BaseModel):
     errors: list[str] = Field(default_factory=list)
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    manifest: dict[str, Any] | None = None  # domain/manifest.py RunManifest as JSON, when the run has one
 
 
 class FeedbackRecord(BaseModel):
