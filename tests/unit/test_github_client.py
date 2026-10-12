@@ -72,3 +72,38 @@ async def test_unreadable_job_log_degrades_to_an_empty_excerpt():
         "ghp_test", transport=httpx.MockTransport(lambda r: httpx.Response(403, json={"message": "Resource not accessible"}))
     )
     assert await client.job_log("o/r", 7) == ""
+
+
+async def test_preview_url_reads_the_latest_status_of_each_deployment_of_the_commit():
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path == "/repos/o/r/deployments":
+            assert request.url.params["sha"] == "abc"
+            return httpx.Response(
+                200,
+                json=[
+                    {"id": 1, "environment": "Production", "created_at": "2026-10-12T08:00:00Z"},
+                    {"id": 2, "environment": "Preview", "created_at": "2026-10-12T09:00:00Z"},
+                ],
+            )
+        if path == "/repos/o/r/deployments/1/statuses":
+            return httpx.Response(
+                200,
+                json=[{"state": "success", "environment_url": "https://app.example.com", "created_at": "2026-10-12T08:01:00Z"}],
+            )
+        if path == "/repos/o/r/deployments/2/statuses":
+            return httpx.Response(
+                200,
+                json=[{"state": "success", "target_url": "https://nova-pr-3.vercel.app", "created_at": "2026-10-12T09:01:00Z"}],
+            )
+        return httpx.Response(404)
+
+    client = GitHubClient("ghp_test", transport=httpx.MockTransport(handler))
+    assert await client.preview_url("o/r", "abc") == "https://nova-pr-3.vercel.app"
+
+
+async def test_preview_url_is_none_when_the_token_cannot_read_deployments_or_there_are_none():
+    forbidden = GitHubClient("ghp_test", transport=httpx.MockTransport(lambda r: httpx.Response(403, json={"message": "no"})))
+    assert await forbidden.preview_url("o/r", "abc") is None
+    empty = GitHubClient("ghp_test", transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[])))
+    assert await empty.preview_url("o/r", "abc") is None

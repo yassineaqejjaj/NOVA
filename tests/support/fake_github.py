@@ -43,6 +43,7 @@ class FakeGitHub:
         self.deleted_branches: list[str] = []
         self.check_script: list[CheckSummary] = [CheckSummary(state="success", total=2)]
         self.check_calls = 0
+        self.preview: str | None = None  # URL the hosting platform would report for the head commit
         self.merge_conflict = False
         self.can_push = True
         self.issue_data = {
@@ -161,6 +162,9 @@ class FakeGitHub:
         result = self.check_script[min(self.check_calls, len(self.check_script) - 1)]
         self.check_calls += 1
         return result
+
+    async def preview_url(self, repo: str, sha: str) -> str | None:
+        return self.preview
 
     async def create_release(self, repo: str, *, tag: str, name: str, body: str, target: str, draft: bool = True) -> str:
         self.releases.append({"tag": tag, "name": name, "body": body, "target": target, "draft": draft})

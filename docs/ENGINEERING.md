@@ -25,6 +25,10 @@ deploy** — pausing only where a human decision is wanted.
 | 15 | **Autonomy levels** — *Guided* (approve the plan and the merge) or *Autopilot* (only the merge) | governance | ✅ v1 |
 | 16 | **Run evaluation** — success rate, merged rate, CI green first time, CI repairs and review fixes per run, your interventions, tokens and time per run, where runs stop, by model (Engineering → Performance, `GET /api/v1/sdlc/metrics`) | governance | ✅ |
 | 17 | **Audit & safety rails** — every external write audited; `.github/workflows`, secrets, lock files and path traversal refused; branch-only writes; classification warning when an external model is used | governance | ✅ v1 |
+| 18 | **Preview of the change** — when the hosting platform (Vercel, Netlify, Railway PR environments…) reports a deployment of the PR's head commit to GitHub, NOVA links it once on the pull request and at the merge gate, so the change can be seen running before approving. Newest successful non-production deployment, https only; no preview, no change in behaviour | integrate | ✅ |
+
+> **Not covered yet:** NOVA does not start its own environment or capture screenshots or video of the preview; it relies on the
+> deployment your platform already creates for the pull request. A repository without preview deployments gets no preview link.
 
 ## Roadmap
 

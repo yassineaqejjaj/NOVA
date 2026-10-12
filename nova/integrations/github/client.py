@@ -13,6 +13,8 @@ from urllib.parse import quote, urlsplit
 
 import httpx
 
+from nova.domain.sdlc_preview import DeploymentStatus, pick_preview
+
 API_URL = "https://api.github.com"
 _REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 
@@ -373,6 +375,34 @@ class GitHubClient:
         if failures:
             return CheckSummary(state="failure", total=total, failures=failures, pending=pending)
         return CheckSummary(state="pending" if pending else "success", total=total, pending=pending)
+
+    # --- Preview ----------------------------------------------------------------------------------------------
+
+    async def preview_url(self, repo: str, sha: str) -> str | None:
+        """Preview deployment of a commit, as reported by the hosting platform (``None`` when there is none).
+
+        Never raises: a missing permission or an unknown platform simply means no preview.
+        """
+        try:
+            deployments = await self._request("GET", f"/repos/{repo}/deployments", params={"sha": sha, "per_page": 10})
+            found: list[DeploymentStatus] = []
+            for deployment in deployments[:10]:
+                statuses = await self._request(
+                    "GET", f"/repos/{repo}/deployments/{deployment['id']}/statuses", params={"per_page": 1}
+                )
+                if statuses:
+                    latest = statuses[0]
+                    found.append(
+                        DeploymentStatus(
+                            environment=str(deployment.get("environment") or ""),
+                            state=str(latest.get("state") or ""),
+                            url=latest.get("environment_url") or latest.get("target_url"),
+                            at=str(latest.get("created_at") or deployment.get("created_at") or ""),
+                        )
+                    )
+        except (GitHubError, KeyError, TypeError):
+            return None
+        return pick_preview(found)
 
     # --- Releases ---------------------------------------------------------------------------------------------
 

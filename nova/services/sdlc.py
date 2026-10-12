@@ -39,6 +39,7 @@ from nova.domain.sdlc import (
     validate_changeset,
 )
 from nova.domain.sdlc_policy import lessons_block
+from nova.domain.sdlc_preview import preview_comment
 from nova.infra.crypto import decrypt, encrypt
 from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import SdlcRun
@@ -464,6 +465,25 @@ async def stage_review(ctx: Ctx) -> StageResult:
     )
 
 
+async def _preview(ctx: Ctx, sha: str) -> tuple[dict[str, Any], list[str]]:
+    """Find the preview deployment of ``sha`` and announce it once on the pull request.
+
+    Returns the context to keep and the log lines. Never fails the run: no preview is simply no preview.
+    """
+    url = await ctx.gh.preview_url(ctx.run.repo, sha)
+    if not url:
+        return {"preview_url": None}, []
+    logs = [f"Preview ready: {url}"]
+    keep: dict[str, Any] = {"preview_url": url}
+    if ctx.c.get("preview_announced") != url and ctx.run.pr_number:
+        try:
+            await ctx.gh.comment(ctx.run.repo, ctx.run.pr_number, preview_comment(url, sha))
+            keep["preview_announced"] = url
+        except GitHubError as exc:
+            logs.append(f"The preview link could not be posted on GitHub: {exc.message}")
+    return keep, logs
+
+
 async def stage_ci(ctx: Ctx) -> StageResult:
     run = ctx.run
     polls = int(ctx.c.get("ci_polls", 0)) + 1
@@ -473,19 +493,22 @@ async def stage_ci(ctx: Ctx) -> StageResult:
     seen = bool(ctx.c.get("ci_seen")) or summary.total > 0
     state = {"ci_polls": polls, "ci_seen": seen}
     if summary.state == "success":
+        preview, preview_logs = await _preview(ctx, sha)
         return StageResult(
             summary=f"All {summary.total} checks passed",
-            output={"state": "success", "checks": summary.total, "fix_rounds": fix_rounds},
-            context={"ci_polls": 0, "ci": "success", "ci_seen": True},
-            logs=[f"CI green ({summary.total} checks)"],
+            output={"state": "success", "checks": summary.total, "fix_rounds": fix_rounds, "preview_url": preview["preview_url"]},
+            context={"ci_polls": 0, "ci": "success", "ci_seen": True, **preview},
+            logs=[f"CI green ({summary.total} checks)", *preview_logs],
         )
     if summary.state == "none":
         if not seen and polls >= CI_NO_CHECKS_POLLS:
+            preview, preview_logs = await _preview(ctx, sha)
             return StageResult(
                 status="skipped",
                 summary="No CI checks configured on this repository",
-                output={"state": "none"},
-                context={"ci_polls": 0, "ci": "none"},
+                output={"state": "none", "preview_url": preview["preview_url"]},
+                context={"ci_polls": 0, "ci": "none", **preview},
+                logs=preview_logs,
             )
         if polls >= CI_MAX_POLLS:
             raise RunError("CI did not report on the latest commit in time. Retry once it completes.")
@@ -536,10 +559,11 @@ async def stage_merge(ctx: Ctx) -> StageResult:
     clean = ctx.c.get("review", {}).get("blocking", 0) == 0 and ctx.c.get("ci") in ("success", "none")
     if not ((run.auto_merge and clean) or ctx.c.get("merge_approved")):
         reason = "auto-merge is off" if not run.auto_merge else "blocking findings or CI are not clean"
+        preview = ctx.c.get("preview_url")
         return StageResult(
             status="gate",
             gate="merge",
-            summary=f"Waiting for your approval to merge ({reason})",
+            summary=f"Waiting for your approval to merge ({reason})" + (f" · preview: {preview}" if preview else ""),
             logs=["Waiting for merge approval"],
         )
     if pr["mergeable"] is False:
@@ -630,6 +654,7 @@ def view(run: SdlcRun, *, detail: bool = True, forge: dict[str, Any] | None = No
         "issue_url": run.issue_url,
         "pr_number": run.pr_number,
         "pr_url": run.pr_url,
+        "preview_url": (run.context or {}).get("preview_url"),
         "merge_sha": run.merge_sha,
         "release_url": run.release_url,
         "model": run.model,
