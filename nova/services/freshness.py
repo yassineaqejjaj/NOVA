@@ -6,6 +6,7 @@ section-level regeneration (a *proposed* version waiting for approval): nothing 
 
 from __future__ import annotations
 
+import time
 import uuid
 from collections import defaultdict
 from datetime import datetime
@@ -19,7 +20,7 @@ from nova.domain.context import ContextChange, ContextError, ContextItem
 from nova.domain.freshness import CitedSource, SourceChange, assess
 from nova.domain.permissions import Principal
 from nova.infra.db import aware
-from nova.infra.models import ArtifactVersion, ContextRetrievalReference
+from nova.infra.models import Artifact, ArtifactVersion, ContextRetrievalReference
 from nova.services import providers
 from nova.services.access import require_artifact
 
@@ -106,3 +107,28 @@ async def check(session: AsyncSession, principal: Principal, artifact_id: str) -
         "sources": len(sources),
         "may_be_incomplete": len(changes) >= PAGE,
     }
+
+
+_CACHE: dict[tuple[str, str, int], tuple[float, dict[str, Any]]] = {}
+CACHE_SECONDS = 300.0
+
+
+async def check_cached(session: AsyncSession, principal: Principal, artifact: Artifact) -> dict[str, Any]:
+    """``check`` with a short memory, keyed by user and version, so a page that refreshes does not re-ask ORBIT."""
+    key = (principal.user_id, str(artifact.id), artifact.current_version)
+    hit = _CACHE.get(key)
+    now = time.monotonic()
+    if hit and now - hit[0] < CACHE_SECONDS:
+        return hit[1]
+    state = await check(session, principal, str(artifact.id))
+    if state["status"] != "unverified" or state.get("reason") == "no_citations":
+        _CACHE[key] = (now, state)  # an unreachable ORBIT is not remembered: the next look asks again
+    if len(_CACHE) > 500:
+        _CACHE.clear()
+    return state
+
+
+def forget(artifact_id: str | None = None) -> None:
+    """Drop remembered results (tests, and anything that knows ORBIT's answer just changed)."""
+    for key in [k for k in _CACHE if artifact_id is None or k[1] == artifact_id]:
+        del _CACHE[key]

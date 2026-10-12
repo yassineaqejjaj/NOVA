@@ -47,6 +47,9 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Artifact
 * **Time Machine** — replay a finished run with the same sources, a fresh ORBIT retrieval or none, another allow-listed model or
   another agent's lessons, then compare the two side by side: cost, time, context used and a before/after of every changed
   section. A replay never writes to external systems and is never captured as production traffic.
+* **Morning inbox** — Today and the Inbox bring to you what needs a human: questions, plans and milestones, deliverables to review
+  and now engineering runs waiting at a gate (plan, merge — with the PR's preview link) and Artifacts whose cited ORBIT sources
+  changed. ORBIT is only asked for the few most recent Artifacts, within a time budget, and its answers are remembered for 5 minutes.
 * **Transparency** — which ORBIT context was used (classification, freshness, relevance), recorded provenance
   ("why did you include this?"), never raw model reasoning.
 * **Security** — Keycloak OIDC/SSO, RBAC, ORBIT ACL propagation, C0–C3 classification awareness, tool registry,

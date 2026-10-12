@@ -8,6 +8,7 @@ routines and the Validation agent's reports; dismissing reuses the Home's dismis
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import timedelta
 from typing import Any
@@ -16,9 +17,11 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nova.domain.permissions import Principal
 from nova.i18n import Lang
 from nova.infra.db import aware, utcnow
-from nova.infra.models import Artifact, Goal, Routine, Task, TaskStep
+from nova.infra.models import Artifact, Goal, Routine, SdlcRun, Task, TaskStep
+from nova.services import freshness
 from nova.services.goals import OPEN_GOALS, milestones
 
 KINDS = ("decision", "validation", "anomaly", "suggestion", "result")
@@ -52,6 +55,26 @@ T = {
     },
     "routine_title": {"en": "{routine} — result ready", "fr": "{routine} — résultat disponible"},
     "routine_sub": {"en": "Routine run of {when}.", "fr": "Exécution de la routine du {when}."},
+    "sdlc_plan_title": {"en": "Engineering plan for “{title}” to approve", "fr": "Plan d’ingénierie « {title} » à approuver"},
+    "sdlc_plan_sub": {
+        "en": "NOVA has specified and designed the change; nothing is written to the repository before you approve.",
+        "fr": "NOVA a spécifié et conçu le changement ; rien n’est écrit dans le dépôt avant votre accord.",
+    },
+    "sdlc_merge_title": {"en": "Pull request #{pr} ready to merge", "fr": "Pull request #{pr} prête à fusionner"},
+    "sdlc_merge_sub": {
+        "en": "“{title}” passed review and CI. Approve to merge.",
+        "fr": "« {title} » a passé la revue et la CI. Approuvez pour fusionner.",
+    },
+    "sdlc_merge_sub_preview": {
+        "en": "“{title}” passed review and CI. See it running before you approve: {preview}",
+        "fr": "« {title} » a passé la revue et la CI. Voyez-la tourner avant d’approuver : {preview}",
+    },
+    "open_run": {"en": "Open the run", "fr": "Ouvrir le run"},
+    "stale_title": {"en": "{title} may be out of date", "fr": "{title} est peut-être périmé"},
+    "stale_sub": {
+        "en": "{n} source(s) it cites changed in ORBIT — {source}. Review and update.",
+        "fr": "{n} source(s) citée(s) ont changé dans ORBIT — {source}. Relisez et mettez à jour.",
+    },
     "approve": {"en": "Approve the plan", "fr": "Approuver le plan"},
     "view_plan": {"en": "View the plan", "fr": "Voir le plan"},
     "done": {"en": "Mark as done", "fr": "Marquer comme fait"},
@@ -129,6 +152,58 @@ def confidence_from_report(report: dict[str, Any] | None, forge_score: float | N
     }
 
 
+STALE_CHECKS = 4  # most recently edited Artifacts checked against ORBIT
+STALE_BUDGET_SECONDS = 6.0  # the morning page never waits longer than this for ORBIT
+
+
+async def _stale_artifacts(
+    session: AsyncSession, principal: Principal, lang: Lang, names: dict[uuid.UUID, str]
+) -> list[dict[str, Any]]:
+    """Recently edited Artifacts that cite ORBIT sources which changed since (see services/freshness.py)."""
+    artifacts = (
+        await session.scalars(
+            select(Artifact)
+            .where(Artifact.owner_id == uuid.UUID(principal.user_id), Artifact.status != "archived")
+            .order_by(Artifact.updated_at.desc())
+            .limit(STALE_CHECKS)
+        )
+    ).all()
+    found: list[dict[str, Any]] = []
+    try:
+        async with asyncio.timeout(STALE_BUDGET_SECONDS):
+            for artifact in artifacts:
+                state = await freshness.check_cached(session, principal, artifact)
+                if state["status"] != "stale":
+                    continue
+                impacts = state["impacts"]
+                found.append(
+                    {
+                        "id": f"artifact:stale:{artifact.id}:{artifact.current_version}",
+                        "kind": "anomaly",
+                        "risk": True,
+                        "source": "nova",
+                        "project_id": str(artifact.project_id) if artifact.project_id else None,
+                        "project_name": names.get(artifact.project_id) if artifact.project_id else None,
+                        "artifact_id": str(artifact.id),
+                        "title": tr(lang, "stale_title", title=artifact.title),
+                        "subtitle": tr(
+                            lang,
+                            "stale_sub",
+                            n=len({i["source_title"] for i in impacts}),
+                            source=impacts[0]["change_title"],
+                        ),
+                        "at": impacts[0]["at"],
+                        "actions": [
+                            {"kind": "review", "label": tr(lang, "open"), "href": f"/artifacts/{artifact.id}"},
+                            {"kind": "ignore", "label": tr(lang, "ignore")},
+                        ],
+                    }
+                )
+    except TimeoutError:
+        pass  # ORBIT is slow: the briefing is shown without this section rather than late
+    return found
+
+
 async def collect(
     session: AsyncSession,
     user_id: uuid.UUID,
@@ -136,6 +211,9 @@ async def collect(
     recommendations: list[dict[str, Any]],
     dismissed: set[str],
     names: dict[uuid.UUID, str],
+    *,
+    principal: Principal | None = None,
+    orbit_linked: bool = False,
 ) -> list[dict[str, Any]]:
     now = utcnow()
     items: list[dict[str, Any]] = []
@@ -253,6 +331,45 @@ async def collect(
                         ],
                     }
                 )
+
+    # --- Engineering: runs waiting for the user at a gate (plan, merge) --------------------------------------
+    waiting_runs = (
+        await session.scalars(
+            select(SdlcRun)
+            .where(SdlcRun.user_id == user_id, SdlcRun.status == "waiting_user", SdlcRun.gate.in_(("plan", "merge")))
+            .order_by(SdlcRun.updated_at.desc())
+            .limit(10)
+        )
+    ).all()
+    for run in waiting_runs:
+        preview = (run.context or {}).get("preview_url")
+        merge = run.gate == "merge"
+        items.append(
+            {
+                "id": f"sdlc:{run.gate}:{run.id}",
+                "kind": "decision",
+                "urgent": True,
+                "source": "nova",
+                "project_id": str(run.project_id) if run.project_id else None,
+                "project_name": names.get(run.project_id) if run.project_id else None,
+                "title": tr(lang, "sdlc_merge_title", pr=run.pr_number)
+                if merge
+                else tr(lang, "sdlc_plan_title", title=run.title),
+                "subtitle": (
+                    tr(lang, "sdlc_merge_sub_preview", title=run.title, preview=preview)
+                    if merge and preview
+                    else tr(lang, "sdlc_merge_sub", title=run.title)
+                    if merge
+                    else tr(lang, "sdlc_plan_sub")
+                ),
+                "at": aware(run.updated_at or run.created_at).isoformat(),
+                "actions": [{"kind": "review", "label": tr(lang, "open_run"), "href": f"/engineering/{run.id}"}],
+            }
+        )
+
+    # --- Living Artifacts: those whose cited ORBIT sources changed ----------------------------------------------
+    if orbit_linked and principal is not None:
+        items += await _stale_artifacts(session, principal, lang, names)
 
     # --- Deliverables of goals and routines (last 7 days): validate, or review the reservations -----------
     recent = (
