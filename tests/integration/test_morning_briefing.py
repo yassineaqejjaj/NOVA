@@ -126,3 +126,32 @@ async def test_an_unreachable_orbit_is_not_remembered_and_never_breaks_the_page(
     orbit.changes = [_change("chunk-1")]
     again = (await client.get("/api/v1/today")).json()  # ORBIT is back: asked again, not served from memory
     assert [i for i in _ids(again) if i.startswith("artifact:stale:")]
+
+
+async def test_the_spoken_briefing_matches_the_page_and_keeps_classified_items_off_the_air(app, llm, orbit, forge):
+    from sqlalchemy import update
+
+    from nova.infra.models import Artifact
+
+    client, uid = await _client(app)
+    merge = await _run(uid, gate="merge", preview="https://nova-pr-12.vercel.app")
+    spoken = (await client.get("/api/v1/today/briefing")).json()
+    assert spoken["lang"] in ("en", "fr") and spoken["withheld"] == 0
+    assert spoken["sentences"][0].startswith(("Hello", "Bonjour")) and spoken["sentences"][-1].endswith(("Inbox.", "Inbox."))
+    assert any("12" in s for s in spoken["sentences"]) and "https://" not in spoken["text"]  # the preview link is never read out
+    assert str(merge.id) not in spoken["text"]
+
+    freshness.forget()
+    artifact_id = await _artifact(client, llm)
+    title = (await client.get(f"/api/v1/artifacts/{artifact_id}")).json()["title"]
+    orbit.changes = [_change("chunk-1")]
+    freshness.forget()
+    open_air = (await client.get("/api/v1/today/briefing")).json()
+    assert open_air["withheld"] == 0 and any(title in s for s in open_air["sentences"])  # readable while unclassified
+
+    async with db.session_scope() as session:
+        await session.execute(update(Artifact).where(Artifact.id == uuid.UUID(artifact_id)).values(classification=3))
+    freshness.forget()
+    classified = (await client.get("/api/v1/today/briefing")).json()
+    assert classified["withheld"] == 1 and not any(title in s for s in classified["sentences"])
+    assert any("classifi" in s for s in classified["sentences"])  # announced as classified, to read on screen

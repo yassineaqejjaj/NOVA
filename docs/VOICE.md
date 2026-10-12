@@ -84,3 +84,15 @@ be approved later for lower latency.
   (tested end-to-end).
 * Measured on a laptop CPU: speech synthesis ≈0.5 s per sentence; transcription ≈1× real time (container) — a 5-second
   request is understood in a few seconds.
+
+## 8. The spoken morning briefing
+
+**Listen to my day** (Home, when voice is available) makes NOVA read what matters today aloud, with its own voice and a
+caption of the sentence being spoken; pressing it again stops it.
+
+* `GET /api/v1/today/briefing` builds the script from the facts the Today page already computes — counts of what needs
+  you, what runs and what is ready, then the top three items — with **fixed sentences, not a model**: it says nothing
+  that is not on screen and costs nothing to produce (`nova/domain/briefing.py`).
+* **C2/C3**: an item classified above C1 is never spelled out; it is announced as "a classified item, to read on
+  screen" (§5). Links and markup are never read.
+* The browser plays one sentence at a time through `POST /api/v1/voice/speak`, so a stop is immediate.
