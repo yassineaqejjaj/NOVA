@@ -11,9 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.artifacts.registry import get_artifact_registry
 from nova.domain.enums import ProjectRole
+from nova.domain.freshness import update_instruction
 from nova.infra.db import get_session
 from nova.infra.models import ArtifactVersion, Conversation, Task
 from nova.services import artifacts as service
+from nova.services import freshness as freshness_service
 from nova.services.access import require_artifact
 from nova.services.conversations import ComposerInput, create_conversation, submit
 from nova.services.dispatch import dispatch
@@ -161,6 +163,30 @@ async def provenance(
     return await service.provenance(session, principal, artifact_id, section_key=section, item_id=item)
 
 
+async def _start_edit(session: AsyncSession, principal: Any, artifact: Any, sections: list[str], text: str) -> dict[str, Any]:
+    """Run the Artifact-edit Skill on ``sections`` only, in the Artifact's conversation (a proposed version results)."""
+    conversation = await session.get(Conversation, artifact.conversation_id) if artifact.conversation_id else None
+    if conversation is None or str(conversation.user_id) != principal.user_id:
+        conversation = await create_conversation(
+            session, principal, project_id=str(artifact.project_id) if artifact.project_id else None, title=artifact.title
+        )
+    _, reply, task = await submit(
+        session,
+        principal,
+        conversation,
+        ComposerInput(
+            text=text,
+            project_id=str(artifact.project_id) if artifact.project_id else None,
+            active_artifact_id=str(artifact.id),
+            edit_target={"artifact_id": str(artifact.id), "sections": sections},
+        ),
+        {s.id for s in get_skill_registry().all()},
+    )
+    await session.commit()
+    await dispatch(str(task.id), "start")
+    return {"task_id": str(task.id), "conversation_id": str(conversation.id), "message_id": str(reply.id)}
+
+
 @router.post("/{artifact_id}/sections/{section_key}/regenerate", status_code=202)
 async def regenerate(
     artifact_id: str, section_key: str, body: RegenerateIn, principal: CurrentPrincipal, session: SessionDep
@@ -170,27 +196,24 @@ async def regenerate(
     definition = get_artifact_registry().get(artifact.type).section(section_key)
     if definition is None:
         raise ApiError(404, "not_found", "Unknown section.")
-    conversation = await session.get(Conversation, artifact.conversation_id) if artifact.conversation_id else None
-    if conversation is None or str(conversation.user_id) != principal.user_id:
-        conversation = await create_conversation(
-            session, principal, project_id=str(artifact.project_id) if artifact.project_id else None, title=artifact.title
-        )
     text = body.instruction.strip() or f'Regenerate the section "{definition.title}".'
-    _, reply, task = await submit(
-        session,
-        principal,
-        conversation,
-        ComposerInput(
-            text=text,
-            project_id=str(artifact.project_id) if artifact.project_id else None,
-            active_artifact_id=artifact_id,
-            edit_target={"artifact_id": artifact_id, "sections": [section_key]},
-        ),
-        {s.id for s in get_skill_registry().all()},
-    )
-    await session.commit()
-    await dispatch(str(task.id), "start")
-    return {"task_id": str(task.id), "conversation_id": str(conversation.id), "message_id": str(reply.id)}
+    return await _start_edit(session, principal, artifact, [section_key], text)
+
+
+@router.get("/{artifact_id}/freshness")
+async def freshness(artifact_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """Living Artifact: do the sources this Artifact cites have changed in ORBIT since its current version?"""
+    return await freshness_service.check(session, principal, artifact_id)
+
+
+@router.post("/{artifact_id}/refresh", status_code=202)
+async def refresh(artifact_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """Propose an update of the sections whose sources changed (a proposed version, never applied silently)."""
+    artifact, _ = await require_artifact(session, artifact_id, principal, ProjectRole.editor)
+    state = await freshness_service.check(session, principal, artifact_id)
+    if state["status"] != "stale":
+        raise ApiError(409, "up_to_date", "Nothing this Artifact cites has changed.")
+    return await _start_edit(session, principal, artifact, state["stale_sections"], update_instruction(state["impacts"]))
 
 
 @router.post("/{artifact_id}/versions/{version}/approve")

@@ -42,6 +42,8 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Artifact
   `skills/<name>/` (see [`docs/SKILLS.md`](docs/SKILLS.md)).
 * **Artifacts** — structured types defined in `artifacts/types/` (PRD, backlog, sprint plan…),
   Lexical editing, autosave, version history and compare, section-level AI regeneration, comments, citations, export.
+  **Living Artifacts**: each one checks the ORBIT sources it cites against ORBIT's change feed (as the user) and, when a cited
+  document or decision changed, offers to propose an update of only the affected sections — a proposed version, never applied silently.
 * **Transparency** — which ORBIT context was used (classification, freshness, relevance), recorded provenance
   ("why did you include this?"), never raw model reasoning.
 * **Security** — Keycloak OIDC/SSO, RBAC, ORBIT ACL propagation, C0–C3 classification awareness, tool registry,
