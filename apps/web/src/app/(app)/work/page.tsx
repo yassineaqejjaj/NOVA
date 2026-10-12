@@ -50,6 +50,7 @@ const M = defineMessages({
     notPassed: " · not passed",
     notEvaluated: "Not evaluated",
     openConversation: "Open conversation",
+    timeMachine: "Time Machine",
     retry: "Retry",
     cancel: "Cancel",
     empty_active: "NOVA has no active tasks.",
@@ -94,6 +95,7 @@ const M = defineMessages({
     notPassed: " · non réussie",
     notEvaluated: "Non évaluée",
     openConversation: "Ouvrir la conversation",
+    timeMachine: "Remonter le temps",
     retry: "Relancer",
     cancel: "Annuler",
     empty_active: "NOVA n’a aucune tâche en cours.",
@@ -230,6 +232,7 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
       </div>
       <div className="flex gap-2 border-t border-border px-5 py-3">
         {task.conversation_id ? <Button variant="secondary" size="sm" asChild><Link href={`/c/${task.conversation_id}`}>{t("openConversation")}</Link></Button> : null}
+        {["completed", "failed"].includes(task.status) ? <Button size="sm" variant="secondary" asChild><Link href={`/work/time-machine?task=${id}`}>{t("timeMachine")}</Link></Button> : null}
         {task.status === "failed" ? <Button size="sm" variant="primary" onClick={() => retry.mutate()} disabled={retry.isPending}>{t("retry")}</Button> : null}
         {["queued", "running", "waiting_user", "scheduled"].includes(task.status) ? <Button size="sm" variant="ghost" onClick={() => cancel.mutate()}>{t("cancel")}</Button> : null}
       </div>
