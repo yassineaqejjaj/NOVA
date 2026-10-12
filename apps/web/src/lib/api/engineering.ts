@@ -37,6 +37,8 @@ export interface Run {
   issue_url: string;
   pr_number: number | null;
   pr_url: string;
+  /** Preview deployment of the pull request's head commit, when the hosting platform reported one. */
+  preview_url: string | null;
   merge_sha: string;
   release_url: string;
   model: string;

@@ -254,6 +254,38 @@ async def test_ci_failure_is_repaired_then_goes_green(app, gh, model):
     assert "fix: address feedback" in [m for _, m, _ in gh.commits]
 
 
+async def test_the_preview_is_announced_once_on_the_pull_request_and_shown_at_the_merge_gate(app, gh, model):
+    gh.preview = "https://nova-pr-1.vercel.app"
+    gh.check_script = [
+        CheckSummary(
+            state="failure",
+            total=1,
+            failures=[{"name": "test", "conclusion": "failure", "title": "1 failed", "summary": "x", "annotations": []}],
+        ),
+        CheckSummary(state="success", total=1),
+    ]
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot")
+    assert run["status"] == "waiting_user" and run["gate"] == "merge", run["error"]
+    assert run["preview_url"] == "https://nova-pr-1.vercel.app"
+    ci = next(s for s in run["stages"] if s["key"] == "ci")
+    assert ci["output"]["preview_url"] == "https://nova-pr-1.vercel.app" and ci["output"]["fix_rounds"] == 1
+    merge = next(s for s in run["stages"] if s["key"] == "merge")
+    assert "preview: https://nova-pr-1.vercel.app" in merge["summary"]
+    announcements = [body for _, body in gh.comments if "nova-preview" in body]
+    assert len(announcements) == 1 and "https://nova-pr-1.vercel.app" in announcements[0]
+
+
+async def test_without_a_preview_nothing_is_announced_and_the_run_is_unchanged(app, gh, model):
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot")
+    assert run["status"] == "waiting_user" and run["gate"] == "merge", run["error"]
+    assert run["preview_url"] is None
+    assert not [body for _, body in gh.comments if "nova-preview" in body]
+    merge = next(s for s in run["stages"] if s["key"] == "merge")
+    assert "preview" not in merge["summary"]
+
+
 async def test_ci_that_keeps_failing_stops_after_two_repairs_and_can_be_retried(app, gh, model):
     failing = CheckSummary(
         state="failure",

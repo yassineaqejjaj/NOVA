@@ -43,6 +43,9 @@ function Gate({ run }: { run: Run }) {
         {run.pr_url ? (
           <Button asChild variant="secondary" size="sm"><a href={run.pr_url} target="_blank" rel="noreferrer"><ExternalLink className="size-3.5" /> {t("openPr")}</a></Button>
         ) : null}
+        {run.preview_url ? (
+          <Button asChild variant="secondary" size="sm" data-testid="open-preview"><a href={run.preview_url} target="_blank" rel="noreferrer"><ExternalLink className="size-3.5" /> {t("openPreview")}</a></Button>
+        ) : null}
         <Button variant="ghost" size="sm" onClick={() => act.cancel.mutate()} disabled={act.cancel.isPending}>{t("cancelRun")}</Button>
       </div>
     </Card>
