@@ -3,13 +3,13 @@
 import { Button, cn, Popover, PopoverContent, PopoverTrigger, Textarea, Tooltip } from "@nova/ui";
 import { useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Paperclip, ThumbsDown, ThumbsUp } from "lucide-react";
+import { FlaskConical, Paperclip, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import type { ActivityLine } from "@/components/agents/sub-agents";
 import { NovaMark } from "@/components/shell/nova-mark";
-import { api } from "@/lib/api/client";
+import { ApiError, api } from "@/lib/api/client";
 import type { Block, Message, NovaPhase } from "@/lib/api/types";
 import { clock } from "@/lib/format";
 import { defineMessages, type Lang, useLang, useT } from "@/lib/i18n";
@@ -30,6 +30,13 @@ const M = defineMessages({
     waitingForYou: "Waiting for you",
     understanding: "Understanding your request…",
     traceHint: "Trace ID — use it to find this execution in your observability stack or FORGE",
+    addTest: "Add to the regression tests",
+    addTestTitle: "Make this a regression test?",
+    addTestBody: "Your request will be copied into FORGE as a test case, so a future version of NOVA is checked against it. Do not do this if it contains confidential (C2) or secret (C3) information.",
+    addTestConfirm: "Add the test",
+    testAdded: (v: { slug: string }) => `Added to FORGE: ${v.slug}`,
+    testAlready: (v: { slug: string }) => `Already in FORGE: ${v.slug}`,
+    testFailed: "NOVA could not add this test.",
   },
   fr: {
     thanks: "Merci — NOVA en tiendra compte.",
@@ -42,6 +49,13 @@ const M = defineMessages({
     waitingForYou: "En attente de votre retour",
     understanding: "Analyse de votre demande…",
     traceHint: "ID de trace — utilisez-le pour retrouver cette exécution dans votre outil d’observabilité ou dans FORGE",
+    addTest: "Ajouter aux tests de non-régression",
+    addTestTitle: "En faire un test de non-régression ?",
+    addTestBody: "Votre demande sera copiée dans FORGE comme cas de test, pour vérifier qu’une version future de NOVA la traite mieux. Ne le faites pas si elle contient des informations confidentielles (C2) ou secrètes (C3).",
+    addTestConfirm: "Ajouter le test",
+    testAdded: (v: { slug: string }) => `Ajouté à FORGE : ${v.slug}`,
+    testAlready: (v: { slug: string }) => `Déjà dans FORGE : ${v.slug}`,
+    testFailed: "NOVA n’a pas pu ajouter ce test.",
   },
 });
 
@@ -88,13 +102,28 @@ function Feedback({ message }: { message: Message }) {
   const [comment, setComment] = useState("");
   const [open, setOpen] = useState(false);
   const t = useT(M);
+  const [feedbackId, setFeedbackId] = useState<string | null>(null);
+  const [testOpen, setTestOpen] = useState(false);
   const submit = useMutation({
     mutationFn: (body: { rating: "useful" | "not_useful"; comment?: string }) =>
-      api.post("/feedback", { ...body, message_id: message.id, task_id: message.task?.id }),
-    onSuccess: (_, body) => {
+      api.post<{ id: string; forwarded: { forge?: string | null } }>("/feedback", { ...body, message_id: message.id, task_id: message.task?.id }),
+    onSuccess: (result, body) => {
       setRating(body.rating);
       setOpen(false);
+      setFeedbackId(body.rating === "not_useful" && result.forwarded?.forge ? result.id : null); // only when FORGE received it
       toast(t("thanks"));
+    },
+  });
+  const addTest = useMutation({
+    mutationFn: () => api.post<{ slug: string; created: boolean }>(`/feedback/${feedbackId}/regression`),
+    onSuccess: (result) => {
+      setTestOpen(false);
+      toast(t(result.created ? "testAdded" : "testAlready", { slug: result.slug }));
+    },
+    // 409s are the policy answers (confidential context, requests not shared, not evaluated yet): say why.
+    onError: (error) => {
+      setTestOpen(false);
+      toast.error(error instanceof ApiError ? error.message : t("testFailed"));
     },
   });
   return (
@@ -126,6 +155,24 @@ function Feedback({ message }: { message: Message }) {
           </form>
         </PopoverContent>
       </Popover>
+      {feedbackId ? (
+        <Popover open={testOpen} onOpenChange={setTestOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="size-7" aria-label={t("addTest")} data-testid="add-regression-test">
+              <FlaskConical className="!size-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent>
+            <div className="space-y-2">
+              <div className="text-[13px] font-medium">{t("addTestTitle")}</div>
+              <p className="text-[12.5px] text-muted">{t("addTestBody")}</p>
+              <div className="flex justify-end">
+                <Button size="sm" variant="primary" disabled={addTest.isPending} onClick={() => addTest.mutate()}>{t("addTestConfirm")}</Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      ) : null}
     </div>
   );
 }

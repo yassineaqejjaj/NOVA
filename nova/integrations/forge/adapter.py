@@ -13,7 +13,7 @@ import logging
 from sqlalchemy import select
 
 from nova.config import Settings
-from nova.domain.evaluation import ExecutionRecord, FeedbackRecord
+from nova.domain.evaluation import ExecutionRecord, FeedbackRecord, RegressionCase
 from nova.domain.outputs import EvaluationReference
 from nova.infra.db import session_scope
 from nova.infra.models import IntegrationReference
@@ -190,4 +190,12 @@ class ForgeEvaluationSink:
             return
         await self.client.human_evaluation(
             reference.run_id, mapper.usefulness_evaluation(feedback.rating == "useful", feedback.comment)
+        )
+
+    async def promote_to_regression(self, reference: EvaluationReference) -> RegressionCase | None:
+        if not self.enabled or not reference.run_id:
+            return None
+        promoted = await self.client.promote_run(reference.run_id)
+        return RegressionCase(
+            scenario_id=str(promoted["scenario_id"]), slug=str(promoted["slug"]), created=bool(promoted.get("created"))
         )

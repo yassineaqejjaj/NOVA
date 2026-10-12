@@ -22,9 +22,10 @@ from nova.services import briefing as briefing_service
 from nova.services import projects as project_service
 from nova.services import today as today_service
 from nova.services.access import AccessDenied, project_role, require_task
-from nova.services.feedback import FeedbackIn, submit_feedback
+from nova.services.feedback import FeedbackIn, RegressionError, promote_to_regression, submit_feedback
 from nova.skills.registry import get_skill_registry
 from nova_api.auth import CurrentPrincipal
+from nova_api.errors import ApiError
 
 router = APIRouter(tags=["work"])
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -280,6 +281,17 @@ async def search(
     principal: CurrentPrincipal, session: SessionDep, q: str = Query(min_length=1, max_length=200)
 ) -> dict[str, Any]:
     return await activity_service.search(session, principal, q)
+
+
+@router.post("/feedback/{feedback_id}/regression")
+async def feedback_regression(feedback_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """Add an "unhelpful" rating to FORGE's regression tests (explicit; refused for C2/C3 context or private requests)."""
+    try:
+        result = await promote_to_regression(session, principal, feedback_id)
+    except RegressionError as exc:
+        raise ApiError(409, exc.code, exc.message) from exc
+    await session.commit()
+    return result
 
 
 @router.post("/feedback", status_code=201)

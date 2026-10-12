@@ -47,6 +47,14 @@ class ExecutionRecord(BaseModel):
     manifest: dict[str, Any] | None = None  # domain/manifest.py RunManifest as JSON, when the run has one
 
 
+class RegressionCase(BaseModel):
+    """A regression test created in the evaluation platform from a run the user found unhelpful."""
+
+    scenario_id: str
+    slug: str
+    created: bool  # False when this run had already been added
+
+
 class FeedbackRecord(BaseModel):
     rating: Literal["useful", "not_useful"]
     comment: str | None = None
@@ -62,3 +70,5 @@ class EvaluationSink(Protocol):
     async def refresh(self, reference: EvaluationReference) -> EvaluationReference: ...
 
     async def feedback(self, reference: EvaluationReference, feedback: FeedbackRecord) -> None: ...
+
+    async def promote_to_regression(self, reference: EvaluationReference) -> RegressionCase | None: ...
