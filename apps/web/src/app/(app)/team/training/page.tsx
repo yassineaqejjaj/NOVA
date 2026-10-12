@@ -8,6 +8,7 @@ import { Suspense } from "react";
 
 import { AgentAvatar } from "@/components/agents/sub-agents";
 import { Page, PageHeader } from "@/components/shell/page";
+import { ImprovementSection } from "@/components/training/improvement-section";
 import { ReleasesSection } from "@/components/training/releases-section";
 import { AGENT_PROFILES, AGENTS, type AgentProfile } from "@/lib/agents";
 import {
@@ -187,6 +188,8 @@ function Training() {
       {data ? (
         <p className="mb-4 text-[12.5px] text-subtle">{data.auto_promote ? t("autoPromote", { days: data.interval_days, canary: data.release.canary_percent, approval: data.release.approval === "full" ? 1 : 0 }) : t("manualPromote")}</p>
       ) : null}
+
+      <ImprovementSection />
 
       {!data ? <Skeleton className="h-36" /> : null}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" role="tablist" aria-label={t("title")}>

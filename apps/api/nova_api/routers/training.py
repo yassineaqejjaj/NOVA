@@ -13,7 +13,7 @@ from nova.config import get_settings
 from nova.domain.agents import AGENTS, AgentProfile
 from nova.infra.db import get_session
 from nova.infra.models import AgentPolicy, TrainingCycle
-from nova.services import training
+from nova.services import improvement, training
 from nova.skills.registry import get_skill_registry
 from nova_api.auth import CurrentPrincipal
 from nova_api.errors import ApiError
@@ -129,6 +129,12 @@ async def overview(principal: CurrentPrincipal, session: SessionDep) -> dict[str
         "can_manage": principal.is_admin,
         "agents": agents,
     }
+
+
+@router.get("/progress")
+async def progress(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """Score curve per agent, changes FORGE stopped and the failure-rate trend (docs/TRAINING.md « Progress »)."""
+    return await improvement.progress(session)
 
 
 @router.get("/agents/{agent}")
