@@ -24,7 +24,7 @@ from nova.domain.context import (
     ContextSnapshotItem,
     SearchResult,
 )
-from nova.domain.evaluation import ExecutionRecord, FeedbackRecord
+from nova.domain.evaluation import ExecutionRecord, FeedbackRecord, RegressionCase
 from nova.domain.llm import LLMMessage, LLMResult, StructuredResult
 from nova.domain.outputs import (
     AnswerOutput,
@@ -235,6 +235,8 @@ class FakeEvaluationSink:
     def __init__(self) -> None:
         self.captured: list[ExecutionRecord] = []
         self.feedbacks: list[FeedbackRecord] = []
+        self.promoted: list[str] = []
+        self.promote_error: Exception | None = None
 
     async def capture(self, record: ExecutionRecord) -> EvaluationReference | None:
         self.captured.append(record)
@@ -245,3 +247,10 @@ class FakeEvaluationSink:
 
     async def feedback(self, reference: EvaluationReference, feedback: FeedbackRecord) -> None:
         self.feedbacks.append(feedback)
+
+    async def promote_to_regression(self, reference: EvaluationReference) -> RegressionCase | None:
+        if self.promote_error:
+            raise self.promote_error
+        already = reference.run_id in self.promoted
+        self.promoted.append(reference.run_id or "")
+        return RegressionCase(scenario_id="regression-1", slug=f"regression-{reference.run_id}", created=not already)

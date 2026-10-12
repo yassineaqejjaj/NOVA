@@ -179,3 +179,20 @@ what NOVA already stores — nothing is extrapolated:
   30 before. It is shown only when both periods hold at least 5 executions.
 
 The rules are pure (`nova/domain/improvement.py`); `nova/services/improvement.py` reads policies, cycles, releases and tasks.
+
+## From a click to a regression test
+
+An "unhelpful" rating on a NOVA answer already reaches FORGE (a captured run and a human evaluation). The 🧪 button that
+appears next to it goes one step further: **Add to the regression tests** turns that run into a regression scenario in
+FORGE (`POST /api/v1/feedback/{id}/regression` → FORGE `promote-to-scenario`), so a later NOVA version is checked against
+the very case the user complained about. It is idempotent (the same run gives the same case).
+
+It is an explicit action, and it is **refused** when:
+
+* the organization does not send requests to FORGE (`NOVA_FORGE_CAPTURE_MODE=observed` without
+  `NOVA_FORGE_CAPTURE_INTENT=true`): FORGE has no input to turn into a test;
+* the run served confidential (C2) or secret (C3) context: such a case never becomes a shared test;
+* FORGE has not evaluated the run yet, or considers it not failed ("only failed or unsuccessful runs can become regression
+  cases"): the reason is shown to the user, nothing is hidden.
+
+The action is audited (`feedback.regression`) and recorded on the feedback (`forwarded.regression`).

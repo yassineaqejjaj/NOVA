@@ -84,6 +84,10 @@ class ForgeClient:
     async def get_run(self, run_id: str) -> dict[str, Any]:
         return await self._request("GET", f"/runs/{run_id}")
 
+    async def promote_run(self, run_id: str) -> dict[str, Any]:
+        """A failed run as a regression scenario (idempotent): ``{scenario_id, slug, created}``."""
+        return await self._request("POST", f"/runs/{run_id}/promote-to-scenario", json={})
+
     async def human_evaluation(self, run_id: str, body: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", f"/runs/{run_id}/human-evaluations", json=body)
 

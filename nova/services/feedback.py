@@ -7,7 +7,7 @@ import uuid
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.agent.nodes.finalize import build_execution_record
@@ -27,6 +27,7 @@ from nova.infra.models import (
 )
 from nova.services import providers
 from nova.services.access import AccessDenied, require_artifact, require_task
+from nova.services.audit import audit
 
 log = logging.getLogger(__name__)
 
@@ -168,3 +169,81 @@ async def _forge_feedback(session: AsyncSession, task: Task, record: FeedbackRec
     except Exception:
         log.warning("FORGE feedback failed for task %s", task.id, exc_info=True)
         return "failed"
+
+
+class RegressionError(Exception):
+    """The feedback cannot become a regression test; ``code`` says why, ``message`` is user-facing."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code, self.message = code, message
+
+
+#: Context at or above this classification (C2 confidential, C3 secret) never becomes a shared test case.
+MAX_SHARED_CLASSIFICATION = 1
+
+
+async def promote_to_regression(session: AsyncSession, principal: Principal, feedback_id: str) -> dict[str, Any]:
+    """Turn an "unhelpful" rating into a regression test in the evaluation platform (an explicit user action).
+
+    The test carries the request the user really made, so it only exists when the organization already lets requests
+    reach FORGE, and never for a run that used confidential (C2) or secret (C3) context.
+    """
+    try:
+        row = await session.get(Feedback, uuid.UUID(feedback_id))
+    except ValueError as exc:
+        raise AccessDenied from exc
+    if row is None or (str(row.user_id) != principal.user_id and not principal.is_admin):
+        raise AccessDenied
+    if row.rating != "not_useful" or row.task_id is None:
+        raise RegressionError("not_applicable", "Only an “unhelpful” rating on a run can become a test.")
+    settings = get_settings()
+    if settings.forge_capture_mode == "observed" and not settings.forge_capture_intent:
+        raise RegressionError(
+            "request_not_shared",
+            "Your organization does not send requests to FORGE: there is no input to turn into a test.",
+        )
+    classification = (
+        await session.scalar(
+            select(func.max(ContextRetrievalReference.max_classification)).where(ContextRetrievalReference.task_id == row.task_id)
+        )
+        or 0
+    )
+    if classification > MAX_SHARED_CLASSIFICATION:
+        raise RegressionError(
+            "classified_context",
+            "This run used confidential (C2) or secret (C3) context: it cannot become a shared test case.",
+        )
+    sink = providers.evaluation()
+    reference_row = await session.scalar(
+        select(IntegrationReference).where(
+            IntegrationReference.system == "forge",
+            IntegrationReference.kind == "evaluation",
+            IntegrationReference.nova_type == "task",
+            IntegrationReference.nova_id == str(row.task_id),
+        )
+    )
+    if sink is None or reference_row is None:
+        raise RegressionError("not_in_forge", "This feedback was not sent to FORGE: there is nothing to turn into a test.")
+    reference = EvaluationReference.model_validate(reference_row.data)
+    if reference.status not in ("completed", "failed"):
+        raise RegressionError("not_evaluated", "FORGE has not evaluated this run yet: try again in a moment.")
+    try:
+        case = await sink.promote_to_regression(reference)
+    except Exception as exc:
+        message = getattr(exc, "message", None) or "FORGE refused to create this test."
+        raise RegressionError("refused", str(message)) from exc
+    if case is None:
+        raise RegressionError("not_in_forge", "FORGE is not available to create this test.")
+    result = {"scenario_id": case.scenario_id, "slug": case.slug, "created": case.created}
+    row.forwarded = {**(row.forwarded or {}), "regression": result}
+    await audit(
+        session,
+        actor_id=uuid.UUID(principal.user_id),
+        action="feedback.regression",
+        target_type="feedback",
+        target_id=str(row.id),
+        summary=f"Retour ajouté aux tests de non-régression FORGE ({case.slug})",
+        details=result,
+    )
+    return {**result, "url": f"{settings.forge_public_url.rstrip('/')}/scenarios/{case.scenario_id}"}

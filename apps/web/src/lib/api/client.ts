@@ -31,6 +31,13 @@ const DETAIL_FR: Record<string, string> = {
   "Some fields are invalid.": "Certains champs ne sont pas valides.",
   "Something went wrong on NOVA's side. Please retry.": "Une erreur s’est produite du côté de NOVA. Veuillez réessayer.",
   "Something went wrong.": "Une erreur s’est produite.",
+  "Only an “unhelpful” rating on a run can become a test.": "Seul un retour « pas utile » sur une exécution peut devenir un test.",
+  "Your organization does not send requests to FORGE: there is no input to turn into a test.": "L’organisation n’envoie pas le texte des demandes à FORGE : il n’y a pas d’entrée à transformer en test.",
+  "This run used confidential (C2) or secret (C3) context: it cannot become a shared test case.": "Cette exécution a utilisé du contexte classé C2 ou C3 : elle ne peut pas devenir un cas de test partagé.",
+  "This feedback was not sent to FORGE: there is nothing to turn into a test.": "Ce retour n’a pas été transmis à FORGE : il n’y a rien à transformer en test.",
+  "FORGE has not evaluated this run yet: try again in a moment.": "FORGE n’a pas encore évalué cette exécution : réessayez dans un instant.",
+  "FORGE refused to create this test.": "FORGE a refusé de créer ce test.",
+  "FORGE is not available to create this test.": "FORGE n’est pas disponible pour créer ce test.",
 };
 
 /** Fallback by error code when the detail is not known (e.g. a validation message). */
