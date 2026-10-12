@@ -129,3 +129,30 @@ async def test_replay_guards(app, llm, orbit, forge):
         task.status = "running"
     busy = await client.post(f"/api/v1/executions/{original}/replay", json={})
     assert busy.status_code == 409
+
+
+async def test_compare_puts_a_run_and_its_replay_side_by_side(app, llm, orbit, forge):
+    client = await _client(app)
+    original = await _run(client, llm)
+    replay = (await client.post(f"/api/v1/executions/{original}/replay", json={"context": "none"})).json()["id"]
+
+    body = (await client.get(f"/api/v1/executions/{original}/compare/{replay}")).json()
+    assert body["original"]["id"] == original and body["replay"]["id"] == replay
+    assert body["original"]["context_items"] > 0 and body["replay"]["context_items"] == 0
+    assert body["replay"]["overrides"] == {"context": "none"}
+    assert body["delta"]["context_items"] == -1.0
+    assert [a["type"] for a in body["artifacts"]] and all({"words", "sections"} <= a.keys() for a in body["artifacts"])
+
+    other = (await client.post(f"/api/v1/executions/{original}/replay", json={})).json()["id"]
+    unrelated = await _run(client, llm)
+    refused = await client.get(f"/api/v1/executions/{unrelated}/compare/{other}")
+    assert refused.status_code == 422 and refused.json()["code"] == "not_a_replay"
+    stranger = await _client(app)
+    assert (await stranger.get(f"/api/v1/executions/{original}/compare/{replay}")).status_code in (403, 404)
+
+
+async def test_replay_options_list_the_models_and_lessons_a_what_if_can_change(app, monkeypatch):
+    monkeypatch.setattr(get_settings(), "replay_models", ["cheap-model"])
+    client = await _client(app)
+    body = (await client.get("/api/v1/executions/replay/options")).json()
+    assert body["models"] == ["cheap-model"] and isinstance(body["policies"], list)

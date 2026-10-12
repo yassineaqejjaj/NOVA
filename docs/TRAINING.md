@@ -164,3 +164,18 @@ receives it with the observed run, so the live release stays under FORGE's healt
 automatically. The existing guard (FORGE score clearly below the parent's) and the admin endpoints still work and now
 leave a release trail; `/releases` lists and decides SDLC releases like the others. With auto-deploy off the candidate
 still waits for an administrator, whose manual activation is recorded as a release.
+
+## Progress
+
+`GET /api/v1/training/progress` (shown at the top of **Team → Agent training**) answers "is the system getting better?" with
+what NOVA already stores — nothing is extrapolated:
+
+* **Score curve per agent** — the first measured FORGE baseline, then the score of every version that reached users
+  (active or retired). A version that was rejected or rolled back is not on the curve; an agent FORGE never measured has
+  no curve at all.
+* **Changes stopped before users** — cycles FORGE did not validate plus releases that were rejected or rolled back.
+* **Lessons applied** — standards and Skill lessons of the active policy.
+* **Failure-rate trend** — production executions (interactive, scheduled, goal, routine) of the last 30 days against the
+  30 before. It is shown only when both periods hold at least 5 executions.
+
+The rules are pure (`nova/domain/improvement.py`); `nova/services/improvement.py` reads policies, cycles, releases and tasks.

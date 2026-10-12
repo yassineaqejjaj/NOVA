@@ -128,3 +128,53 @@ export const useStartAllTraining = () => useTrainingMutation(() => api.post("/tr
 export const useCancelCycle = () => useTrainingMutation((cycleId: string) => api.post(`/training/cycles/${cycleId}/cancel`));
 export const useRollback = () => useTrainingMutation((agent: AgentProfile) => api.post(`/training/agents/${agent}/rollback`));
 export const useActivatePolicy = () => useTrainingMutation((policyId: string) => api.post(`/training/policies/${policyId}/activate`));
+
+/** How the system improves over time (`/api/v1/training/progress`): everything is measured, nothing extrapolated. */
+export interface CurvePoint {
+  version: number;
+  score: number;
+  at: string | null;
+  baseline: boolean;
+  lessons?: number;
+}
+
+export interface AgentProgress {
+  agent: AgentProfile;
+  name: string;
+  curve: CurvePoint[];
+  start_score: number | null;
+  current_score: number | null;
+  gain: number | null;
+  active_version: number | null;
+  lessons: number;
+  versions_shipped: number;
+  changes_stopped: number;
+  rollbacks: number;
+  events: { kind: string; label: string; reason: string; at: string | null }[];
+}
+
+export interface TrainingProgress {
+  window_days: number;
+  headline: {
+    mean_gain: number | null;
+    versions_shipped: number;
+    lessons_learned: number;
+    changes_stopped: number;
+    agents_measured: number;
+  };
+  agents: AgentProgress[];
+  traffic: {
+    recent: { runs: number; failure_rate: number | null };
+    previous: { runs: number; failure_rate: number | null };
+    relative_change: number | null;
+    comparable: boolean;
+  };
+}
+
+export function useTrainingProgress() {
+  return useQuery({
+    queryKey: ["training", "progress"] as const,
+    queryFn: () => api.get<TrainingProgress>("/training/progress"),
+    refetchInterval: 60_000,
+  });
+}
