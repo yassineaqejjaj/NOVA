@@ -413,7 +413,9 @@ async def today(session: AsyncSession, principal: Principal, accept_language: st
 
     # --- Inbox, "since your last visit", what NOVA recommends today, goals -----------------------------
     names = {pid: name for pid, name in project_names.items()}
-    inbox_items = await inbox_service.collect(session, uid, lang, recommendations, dismissed, names)
+    inbox_items = await inbox_service.collect(
+        session, uid, lang, recommendations, dismissed, names, principal=principal, orbit_linked=identity.linked
+    )
     counts = inbox_service.counts(inbox_items)
     since = aware(prefs_row.today_seen_at) if prefs_row and prefs_row.today_seen_at else now - timedelta(hours=24)
     finished = (
