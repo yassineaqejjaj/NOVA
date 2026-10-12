@@ -42,6 +42,8 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Artifact
   `skills/<name>/` (see [`docs/SKILLS.md`](docs/SKILLS.md)).
 * **Artifacts** — structured types defined in `artifacts/types/` (PRD, backlog, sprint plan…),
   Lexical editing, autosave, version history and compare, section-level AI regeneration, comments, citations, export.
+  **Living Artifacts**: each one checks the ORBIT sources it cites against ORBIT's change feed (as the user) and, when a cited
+  document or decision changed, offers to propose an update of only the affected sections — a proposed version, never applied silently.
 * **Time Machine** — replay a finished run with the same sources, a fresh ORBIT retrieval or none, another allow-listed model or
   another agent's lessons, then compare the two side by side: cost, time, context used and a before/after of every changed
   section. A replay never writes to external systems and is never captured as production traffic.
