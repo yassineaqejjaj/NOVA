@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { GoalDialog } from "@/components/missions/goal-dialog";
 import { InboxItemCard, MISSION_ORB, MissionChip, ProgressBar } from "@/components/missions/ui";
 import { NovaOrb, ORB_LABEL } from "@/components/shell/nova-orb";
+import { BriefingPlayer } from "@/components/voice/briefing-player";
 import { useVoiceAvailable } from "@/components/voice/voice-button";
 import { api } from "@/lib/api/client";
 import { useImpact } from "@/lib/api/missions";
@@ -109,6 +110,7 @@ export function ProactiveHero({ today }: { today: Today }) {
               {worked.length > 4 ? <li className="pl-6 text-[12.5px] text-subtle">{t("more", { n: today.since.count - 4 })}</li> : null}
             </ul>
           ) : null}
+          {voice ? <BriefingPlayer /> : null}
           {today.since.decisions ? (
             <Link href="/inbox" className="mt-4 inline-flex items-center gap-2 rounded-full bg-warning/12 px-3.5 py-1.5 text-[13.5px] font-medium text-warning hover:bg-warning/20" data-testid="decisions-callout">
               <Hand className="size-4" /> {t("decisions", { n: today.since.decisions })} <ArrowRight className="size-3.5" />

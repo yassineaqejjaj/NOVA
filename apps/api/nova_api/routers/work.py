@@ -18,6 +18,7 @@ from nova.domain.enums import AutonomyMode, SkillCategory
 from nova.infra.db import get_session
 from nova.infra.models import Artifact, IntegrationReference, Task, Workflow
 from nova.services import activity as activity_service
+from nova.services import briefing as briefing_service
 from nova.services import projects as project_service
 from nova.services import today as today_service
 from nova.services.access import AccessDenied, project_role, require_task
@@ -228,6 +229,12 @@ async def get_workflow(workflow_id: str, principal: CurrentPrincipal, session: S
 @router.get("/today")
 async def today(request: Request, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
     return await today_service.today(session, principal, request.headers.get("accept-language"))
+
+
+@router.get("/today/briefing")
+async def today_briefing(request: Request, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """What matters today, as sentences NOVA can say aloud (nothing classified C2/C3 is spelled out)."""
+    return await briefing_service.build(session, principal, request.headers.get("accept-language"))
 
 
 class DismissIn(BaseModel):

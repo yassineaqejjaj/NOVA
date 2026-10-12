@@ -492,6 +492,7 @@ async def today(session: AsyncSession, principal: Principal, accept_language: st
     recommendations = recommendations[:20]
     actions_required = counts["decision"] + counts["validation"] + counts["anomaly"]
     return {
+        "lang": lang,
         "user": {"display_name": user.display_name, "first_name": user.display_name.split(" ")[0], "title": user.title},
         "nova": {"name": prefs.get("nova_name", "NOVA"), "avatar": prefs.get("avatar"), "state": state},
         "onboarding_completed": prefs.get("onboarding_completed", False),
