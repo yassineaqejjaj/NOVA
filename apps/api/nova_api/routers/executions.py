@@ -14,10 +14,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
+from nova.config import get_settings
 from nova.domain.enums import TaskStatus
 from nova.infra.db import get_session, session_scope
 from nova.infra.events import get_publisher
-from nova.infra.models import ExecutionEvent, Task
+from nova.infra.models import AgentPolicy, ExecutionEvent, Task
+from nova.services import time_machine
 from nova.services.access import require_task
 from nova.services.audit import audit
 from nova.services.dispatch import dispatch
@@ -207,3 +209,37 @@ async def replay(task_id: str, body: ReplayOptions, principal: CurrentPrincipal,
 async def replays(task_id: str, principal: CurrentPrincipal, session: SessionDep) -> list[dict[str, Any]]:
     """The replays of an execution: what each one changed, how it ended and what it cost."""
     return [replay_summary(t) for t in await list_replays(session, principal, task_id)]
+
+
+@router.get("/{task_id}/compare/{replay_id}")
+async def compare(task_id: str, replay_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """Time Machine: a run and one of its replays side by side — what changed in the result, the cost and the time."""
+    try:
+        return await time_machine.compare(session, principal, task_id, replay_id)
+    except ReplayError as exc:
+        raise ApiError(422, exc.code, exc.message) from exc
+
+
+@router.get("/replay/options")
+async def replay_options(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """What a what-if can change: models on the allow-list and the lessons (policies) of each agent."""
+    policies = (
+        await session.scalars(
+            select(AgentPolicy)
+            .where(AgentPolicy.status.in_(("active", "retired")))
+            .order_by(AgentPolicy.agent, AgentPolicy.version)
+        )
+    ).all()
+    return {
+        "models": list(get_settings().replay_models),
+        "policies": [
+            {
+                "id": str(p.id),
+                "agent": p.agent,
+                "version": p.version,
+                "status": p.status,
+                "lessons": sum(len(v) for v in p.skills.values()),
+            }
+            for p in policies
+        ],
+    }
