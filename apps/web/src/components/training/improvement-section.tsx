@@ -10,7 +10,7 @@ import { defineMessages, useLang, useT } from "@/lib/i18n";
 const M = defineMessages({
   en: {
     title: "Is the system getting better?",
-    hint: "Measured by FORGE on each agent's Skills. A version only counts once it reached users.",
+    hint: "Measured by FORGE on each agent's Skills. A version only counts once it reached users. FORGE evaluates, NOVA turns the evidence into lessons in its instructions (no model is retrained), ORBIT keeps the governed knowledge.",
     gain: "Average score gain",
     gainHint: (v: { n: number }) => `across ${v.n} measured agent${v.n > 1 ? "s" : ""}`,
     versions: "Versions shipped",
@@ -30,7 +30,7 @@ const M = defineMessages({
   },
   fr: {
     title: "Le système s'améliore-t-il ?",
-    hint: "Mesuré par FORGE sur les compétences de chaque agent. Une version ne compte qu'une fois arrivée chez les utilisateurs.",
+    hint: "Mesuré par FORGE sur les compétences de chaque agent. Une version ne compte qu'une fois arrivée chez les utilisateurs. FORGE évalue, NOVA transforme les preuves en leçons dans ses consignes (aucun modèle n'est ré-entraîné), ORBIT conserve les connaissances gouvernées.",
     gain: "Gain de score moyen",
     gainHint: (v: { n: number }) => `sur ${v.n} agent${v.n > 1 ? "s" : ""} mesuré${v.n > 1 ? "s" : ""}`,
     versions: "Versions déployées",

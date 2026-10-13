@@ -14,6 +14,18 @@ Skills and delivers structured, editable Artifacts (PRD, backlog, sprint plan…
 | **ORBIT** knows | context, memory, knowledge, permissions, citations ([repo](https://github.com/yassineaqejjaj/ORBIT)) |
 | **FORGE** learns | traces, evaluation, regressions, improvement ([repo](https://github.com/yassineaqejjaj/FORGE)) |
 
+### Who learns what
+
+"FORGE learns" is a product shorthand. Nobody trains model weights:
+
+| | Does | Does not |
+|---|---|---|
+| **FORGE** | evaluates executions (rules, judges, human feedback), runs baseline-vs-candidate experiments, produces evidence and feedback reports | does not change NOVA's behaviour by itself |
+| **NOVA** | distils FORGE's evidence into short **lessons** (a versioned *policy* of instructions), deploys them through a proof gate, a canary and an approval, and can roll them back | does not fine-tune a model |
+| **ORBIT** | keeps the **governed learnings** (validated memory, decisions) that NOVA retrieves as context, with their permissions and classification | does not evaluate NOVA |
+
+See [`docs/TRAINING.md`](docs/TRAINING.md#who-learns-what) and the state of every link in [`docs/STATUS.md`](docs/STATUS.md).
+
 NOVA never duplicates ORBIT or FORGE: it retrieves context **as the user** through ORBIT's API and is
 evaluated by FORGE through FORGE's existing `nova` adapter. See
 [`docs/integration-analysis.md`](docs/integration-analysis.md) for the contracts and the documented gaps.
@@ -158,6 +170,7 @@ tests/              unit, integration, support (test doubles)
 
 ## Documentation
 
+* [`docs/STATUS.md`](docs/STATUS.md): what is implemented, tested, on `main` and deployed, per ORION link and key capability.
 * [Integration analysis](docs/integration-analysis.md) — ORBIT & FORGE contracts, gaps, differences with the brief
 * [Architecture](docs/ARCHITECTURE.md) — execution model, Skills, Artifacts, data model, API, security
 * [Skills](docs/SKILLS.md) — writing and versioning Skills

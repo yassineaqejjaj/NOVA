@@ -16,6 +16,18 @@ cycle →  │ policy vN (active)           │── agent version ─► │ n
          └──────────────────────────────┘                    └───────────────────────────────┘
 ```
 
+## Who learns what
+
+"FORGE learns" is a product shorthand. No model weights change anywhere:
+
+* **FORGE evaluates.** It scores executions (deterministic rules, judges, human feedback), compares a baseline and a
+  candidate in an experiment, and produces evidence: scores, feedback reports, recommendations, release comparisons.
+* **NOVA distils and deploys.** It turns that evidence into short, general **lessons**, a versioned *policy* injected
+  into the agent's instructions, and ships it through the proof gate, the canary, the approval and the rollback below.
+* **ORBIT keeps governed learnings.** Validated memory and decisions are retrieved by NOVA as context, with their
+  permissions, classification and citations; ORBIT does not evaluate NOVA and NOVA does not rewrite ORBIT's knowledge
+  (write-back is proposed and goes through the approval policy).
+
 ## What an agent learns
 
 | Level | Where it goes | Example |
