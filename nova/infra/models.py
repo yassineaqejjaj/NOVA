@@ -88,6 +88,11 @@ class OrbitAccount(Base):
     token_ciphertext: Mapped[str | None] = mapped_column(Text)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     linked_at: Mapped[datetime] = _created()
+    # Health of the link (NOV-93): last exchange with ORBIT, and since when the project agent key replaces the session
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(String(300))
+    agent_fallback_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class OrbitSnapshotReference(Base):
