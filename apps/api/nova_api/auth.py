@@ -28,7 +28,7 @@ from nova.services import accounts
 from nova.services.audit import audit
 from nova.services.identity import IdentityError, validate_oidc_token
 from nova.services.mailer import last_code
-from nova.services.users import get_user, principal_for, upsert_user
+from nova.services.users import get_user, resolve_principal, upsert_user
 from nova_api.errors import ApiError
 
 SESSION_COOKIE = "nova_session"
@@ -85,7 +85,7 @@ async def current_principal(request: Request, session: SessionDep) -> Principal:
         user = await get_user(session, claims["sub"])
         if user is None or user.is_service:
             raise ApiError(401, "unauthorized", "Sign in again.")
-        return principal_for(user)
+        return await resolve_principal(session, user)
     header = request.headers.get("authorization", "")
     if header.lower().startswith("bearer ") and settings.auth_mode == "oidc":
         try:
@@ -102,7 +102,7 @@ async def current_principal(request: Request, session: SessionDep) -> Principal:
             is_admin=settings.oidc_admin_role in roles,
         )
         await session.commit()
-        return principal_for(user)
+        return await resolve_principal(session, user)
     raise ApiError(401, "unauthorized", "Sign in to use NOVA.")
 
 

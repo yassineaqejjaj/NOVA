@@ -19,7 +19,7 @@ from nova.infra.db import aware, utcnow
 from nova.infra.models import Conversation, Routine, User
 from nova.services.audit import audit
 from nova.services.conversations import ComposerInput, create_conversation, submit
-from nova.services.users import principal_for
+from nova.services.users import resolve_principal
 from nova.skills.registry import get_skill_registry
 
 DEFAULT_TZ = "Europe/Paris"
@@ -188,7 +188,7 @@ async def run(session: AsyncSession, routine: Routine, *, manual: bool = False) 
     """Starts one run as a NOVA task. Returns the task id to dispatch."""
     user = await session.get(User, routine.user_id)
     assert user is not None
-    principal = principal_for(user)
+    principal = await resolve_principal(session, user)
     conversation = await session.get(Conversation, routine.conversation_id) if routine.conversation_id else None
     if conversation is None:
         conversation = await create_conversation(

@@ -181,6 +181,8 @@ class Settings(BaseSettings):
     # --- Policy -------------------------------------------------------------------------------
     policy_allow_auto_external_writes: bool = False
     policy_max_classification: int = Field(default=3, ge=0, le=3)
+    # Clearance of a user with no linked ORBIT account (or none known): what they may read of derived content.
+    default_clearance: int = Field(default=1, ge=0, le=3)
     context_reference_retention_days: int = 180
     execution_event_retention_days: int = 90
     max_workflow_steps: int = 8

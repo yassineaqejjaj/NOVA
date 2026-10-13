@@ -35,6 +35,7 @@ from nova.infra.models import (
 )
 from nova.services import inbox as inbox_service
 from nova.services import providers
+from nova.services.access import within_clearance
 from nova.services.goals import goal_view
 from nova.services.users import preferences_dict
 
@@ -110,7 +111,9 @@ def recommendation_for_change(change: ContextChange, project: dict[str, Any], la
     return None
 
 
-async def _missing_acceptance_criteria(session: AsyncSession, uid: uuid.UUID, lang: Lang = "en") -> dict[str, Any] | None:
+async def _missing_acceptance_criteria(
+    session: AsyncSession, uid: uuid.UUID, lang: Lang = "en", *, principal: Principal
+) -> dict[str, Any] | None:
     members = select(ProjectMember.project_id).where(ProjectMember.user_id == uid)
     rows = (
         await session.execute(
@@ -124,6 +127,7 @@ async def _missing_acceptance_criteria(session: AsyncSession, uid: uuid.UUID, la
                 or_(Artifact.owner_id == uid, Artifact.project_id.in_(members)),
                 Artifact.type.in_(STORY_ARTIFACTS),
                 Artifact.status != "archived",
+                within_clearance(principal),
             )
             .order_by(Artifact.updated_at.desc())
             .limit(20)
@@ -270,7 +274,7 @@ async def today(session: AsyncSession, principal: Principal, accept_language: st
         )
     ).all()
     recommendations += [_failed_recommendation(t, name_of(t.project_id), lang) for t in failed]
-    if ac := await _missing_acceptance_criteria(session, uid, lang):
+    if ac := await _missing_acceptance_criteria(session, uid, lang, principal=principal):
         recommendations.append(ac)
 
     # --- ORBIT: changes, context available ---------------------------------------------------------

@@ -300,6 +300,16 @@ The Python core lives in one package (`nova/`) used by both the API and the work
 * **ORBIT ACL propagation**: ORBIT is always called as the user (delegated session) or on behalf of the
   user; NOVA never caches ORBIT content across users; C2/C3 content triggers warnings in the UI and
   the Artifact inherits the max classification of its sources.
+* **Derived data and clearance**: derived content is as sensitive as its sources. The `Principal` carries a
+  `clearance` (C0-C3): the ORBIT clearance of the linked account (`OrbitAccount.clearance`, read on every request),
+  else `NOVA_DEFAULT_CLEARANCE` (default C1, fail-closed). An Artifact whose classification is above the clearance
+  does not exist for that principal (404, no title or preview in errors): `require_artifact` / `artifact_role`
+  (read, versions, compare, comments, export, provenance, edit, regenerate, refresh), every list (Artifacts, search,
+  activity feed, Today/Inbox, task detail, agent tools) and the stored extracts re-served to a run. Owner and admin
+  follow the same rule (there is no admin bypass). A replay with `context=original` is refused (422 `clearance`)
+  when a stored extract is above the *current* clearance, and pinned extracts above it are never re-injected.
+  Limits: the clearance is the last one ORBIT reported (refreshed when the account is relinked), and a user without
+  a linked ORBIT account cannot read an Artifact built from C2+ context retrieved through an agent key.
 * **Autonomy**: `suggest | assist (default) | execute_with_approval | execute_automatically`. Tools
   flagged `external_write` always require approval unless `NOVA_POLICY_ALLOW_AUTO_EXTERNAL_WRITES=true`
   (organization policy). Personalization can never lower policy.

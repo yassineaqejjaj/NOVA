@@ -8,14 +8,20 @@ from typing import Any
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nova.config import get_settings
 from nova.domain.permissions import Principal
 from nova.infra.db import utcnow
-from nova.infra.models import User, UserPreferences
+from nova.infra.models import OrbitAccount, User, UserPreferences
 
 SERVICE_SUBJECT = "service:forge-evaluation"
 
 
-def principal_for(user: User) -> Principal:
+def principal_for(user: User, clearance: int | None = None) -> Principal:
+    """The principal of ``user``. Without an explicit ``clearance`` it is the default policy (C1): fail-closed.
+
+    Call sites with a session use ``resolve_principal``, which reads the clearance ORBIT gave the user.
+    """
+    level = get_settings().default_clearance if clearance is None else max(0, min(3, int(clearance)))
     return Principal(
         user_id=str(user.id),
         email=user.email,
@@ -23,7 +29,17 @@ def principal_for(user: User) -> Principal:
         realm_roles=frozenset(user.realm_roles or []),
         is_admin=user.is_admin,
         is_service=user.is_service,
+        clearance=level,
     )
+
+
+async def resolve_principal(session: AsyncSession, user: User) -> Principal:
+    """The principal with the clearance of the user's linked ORBIT account, or the default policy without one.
+
+    Read on every request (not cached in the session cookie): a clearance lowered in ORBIT applies at the next call.
+    """
+    clearance = await session.scalar(select(OrbitAccount.clearance).where(OrbitAccount.user_id == user.id))
+    return principal_for(user, clearance)
 
 
 async def upsert_user(

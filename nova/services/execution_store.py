@@ -14,7 +14,7 @@ from nova.domain.blocks import Block, ProgressLine
 from nova.domain.context import ContextBundle, ContextItem, SnapshotRef
 from nova.domain.enums import BlockType, EventType, NovaPhase, ProjectRole, StepStatus, role_at_least
 from nova.domain.outputs import EvaluationReference, ExecutionPlan, TokenUsage, ToolRequest, ToolResult
-from nova.domain.permissions import Principal
+from nova.domain.permissions import Principal, may_read_classification
 from nova.domain.skills import SkillSpec
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import Publisher, get_publisher
@@ -34,7 +34,7 @@ from nova.infra.models import (
     WorkflowExecution,
 )
 from nova.infra.redaction import redact_obj
-from nova.services.access import AccessDenied, artifact_role
+from nova.services.access import AccessDenied, artifact_role, within_clearance
 
 
 def _uuid(value: str | uuid.UUID | None) -> uuid.UUID | None:
@@ -260,12 +260,17 @@ class SqlExecutionStore:
                     )
                 )
             ).all()
+            # Stored extracts are never re-served above the user's *current* clearance (it may have dropped since).
             return [
                 StoredContextReference(
                     id=str(r.id),
                     retrieval_id=r.retrieval_id,
                     project_slug=r.project_slug,
-                    items=[ContextItem.model_validate(i) for i in r.items],
+                    items=[
+                        item
+                        for i in r.items
+                        if may_read_classification(self.principal, (item := ContextItem.model_validate(i)).classification)
+                    ],
                     created_at=r.created_at.isoformat(),
                     snapshot_name=r.snapshot_name,
                     snapshot_version=r.snapshot_version,
@@ -381,7 +386,9 @@ class SqlExecutionStore:
             uid = _uuid(user_id)
             member_projects = select(ProjectMember.project_id).where(ProjectMember.user_id == uid)
             query = select(Artifact).where(
-                or_(Artifact.owner_id == uid, Artifact.project_id.in_(member_projects)), Artifact.status != "archived"
+                or_(Artifact.owner_id == uid, Artifact.project_id.in_(member_projects)),
+                Artifact.status != "archived",
+                within_clearance(self.principal),
             )
             if ids:
                 query = query.where(Artifact.id.in_([i for i in (_uuid(x) for x in ids) if i]))

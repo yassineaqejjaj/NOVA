@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nova.config import get_settings
 from nova.domain.context import SnapshotRef
 from nova.domain.enums import AutonomyMode, ExecutionOrigin, TaskStatus
-from nova.domain.permissions import Principal
+from nova.domain.permissions import Principal, may_read_classification
 from nova.infra.models import ContextRetrievalReference, Task
 from nova.services.access import require_task
 
@@ -55,9 +55,21 @@ async def create_replay(session: AsyncSession, principal: Principal, task_id: st
     }
     overrides: dict[str, str] = {"context": options.context}
     if options.context == "original":
-        refs = (
-            await session.scalars(select(ContextRetrievalReference.id).where(ContextRetrievalReference.task_id == original.id))
+        stored = (
+            await session.execute(
+                select(ContextRetrievalReference.id, ContextRetrievalReference.items).where(
+                    ContextRetrievalReference.task_id == original.id
+                )
+            )
         ).all()
+        # The stored extracts are re-served without asking ORBIT again: the user's *current* clearance must cover them
+        # (fail-closed; a replay with ``live`` context re-queries ORBIT with the rights of today).
+        if any(not may_read_classification(principal, int(i.get("classification", 3))) for _, items in stored for i in items):
+            raise ReplayError(
+                "clearance",
+                "This run used sources above your current clearance: replay it with live context instead.",
+            )
+        refs = [ref_id for ref_id, _ in stored]
         task_input["context_mode"] = "explicit"  # no new retrieval: re-use exactly what ORBIT served before
         task_input["pinned_context_ref_ids"] = [str(r) for r in refs]
     elif options.context == "live":

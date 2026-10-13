@@ -17,11 +17,12 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from nova.domain.permissions import Principal
+from nova.domain.permissions import DEFAULT_CLEARANCE, Principal
 from nova.i18n import Lang
 from nova.infra.db import aware, utcnow
 from nova.infra.models import Artifact, Goal, Routine, SdlcRun, Task, TaskStep
 from nova.services import freshness
+from nova.services.access import within_clearance
 from nova.services.goals import OPEN_GOALS, milestones
 
 KINDS = ("decision", "validation", "anomaly", "suggestion", "result")
@@ -163,7 +164,11 @@ async def _stale_artifacts(
     artifacts = (
         await session.scalars(
             select(Artifact)
-            .where(Artifact.owner_id == uuid.UUID(principal.user_id), Artifact.status != "archived")
+            .where(
+                Artifact.owner_id == uuid.UUID(principal.user_id),
+                Artifact.status != "archived",
+                within_clearance(principal),
+            )
             .order_by(Artifact.updated_at.desc())
             .limit(STALE_CHECKS)
         )
@@ -382,6 +387,7 @@ async def collect(
                 Task.origin.in_(("goal", "routine")),
                 TaskStep.status == "completed",
                 Task.finished_at >= now - timedelta(days=7),
+                Artifact.classification <= (principal.clearance if principal else DEFAULT_CLEARANCE),
             )
             .order_by(Task.finished_at.desc())
             .limit(20)

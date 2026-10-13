@@ -2,17 +2,42 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from nova.agent.tools.registry import ToolDenied, get_tool_registry
 from nova.config import Settings
 from nova.domain.enums import AutonomyMode, ProjectRole
 from nova.domain.outputs import ToolRequest
-from nova.domain.permissions import AutonomyPolicy, Permission, Principal, project_permissions
+from nova.domain.permissions import (
+    DEFAULT_CLEARANCE,
+    AutonomyPolicy,
+    Permission,
+    Principal,
+    may_read_classification,
+    project_permissions,
+)
 from nova.domain.trust import detect_injection, neutralize, wrap_untrusted
 from nova.infra.redaction import redact, redact_obj
 
 USER = Principal(user_id="u", email="u@x.io", display_name="U")
+
+
+@pytest.mark.parametrize(
+    ("clearance", "level", "readable"),
+    [(1, 0, True), (1, 1, True), (1, 2, False), (1, 3, False), (3, 3, True), (0, 1, False), (2, 3, False)],
+)
+def test_classification_never_exceeds_the_clearance(clearance, level, readable):
+    assert may_read_classification(replace(USER, clearance=clearance), level) is readable
+
+
+def test_admin_is_not_exempt_from_the_clearance():
+    assert not may_read_classification(replace(USER, is_admin=True), 3)  # same rule as everyone (documented policy)
+
+
+def test_a_principal_without_known_clearance_gets_the_default_policy():
+    assert USER.clearance == DEFAULT_CLEARANCE == 1
 
 
 @pytest.mark.parametrize(

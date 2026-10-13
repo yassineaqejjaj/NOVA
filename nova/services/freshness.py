@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nova.domain.artifacts import ArtifactContent
 from nova.domain.context import ContextChange, ContextError, ContextItem
 from nova.domain.freshness import CitedSource, SourceChange, assess
-from nova.domain.permissions import Principal
+from nova.domain.permissions import Principal, may_read_classification
 from nova.infra.db import aware
 from nova.infra.models import Artifact, ArtifactVersion, ContextRetrievalReference
 from nova.services import providers
@@ -60,7 +60,7 @@ async def cited_sources(session: AsyncSession, principal: Principal, content: Ar
             item = ContextItem.model_validate(raw)
             sections = cites.get((str(ref.id), item.citation))
             slug = item.project_slug or ref.project_slug
-            if not sections or not slug:
+            if not sections or not slug or not may_read_classification(principal, item.classification):
                 continue
             ids = frozenset(i for i in (item.document_id, item.memory_item_id, item.ref_id) if i)
             key = (slug, min(ids) if ids else item.title)
