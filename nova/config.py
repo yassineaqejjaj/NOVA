@@ -159,6 +159,11 @@ class Settings(BaseSettings):
     # Time FORGE gives one training run (a multi-step Skill on a small model needs more than FORGE's 120 s default)
     training_run_timeout_seconds: int = Field(default=600, ge=60, le=3600)
     training_auto_promote: bool = True  # promote a candidate policy when FORGE validates it
+    # Proof FORGE must give, outside production, before a learned policy meets users (docs/TRAINING.md): "enforce" holds
+    # a candidate without proof (also when FORGE is unreachable), "warn" records it and goes on, "off" skips the check.
+    policy_gate_mode: Literal["enforce", "warn", "off"] = "warn"
+    policy_gate_min_gain: float = Field(default=0.02, ge=0, le=1)  # composite score (0-1) the candidate must gain
+    policy_gate_min_evaluations: int = Field(default=3, ge=1, le=1000)  # independent scored runs per arm
     # Releases (docs/TRAINING.md): a validated candidate goes through a canary before reaching everyone.
     release_canary_percent: int = Field(default=10, ge=0, le=100)  # share of users; 0 = no canary
     release_canary_min_runs: int = Field(default=20, ge=1, le=10000)  # canary executions before a verdict

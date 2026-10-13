@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 
 class ReleaseStatus(StrEnum):
+    awaiting_proof = "awaiting_proof"  # held back: FORGE has not yet proved the candidate outside production
     canary = "canary"  # exposed to a share of users, being compared
     awaiting_approval = "awaiting_approval"  # healthy canary, waiting for an administrator
     active = "active"  # applied to everyone
@@ -24,7 +25,7 @@ class ReleaseStatus(StrEnum):
     superseded = "superseded"  # was active, replaced by a newer release
 
 
-OPEN_STATUSES = (ReleaseStatus.canary, ReleaseStatus.awaiting_approval)
+OPEN_STATUSES = (ReleaseStatus.awaiting_proof, ReleaseStatus.canary, ReleaseStatus.awaiting_approval)
 
 #: Executions that count as production traffic (replays and FORGE evaluation calls never do).
 TRAFFIC_ORIGINS = ("interactive", "scheduled", "goal", "routine")

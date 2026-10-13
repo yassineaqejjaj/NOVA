@@ -137,6 +137,8 @@ export interface PolicyVersion {
   runs: number;
   avg_score: number | null;
   passed_rate: number | null;
+  /** The release of this version; "awaiting_proof": held until FORGE proves it outside production (reason says why). */
+  release?: { id: string; status: string; canary_percent: number; reason: string } | null;
 }
 
 export interface PolicyOverview {
