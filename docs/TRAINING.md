@@ -61,6 +61,14 @@ resumed execution keeps its lessons and FORGE knows which policy it evaluated (`
 * `input.nova_skill` (passed through by FORGE) forces one Skill; it must belong to the agent.
 * `options.policy_id` (from the agent version's `adapter_config.nova_options`) applies that policy instead of the
   active one, for its agent only.
+* `context` keeps its classification (C0-C3): each `documents[]` entry may carry `classification`
+  (`citation`, `document_id` and `version` are optional too), `context.max_classification` is the maximum FORGE
+  prepared and `context.orbit_context` is ORBIT's assembled context text (a string, or `{text, max_classification}`),
+  which the run reads as one more source. A source keeps its level (raised to `max_classification` when that is
+  higher); **a document, fact or ORBIT text without a level is C3** (fail closed, never C1). The run, its Artifacts
+  and its records then inherit that level, tools that write to an external system are withheld at C3, and context
+  above `NOVA_POLICY_MAX_CLASSIFICATION` is refused (`403 CLASSIFICATION_REFUSED`). The training pack is not
+  classified yet, so its runs read as C3 (harmless: synthetic data, no external write).
 * NOVA's citation labels are rewritten for FORGE: `[S1]` → `[source: <FORGE document id>]`, the form FORGE's
   citation rules recognise (NOVA's own Artifacts are unchanged).
 
