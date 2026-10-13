@@ -17,8 +17,9 @@ from nova.domain.evaluation import ExecutionRecord, FeedbackRecord, RegressionCa
 from nova.domain.outputs import EvaluationReference
 from nova.infra.db import session_scope
 from nova.infra.models import IntegrationReference
-from nova.integrations.forge import mapper, production
+from nova.integrations.forge import connection, mapper, production
 from nova.integrations.forge.client import ForgeClient, ForgeError
+from nova.integrations.forge.versions import cached_version_id, register_agent_version, remember_version
 from nova.skills.registry import SkillRegistry
 
 log = logging.getLogger(__name__)
@@ -41,8 +42,10 @@ class ForgeEvaluationSink:
         self.client = client or ForgeClient(
             settings.forge_base_url, settings.forge_api_key, timeout=settings.forge_timeout_seconds
         )
-        self.nova_inbound_url = nova_inbound_url or settings.public_url.replace(":3200", ":8200")
-        self.credential_id = credential_id
+        # What FORGE needs to call NOVA back: the settings unless the caller gives them explicitly
+        self._explicit_endpoint = nova_inbound_url
+        self.nova_inbound_url = nova_inbound_url or connection.forge_callback_endpoint(settings)
+        self.credential_id = credential_id or connection.forge_credential(settings)
 
     @property
     def enabled(self) -> bool:
@@ -52,17 +55,10 @@ class ForgeEvaluationSink:
         """Find or register the FORGE agent version of this NOVA release (cached in integration_references)."""
         digest = self.skills.catalog_digest()
         release = mapper.release_label(self.settings.version, self.model, digest)
-        async with session_scope() as session:
-            cached = await session.scalar(
-                select(IntegrationReference).where(
-                    IntegrationReference.system == "forge",
-                    IntegrationReference.kind == "agent_version",
-                    IntegrationReference.nova_type == "release",
-                    IntegrationReference.nova_id == f"{release}|{self.model}",
-                )
-            )
-            if cached:
-                return cached.external_id
+        link = connection.connection_key(self.nova_inbound_url, self.credential_id)
+        key = f"{release}|{self.model}"
+        if cached := await cached_version_id("release", key, link):  # a version of another connection is not reused
+            return cached
         agent = await self.client.find_agent(mapper.AGENT_SLUG) or await self.client.create_agent(mapper.agent_body())
         body = mapper.agent_version_body(
             nova_version=self.settings.version,
@@ -72,26 +68,8 @@ class ForgeEvaluationSink:
             nova_base_url=self.nova_inbound_url,
             credential_id=self.credential_id,
         )
-        try:
-            version = await self.client.create_agent_version(str(agent["id"]), body)
-        except ForgeError as exc:
-            if exc.status != 409:
-                raise
-            versions = await self.client.list_agent_versions(str(agent["id"]))
-            version = next((v for v in versions if v.get("version") == body["version"]), None)
-            if version is None:
-                raise
-        async with session_scope() as session:
-            session.add(
-                IntegrationReference(
-                    system="forge",
-                    kind="agent_version",
-                    nova_type="release",
-                    nova_id=f"{release}|{self.model}",
-                    external_id=str(version["id"]),
-                    data={"agent_id": str(agent["id"]), "release": release},
-                )
-            )
+        version = await register_agent_version(self.client, str(agent["id"]), body)
+        await remember_version("release", key, link, str(version["id"]), {"agent_id": str(agent["id"]), "release": release})
         return str(version["id"])
 
     async def _production_ids(self) -> tuple[str, str | None]:
@@ -166,6 +144,8 @@ class ForgeEvaluationSink:
             return None
         if self.settings.forge_capture_mode == "observed":
             return await self.capture_observed(record)
+        # FORGE replays the request against NOVA: it must know where and with which credential, before anything is registered
+        connection.require_connection(self.settings, endpoint=self._explicit_endpoint, credential_id=self.credential_id)
         version_id = await self.agent_version_id()
         scenario = await self.client.create_scenario(mapper.scenario_body(record))
         runs = await self.client.create_runs(mapper.run_body(version_id, str(scenario["id"]), record))
