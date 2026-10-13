@@ -118,6 +118,15 @@ def forge_client() -> Any:
     return _cache["forge_client"]
 
 
+def policy_proof_source() -> Any:
+    """FORGE's out-of-production proof for the SDLC agent's candidates (``ProofSource``, services/policy_gate.py).
+
+    ``None`` until FORGE's calibrated promotion gate is plugged in: the gate then answers "unavailable"
+    (held in ``enforce``, a warning in ``warn``). Tests override it.
+    """
+    return _overrides.get("policy_proof_source")
+
+
 def design() -> DesignProvider:
     if "design" in _overrides:
         return _overrides["design"]

@@ -38,12 +38,13 @@ from nova.domain.learning import (
     promotion_decision,
 )
 from nova.domain.llm import LLMMessage
+from nova.domain.policy_gate import Proof
 from nova.domain.skills import SkillSpec
 from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import AgentPolicy, TrainingCycle
 from nova.integrations.forge import mapper
 from nova.integrations.forge.client import ForgeClient, ForgeError
-from nova.services import learning, providers, releases
+from nova.services import learning, policy_gate, providers, releases
 from nova.services.audit import audit
 from nova.skills.registry import SkillRegistry, get_skill_registry
 
@@ -460,6 +461,20 @@ async def _evaluate(session: AsyncSession, cycle: TrainingCycle, client: ForgeCl
     cycle.status = "experimenting"
 
 
+def _experiment_proof(cycle: TrainingCycle, comparison: dict[str, Any], settings: Settings) -> Proof:
+    """The finished experiment as a proof: the Skills the lessons were drawn from are not a validation set, the others are."""
+    scenario_of = {item["id"]: str(item["scenario_id"]) for item in cycle.skills}
+    learned_from = [scenario_of[s] for s in cycle.result.get("changed_skills", []) if s in scenario_of]
+    return Proof(
+        source="forge_experiment",
+        validation_scenarios=list(scenario_of.values()),
+        lesson_scenarios=learned_from,
+        runs_per_scenario=settings.training_repetitions,
+        gain=(comparison.get("composite") or {}).get("delta"),
+        regressions=[str(r.get("slug") or r.get("scenario_id")) for r in comparison.get("regressions") or []],
+    )
+
+
 async def _decide(session: AsyncSession, cycle: TrainingCycle, client: ForgeClient, settings: Settings) -> None:
     assert cycle.forge_experiment_id
     experiment = await client.get_experiment(cycle.forge_experiment_id)
@@ -500,7 +515,17 @@ async def _decide(session: AsyncSession, cycle: TrainingCycle, client: ForgeClie
         cycle.result = {**cycle.result, "awaiting_approval": True}
         await _finish(session, cycle, "validated")
         return
-    release = await releases.start(session, candidate, cycle, {**cycle.result.get("experiment", {}), "cycle_id": str(cycle.id)})
+    # Second line after FORGE's own recommendation: the thresholds of NOVA_POLICY_GATE_MODE on the same experiment
+    baseline = await session.get(AgentPolicy, cycle.baseline_policy_id) if cycle.baseline_policy_id else None
+    gate = await policy_gate.evaluate(
+        candidate,
+        baseline,
+        source=policy_gate.PrecomputedProof(_experiment_proof(cycle, comparison, settings)),
+        lesson_sources=[],
+    )
+    release = await releases.start(
+        session, candidate, cycle, {**cycle.result.get("experiment", {}), "cycle_id": str(cycle.id)}, gate=gate
+    )
     cycle.result = {**cycle.result, "release_id": str(release.id)}
     # Active at once (no canary, no approval): promoted. Otherwise the release is on its way: validated until it goes live.
     await _finish(session, cycle, "promoted" if release.status == "active" else "validated")

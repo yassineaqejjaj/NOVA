@@ -104,6 +104,33 @@ ORBIT context they used and are created **private** in FORGE when it is C2 (conf
 
 ---
 
+## Proof before activation: the policy gate
+
+The canary is a second line, not the first. Before a candidate meets any user, FORGE must have shown, **outside
+production**, that it beats the active policy (`domain/policy_gate.py`, `services/policy_gate.py`). A candidate is judged on:
+
+* a **minimal gain** on the composite score (`NOVA_POLICY_GATE_MIN_GAIN`, default 0.02 on a 0-1 scale);
+* **no regression** on the validation scenarios (the promoted regression scenarios of FORGE are guard scenarios);
+* a **minimal number of independent evaluations** per arm (`NOVA_POLICY_GATE_MIN_EVALUATIONS`, default 3);
+* **independence**: scenarios (or runs) the lessons were made from never count as validation. The training loop
+  validates on the Skills it did not learn from; the SDLC agent declares the FORGE runs behind its lessons.
+
+`NOVA_POLICY_GATE_MODE` sets what a shortfall does:
+
+| Mode | Candidate without sufficient proof |
+|---|---|
+| `warn` (default in pre-production) | the release goes on; the shortfall is kept in the release (`evidence.gate`) and audited (`release.gate_warning`) |
+| `enforce` | **not activated**: the release is held `awaiting_proof` with the reasons (Team → Training, Engineering → Continuous improvement); no user is served it. **Fail-closed**: FORGE unreachable, or no proof source, counts as no proof |
+| `off` | no check |
+
+A held candidate is asked again at every improvement pass of the SDLC agent and released (canary, then approval) as
+soon as the proof is sufficient; an administrator can also withdraw it (`POST /releases/{id}/rollback`) or apply the
+version by hand. Generalisation (approval `full`) still only follows a healthy canary.
+
+Status: the training loop's proof is real (its FORGE experiment). The SDLC agent has no replayable scenario yet:
+its proof source (`providers.policy_proof_source`) is meant to be served by FORGE's calibrated promotion gate and is
+**empty today**, so `enforce` holds every SDLC candidate until it is plugged in; keep `warn` until then.
+
 ## Releases: canary, approval, rollback
 
 A candidate policy FORGE validated no longer reaches everyone at once (`services/releases.py`,

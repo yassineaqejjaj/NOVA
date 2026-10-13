@@ -69,6 +69,7 @@ const M = defineMessages({
 });
 
 const STATUS: Record<ReleaseStatus, { tone: "neutral" | "accent" | "success" | "warning" | "danger"; en: string; fr: string }> = {
+  awaiting_proof: { tone: "warning", en: "Awaiting proof", fr: "En attente de preuve" },
   canary: { tone: "accent", en: "Canary", fr: "Déploiement progressif" },
   awaiting_approval: { tone: "warning", en: "Awaiting approval", fr: "En attente d'approbation" },
   active: { tone: "success", en: "Active", fr: "Active" },
@@ -77,7 +78,7 @@ const STATUS: Record<ReleaseStatus, { tone: "neutral" | "accent" | "success" | "
   superseded: { tone: "neutral", en: "Replaced", fr: "Remplacée" },
 };
 
-const OPEN: ReleaseStatus[] = ["canary", "awaiting_approval"];
+const OPEN: ReleaseStatus[] = ["awaiting_proof", "canary", "awaiting_approval"];
 const rate = (v: number) => `${Math.round(v * 100)}%`;
 
 function StatusBadge({ status, lang }: { status: ReleaseStatus; lang: Lang }) {
