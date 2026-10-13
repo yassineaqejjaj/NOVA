@@ -34,20 +34,38 @@ def agent_body() -> dict[str, Any]:
     }
 
 
-def release_label(nova_version: str, model: str, catalog_digest: str) -> str:
-    return f"{nova_version}+{catalog_digest[:8]}"[:40]
+VERSION_LABEL_MAX = 40  # FORGE's limit for an agent version label
+DEFAULT_PROVIDER = "vllm"  # the default of NOVA_LLM_PROVIDER
+
+
+def model_fingerprint(provider: str, model: str) -> str:
+    """Short, stable hash of ``provider:model``: it fits a version label whatever the length of the model name."""
+    return hashlib.sha256(f"{provider}:{model}".encode()).hexdigest()[:6]
+
+
+def release_label(nova_version: str, model: str, catalog_digest: str, provider: str = DEFAULT_PROVIDER) -> str:
+    """NOVA release × Skill catalog × model: two models never share a label (<= 40 characters)."""
+    tail = f"+{catalog_digest[:8]}.{model_fingerprint(provider, model)}"
+    return nova_version[: VERSION_LABEL_MAX - len(tail)] + tail
 
 
 def agent_version_body(
-    *, nova_version: str, model: str, catalog_digest: str, skills: list[SkillSpec], nova_base_url: str, credential_id: str | None
+    *,
+    nova_version: str,
+    model: str,
+    catalog_digest: str,
+    skills: list[SkillSpec],
+    nova_base_url: str,
+    credential_id: str | None,
+    provider: str = DEFAULT_PROVIDER,
 ) -> dict[str, Any]:
     """Immutable FORGE agent version = NOVA release × model × Skill catalog (integration-analysis §2.7-2)."""
     body: dict[str, Any] = {
-        "version": release_label(nova_version, model, catalog_digest),
+        "version": release_label(nova_version, model, catalog_digest, provider),
         "adapter_kind": "nova",
         "endpoint": nova_base_url,
         "adapter_config": {"nova_agent_id": NOVA_AGENT_ID},
-        "model": {"provider": "vllm", "model": model},
+        "model": {"provider": provider, "model": model},
         "orchestration_config": {"runtime": "langgraph", "agent": NOVA_AGENT_ID},
         "context_config": {"source": "scenario"},
         "metadata": {
@@ -242,6 +260,7 @@ def training_version_body(
     model: str,
     nova_base_url: str,
     credential_id: str | None,
+    provider: str = DEFAULT_PROVIDER,
     timeout_seconds: int = 600,
 ) -> dict[str, Any]:
     """One FORGE agent version per policy of the agent (the policy id makes the content hash unique)."""
@@ -251,7 +270,7 @@ def training_version_body(
         "adapter_kind": "nova",
         "endpoint": nova_base_url,
         "adapter_config": {"nova_agent_id": agent_id, "nova_options": {"policy_id": policy_id}},
-        "model": {"provider": "vllm", "model": model},
+        "model": {"provider": provider, "model": model},
         # Informational: what the agent is told (persona + learned standards); Skill lessons are in metadata.
         "system_prompt": agent_instructions(profile, standards),
         "orchestration_config": {"runtime": "langgraph", "agent": agent_id, "policy_version": policy_version},

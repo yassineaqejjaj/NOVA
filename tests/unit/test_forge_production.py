@@ -68,3 +68,65 @@ def test_the_request_text_is_sent_only_on_opt_in_and_then_redacted():
     assert "jane.doe" not in str(off) and "contract" not in str(off)
     on = production.observed_run_body(secret, agent_version_id="av", scenario_id="sc", include_intent=True)
     assert "contract" in on["input"]["prompt"] and "jane.doe@example.com" not in on["input"]["prompt"]  # PII masked
+
+
+# --- Release label: the model and its provider are part of what FORGE versions (NOV-71) ----------------------------------
+
+
+def test_two_models_get_two_distinct_release_labels_within_forges_limit():
+    from nova.integrations.forge import mapper
+
+    digest = "abcdef0123456789"
+    a, b = mapper.release_label("1.0", "model-a", digest), mapper.release_label("1.0", "model-b", digest)
+    assert a != b and a.startswith("1.0+abcdef01") and len(a) <= 40 and len(b) <= 40
+    assert a == mapper.release_label("1.0", "model-a", digest)  # stable: the same release keeps its label
+    assert mapper.release_label("1.0", "model-a", digest, provider="anthropic") != a  # same name, other provider
+
+
+def test_a_long_release_version_still_leaves_room_for_the_model_fingerprint():
+    from nova.integrations.forge import mapper
+
+    digest = "abcdef0123456789"
+    long_a = mapper.release_label("2026.10.13-rc.1+build.9999999999999999", "model-a", digest)
+    long_b = mapper.release_label("2026.10.13-rc.1+build.9999999999999999", "model-b", digest)
+    assert long_a != long_b and len(long_a) <= 40 and len(long_b) <= 40
+
+
+def test_the_version_announces_the_provider_that_is_configured_not_a_fixed_one():
+    from nova.integrations.forge import mapper
+
+    for provider in ("vllm", "anthropic", "openai_compatible"):
+        body = mapper.agent_version_body(
+            nova_version="1.0", model="m", catalog_digest="d" * 16, skills=[], nova_base_url="https://api.example",
+            credential_id=None, provider=provider,
+        )  # fmt: skip
+        assert body["model"] == {"provider": provider, "model": "m"}
+        assert body["version"] == mapper.release_label("1.0", "m", "d" * 16, provider=provider)
+
+
+def test_the_training_version_announces_the_configured_provider_and_changes_with_it():
+    from nova.domain.agents import AgentProfile
+    from nova.integrations.forge import mapper
+
+    def body(provider):
+        return mapper.training_version_body(
+            profile=AgentProfile.product, policy_id="p", policy_version=1, standards=[], lessons={}, skills=[],
+            catalog_digest="d" * 16, nova_version="1.0", model="m", nova_base_url="https://api.example",
+            credential_id=None, provider=provider,
+        )  # fmt: skip
+
+    assert body("anthropic")["model"]["provider"] == "anthropic"
+    assert body("anthropic")["version"] != body("vllm")["version"]
+
+
+def test_the_sdlc_labels_of_two_long_model_names_do_not_collapse():
+    from nova.integrations.forge import sdlc
+
+    def label(model):
+        return sdlc.agent_version_body(nova_version="0.1.0", model=model, endpoint="https://api.example")["version"]
+
+    one, two = (
+        label("organization/very-long-model-name-70b-instruct-a"),
+        label("organization/very-long-model-name-70b-instruct-b"),
+    )
+    assert one != two and len(one) <= 40 and len(two) <= 40

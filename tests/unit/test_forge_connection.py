@@ -111,3 +111,20 @@ async def test_a_version_registered_without_credential_is_replaced_by_a_new_one_
     assert new["id"] != "old" and new["credential_id"] == "cred-1" and new["version"] != "1.0+abcdef01"
     again = await versions.register_agent_version(forge, "a", body())  # a retry finds that new version
     assert again["id"] == new["id"] and len(forge.created) == 1
+
+
+def test_a_version_registered_for_another_model_or_provider_does_not_match():
+    wanted = body(model={"provider": "anthropic", "model": "claude-x"})
+    same = {**body(), "model_configuration": {"provider": "anthropic", "model": "claude-x"}}
+    assert versions.matches(same, wanted)
+    assert versions.matches({**body(), "model": {"provider": "anthropic", "model": "claude-x"}}, wanted)  # body-shaped
+    assert not versions.matches({**same, "model_configuration": {"provider": "vllm", "model": "claude-x"}}, wanted)
+    assert not versions.matches({**same, "model_configuration": {"provider": "anthropic", "model": "other"}}, wanted)
+    assert not versions.matches(body(), wanted)  # registered without any model
+
+
+async def test_a_409_never_reuses_a_version_whose_model_differs():
+    old = {"id": "old", **body(model={"provider": "vllm", "model": "model-a"})}
+    forge = FakeForge([old])
+    new = await versions.register_agent_version(forge, "a", body(model={"provider": "vllm", "model": "model-b"}))
+    assert new["id"] != "old" and new["model"]["model"] == "model-b" and new["version"] != old["version"]
