@@ -83,7 +83,10 @@ FORGE has no command to create an API key: an admin creates it once.
 2. FORGE → Settings → Credentials: create a credential of kind **nova**, base URL
    `https://api-production-dfe1.up.railway.app`, secret = `NOVA_FORGE_INBOUND_TOKEN`
    (`railway variable list -s api --kv | grep FORGE_INBOUND`).
-3. NOVA registers itself as agent `nova` on its first capture (`NOVA_FORGE_CAPTURE_POLICY`).
+3. NOVA registers itself as agent `nova` on its first capture (`NOVA_FORGE_CAPTURE_POLICY`), with the API URL
+   `NOVA_FORGE_NOVA_ENDPOINT` and the credential `NOVA_FORGE_CREDENTIAL_ID` (both are also used by training and SDLC
+   ingestion). Capture by re-execution refuses to register a version, and logs why, while one of them is missing; a
+   version registered earlier without them is replaced by a new one.
 4. Training loop ([`TRAINING.md`](TRAINING.md)): give the key role **editor**, set `NOVA_FORGE_CREDENTIAL_ID` to the
    id of the credential of step 2 and `NOVA_FORGE_NOVA_ENDPOINT` to NOVA's API URL (as reachable by FORGE) on
    `api`, `worker` and `beat`. Cycles are then started by an administrator from Team → Training with FORGE (or every `NOVA_TRAINING_INTERVAL_DAYS` days when set).

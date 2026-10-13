@@ -43,8 +43,9 @@ from nova.domain.llm_guardrail import CallScope
 from nova.domain.skills import SkillSpec
 from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import AgentPolicy, TrainingCycle
-from nova.integrations.forge import mapper
+from nova.integrations.forge import connection, mapper
 from nova.integrations.forge.client import ForgeClient, ForgeError
+from nova.integrations.forge.versions import register_agent_version
 from nova.services import learning, llm_guard, providers, releases
 from nova.services.audit import audit
 from nova.skills.registry import SkillRegistry, get_skill_registry
@@ -74,8 +75,10 @@ def missing_configuration(settings: Settings | None = None) -> list[str]:
         missing.append("NOVA_TRAINING_ENABLED")
     if not settings.forge_api_key:
         missing.append("NOVA_FORGE_API_KEY")
-    if not settings.forge_credential_id:
+    if not connection.forge_credential(settings):
         missing.append("NOVA_FORGE_CREDENTIAL_ID")
+    if connection.endpoint_problem(settings):
+        missing.append("NOVA_FORGE_NOVA_ENDPOINT")
     if not settings.llm_model:
         missing.append("NOVA_LLM_MODEL")
     return missing
@@ -87,10 +90,6 @@ def forge_client(settings: Settings | None = None) -> ForgeClient:
         return override
     settings = settings or get_settings()
     return ForgeClient(settings.forge_base_url, settings.forge_api_key, timeout=settings.forge_timeout_seconds)
-
-
-def nova_endpoint(settings: Settings) -> str:
-    return settings.forge_nova_endpoint or settings.public_url.replace(":3200", ":8200")
 
 
 def agent_skills(registry: SkillRegistry, profile: AgentProfile, limit: int = 0) -> list[SkillSpec]:
@@ -251,23 +250,16 @@ async def forge_version_id(client: ForgeClient, policy: AgentPolicy, settings: S
         catalog_digest=registry.catalog_digest(),
         nova_version=settings.version,
         model=settings.llm_model,
-        nova_base_url=nova_endpoint(settings),
-        credential_id=settings.forge_credential_id or None,
+        provider=settings.llm_provider,
+        nova_base_url=connection.forge_callback_endpoint(settings),
+        credential_id=connection.forge_credential(settings),
         timeout_seconds=settings.training_run_timeout_seconds,
     )
     key = mapper.version_key(body)
     if policy.forge_agent_version_id and policy.forge_version_key == key:
         return policy.forge_agent_version_id
     agent = await _forge_agent(client, profile)
-    try:
-        version = await client.create_agent_version(str(agent["id"]), body)
-    except ForgeError as exc:
-        if exc.status != 409:
-            raise
-        versions = await client.list_agent_versions(str(agent["id"]))
-        version = next((v for v in versions if v.get("version") == body["version"]), None)
-        if version is None:
-            raise
+    version = await register_agent_version(client, str(agent["id"]), body)
     policy.forge_agent_version_id = str(version["id"])
     policy.forge_version_key = key
     return policy.forge_agent_version_id

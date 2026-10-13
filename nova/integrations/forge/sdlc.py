@@ -11,6 +11,7 @@ from typing import Any
 from nova.infra.db import aware
 from nova.infra.models import SdlcRun
 from nova.infra.redaction import redact_obj
+from nova.integrations.forge import mapper
 from nova.services.sdlc_metrics import run_evaluation
 
 AGENT_SLUG = "nova-sdlc"
@@ -29,14 +30,20 @@ def agent_body() -> dict[str, Any]:
     }
 
 
-def agent_version_body(*, nova_version: str, model: str, endpoint: str, policy: dict[str, Any] | None = None) -> dict[str, Any]:
+def agent_version_body(
+    *, nova_version: str, model: str, endpoint: str, credential_id: str | None = None, policy: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """One immutable FORGE agent version per NOVA release × model × policy version (the model is the user's own).
 
     A new policy (lessons learned from low-scored runs) is a new version, so FORGE compares the scores version by version.
     """
     version = int((policy or {}).get("version", 0))
-    return {
-        "version": f"{nova_version}+p{version}+{model}"[:40],
+    label = f"{nova_version}+p{version}+{model}"
+    if len(label) > mapper.VERSION_LABEL_MAX:  # a long model name is cut: its fingerprint keeps two models apart
+        tail = "." + mapper.model_fingerprint("external", model)
+        label = label[: mapper.VERSION_LABEL_MAX - len(tail)] + tail
+    body: dict[str, Any] = {
+        "version": label,
         "adapter_kind": "nova",
         "endpoint": endpoint,
         "model": {"provider": "external", "model": model or "unknown"},
@@ -50,6 +57,9 @@ def agent_version_body(*, nova_version: str, model: str, endpoint: str, policy: 
         },
         "changelog": f"NOVA {nova_version} SDLC Autopilot — policy v{version} — model {model}",
     }
+    if credential_id:
+        body["credential_id"] = credential_id
+    return body
 
 
 CONFIG_KEY = "nova-delivery"
