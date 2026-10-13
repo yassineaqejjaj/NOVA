@@ -37,6 +37,10 @@ PROJECT_ROLE_PERMISSIONS: dict[ProjectRole, frozenset[Permission]] = {
 }
 
 
+#: Clearance of a user NOVA knows no ORBIT clearance for (no linked account): internal material only (C1).
+DEFAULT_CLEARANCE = 1
+
+
 @dataclass(frozen=True, slots=True)
 class Principal:
     """Authenticated NOVA user."""
@@ -47,6 +51,12 @@ class Principal:
     realm_roles: frozenset[str] = field(default_factory=frozenset)
     is_admin: bool = False
     is_service: bool = False  # FORGE protocol / scheduler
+    clearance: int = DEFAULT_CLEARANCE  # highest classification (C0-C3) the user may read: ORBIT's, else the default
+
+
+def may_read_classification(principal: Principal, classification: int) -> bool:
+    """Derived content is as sensitive as its sources: a level above the clearance is never readable (admins included)."""
+    return classification <= principal.clearance
 
 
 def project_permissions(role: ProjectRole | None, principal: Principal) -> frozenset[Permission]:
