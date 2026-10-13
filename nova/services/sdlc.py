@@ -34,6 +34,8 @@ from nova.domain.sdlc import (
     SpecOutput,
     StageStatus,
     UnsafeChange,
+    ci_tests_status,
+    merge_blocker,
     normalize_path,
     slugify,
     validate_changeset,
@@ -497,7 +499,7 @@ async def stage_ci(ctx: Ctx) -> StageResult:
         return StageResult(
             summary=f"All {summary.total} checks passed",
             output={"state": "success", "checks": summary.total, "fix_rounds": fix_rounds, "preview_url": preview["preview_url"]},
-            context={"ci_polls": 0, "ci": "success", "ci_seen": True, **preview},
+            context={"ci_polls": 0, "ci": "success", "ci_seen": True, "ci_checks": summary.total, **preview},
             logs=[f"CI green ({summary.total} checks)", *preview_logs],
         )
     if summary.state == "none":
@@ -507,7 +509,7 @@ async def stage_ci(ctx: Ctx) -> StageResult:
                 status="skipped",
                 summary="No CI checks configured on this repository",
                 output={"state": "none", "preview_url": preview["preview_url"]},
-                context={"ci_polls": 0, "ci": "none", **preview},
+                context={"ci_polls": 0, "ci": "none", "ci_checks": 0, **preview},
                 logs=preview_logs,
             )
         if polls >= CI_MAX_POLLS:
@@ -556,9 +558,15 @@ async def stage_merge(ctx: Ctx) -> StageResult:
         )
     if pr["state"] == "closed":
         raise RunError("The pull request was closed without being merged.")
-    clean = ctx.c.get("review", {}).get("blocking", 0) == 0 and ctx.c.get("ci") in ("success", "none")
-    if not ((run.auto_merge and clean) or ctx.c.get("merge_approved")):
-        reason = "auto-merge is off" if not run.auto_merge else "blocking findings or CI are not clean"
+    allow_without_ci = bool(ctx.c.get("allow_merge_without_ci"))
+    blocker = merge_blocker(
+        blocking=ctx.c.get("review", {}).get("blocking", 0),
+        ci=ctx.c.get("ci"),
+        require_ci=get_settings().sdlc_require_ci,
+        allow_without_ci=allow_without_ci,
+    )
+    if not ((run.auto_merge and blocker is None) or ctx.c.get("merge_approved")):
+        reason = "auto-merge is off" if not run.auto_merge else blocker
         preview = ctx.c.get("preview_url")
         return StageResult(
             status="gate",
@@ -575,6 +583,8 @@ async def stage_merge(ctx: Ctx) -> StageResult:
             context={"merge_polls": int(ctx.c.get("merge_polls", 0)) + 1},
             summary="GitHub is computing mergeability…",
         )
+    if run.auto_merge and not ctx.c.get("merge_approved") and ctx.c.get("ci") == "none":
+        ctx.log("Merging without CI: allowed for this run (allow_merge_without_ci), the tests were written but never executed")
     try:
         sha = await ctx.gh.merge(run.repo, number, title=f"{ctx.c.get('pr_title', run.title)} (#{number})")
     except GitHubError as exc:
@@ -647,6 +657,7 @@ def view(run: SdlcRun, *, detail: bool = True, forge: dict[str, Any] | None = No
         "branch": run.branch,
         "autonomy": run.autonomy,
         "auto_merge": run.auto_merge,
+        "allow_merge_without_ci": bool((run.context or {}).get("allow_merge_without_ci")),
         "has_deploy_hook": bool(run.deploy_hook_ciphertext),
         "status": run.status,
         "stage": run.stage,
@@ -668,6 +679,8 @@ def view(run: SdlcRun, *, detail: bool = True, forge: dict[str, Any] | None = No
     from nova.services.sdlc_metrics import run_evaluation
 
     data["evaluation"] = run_evaluation(run)
+    failed_stage = next((s["key"] for s in run.stages or [] if s["status"] == StageStatus.failed.value), None)
+    data["tests"] = None if run.kind == RunKind.review else ci_tests_status(run.context or {}, ci_failed=failed_stage == "ci")
     data["forge"] = forge
     if detail:
         data["log"] = run.log or []
@@ -686,6 +699,7 @@ async def create_run(
     base_branch: str | None,
     autonomy: str,
     auto_merge: bool,
+    allow_merge_without_ci: bool = False,
     deploy_hook: str | None,
     issue_url: str,
     pr_url: str,
@@ -731,6 +745,9 @@ async def create_run(
         title = (goal.strip().splitlines() or ["Change"])[0][:120]
     from nova.services.sdlc_improvement import active_snapshot
 
+    without_ci = allow_merge_without_ci and auto_merge and kind_enum != RunKind.review
+    if without_ci:
+        context["allow_merge_without_ci"] = True  # a conscious, per-run choice: audited below and logged when it is used
     if policy := await active_snapshot(session, user_id=user_id):
         context["policy"] = policy  # the lessons this run starts with stay fixed, even if a new version is deployed meanwhile
     run = SdlcRun(
@@ -763,7 +780,7 @@ async def create_run(
         action="sdlc.create",
         target_type="sdlc_run",
         target_id=str(run.id),
-        summary=f"{kind} run on {repo}: {run.title}",
+        summary=f"{kind} run on {repo}: {run.title}" + (" (auto-merge allowed without CI)" if without_ci else ""),
         project_id=project_id,
     )
     return run

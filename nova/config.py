@@ -129,6 +129,9 @@ class Settings(BaseSettings):
     # authenticate when it calls NOVA back. Agent versions registered by NOVA reference it.
     # SDLC Autopilot runs are ingested by FORGE as observed runs (metrics and stage summaries, never code or diffs)
     forge_sdlc_ingest: bool = True
+    # Auto-merge of an SDLC run needs a green CI: a repository without CI (or a run that was never checked) is not "clean".
+    # false restores the old behaviour (no CI accepted), a run can still opt in with allow_merge_without_ci.
+    sdlc_require_ci: bool = True
     # Self-improvement of the SDLC agent: runs FORGE scores below the threshold produce lessons, deployed as a new policy
     sdlc_improvement: bool = True
     sdlc_improvement_auto_deploy: bool = True  # false: the candidate waits for an administrator

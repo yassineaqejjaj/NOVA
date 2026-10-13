@@ -174,6 +174,7 @@ class RunIn(BaseModel):
     base_branch: str | None = Field(default=None, max_length=200)
     autonomy: Literal["guided", "autopilot"] = "guided"
     auto_merge: bool = False
+    allow_merge_without_ci: bool = False  # auto-merge normally needs a green CI; this run may merge when there is none
     deploy_hook: str | None = Field(default=None, max_length=1000)
     issue_url: str = Field(default="", max_length=500)
     pr_url: str = Field(default="", max_length=500)
@@ -290,6 +291,7 @@ async def create_run(body: RunIn, principal: CurrentPrincipal, session: SessionD
             base_branch=body.base_branch,
             autonomy=body.autonomy,
             auto_merge=body.auto_merge,
+            allow_merge_without_ci=body.allow_merge_without_ci,
             deploy_hook=body.deploy_hook,
             issue_url=body.issue_url,
             pr_url=body.pr_url,

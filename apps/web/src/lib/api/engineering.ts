@@ -30,6 +30,8 @@ export interface Run {
   branch: string;
   autonomy: "guided" | "autopilot";
   auto_merge: boolean;
+  /** Auto-merge may merge although the repository has no CI (a conscious choice of this run). */
+  allow_merge_without_ci: boolean;
   has_deploy_hook: boolean;
   status: RunStatus;
   stage: StageKey;
@@ -51,8 +53,20 @@ export interface Run {
   log?: { at: string; level: "info" | "error"; message: string }[];
   release?: { version: string; title: string; notes: string } | null;
   evaluation: RunEvaluation;
+  /** Tests written, executed (CI ran checks) and passed are three different facts; null for a review run. */
+  tests: TestsState | null;
   /** FORGE's evaluation of the finished run (null until it was ingested). */
   forge: ForgeState | null;
+}
+
+export interface TestsState {
+  written: number;
+  files: string[];
+  executed: boolean;
+  checks: number;
+  /** null while CI has not concluded. */
+  passed: boolean | null;
+  ci: "success" | "none" | null;
 }
 
 export interface RunEvaluation {
@@ -176,6 +190,7 @@ export interface RunInput {
   base_branch?: string | null;
   autonomy: "guided" | "autopilot";
   auto_merge: boolean;
+  allow_merge_without_ci?: boolean;
   deploy_hook?: string | null;
   issue_url?: string;
   pr_url?: string;
