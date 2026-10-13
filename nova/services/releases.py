@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import get_settings
 from nova.domain.agents import AGENTS, AgentProfile
+from nova.domain.policy_gate import GateDecision
 from nova.domain.release import (
     OPEN_STATUSES,
     TRAFFIC_ORIGINS,
@@ -28,7 +29,7 @@ from nova.domain.release import (
 )
 from nova.infra.db import utcnow
 from nova.infra.models import AgentPolicy, Release, Task, TrainingCycle
-from nova.services import learning
+from nova.services import learning, policy_gate
 from nova.services.audit import audit
 
 log = logging.getLogger(__name__)
@@ -84,9 +85,19 @@ async def _close_open(session: AsyncSession, agent: str, *, keep: uuid.UUID | No
         await _record(session, old, "superseded_by_newer", None, "remplacée avant la fin du déploiement")
 
 
-async def start(session: AsyncSession, candidate: AgentPolicy, cycle: TrainingCycle | None, evidence: dict[str, Any]) -> Release:
-    """Begin the release of a FORGE-validated candidate (canary first when configured)."""
-    settings = get_settings()
+async def start(
+    session: AsyncSession,
+    candidate: AgentPolicy,
+    cycle: TrainingCycle | None,
+    evidence: dict[str, Any],
+    *,
+    gate: GateDecision | None = None,
+) -> Release:
+    """Begin the release of a FORGE-validated candidate (canary first when configured).
+
+    With a ``gate`` decision (services/policy_gate.py) the release only begins when FORGE's proof outside production
+    is admitted; otherwise it is held ``awaiting_proof`` with the reasons, and the candidate stays unused.
+    """
     await _close_open(session, candidate.agent)
     baseline = (await learning.active_policies(session)).get(candidate.agent)
     release = Release(
@@ -95,20 +106,63 @@ async def start(session: AsyncSession, candidate: AgentPolicy, cycle: TrainingCy
         baseline_policy_id=baseline.id if baseline else None,
         label=_label(candidate),
         status=ReleaseStatus.canary.value,
-        canary_percent=settings.release_canary_percent,
+        canary_percent=get_settings().release_canary_percent,
         evidence=evidence,
         canary_started_at=utcnow(),
     )
     session.add(release)
     await session.flush()
+    if gate is not None:
+        release.evidence = {**release.evidence, "gate": policy_gate.evidence_of(gate)}
+        if not policy_gate.admits(gate):
+            await _hold(session, release, gate)
+            return release
+        if not gate.passed:  # "warn": the shortfall is visible, the release goes on
+            await _record(session, release, "gate_warning", None, f"preuve insuffisante : {'; '.join(gate.reasons)}")
+    await _begin(session, release)
+    return release
+
+
+async def _hold(session: AsyncSession, release: Release, gate: GateDecision) -> None:
+    release.status, release.canary_percent, release.canary_started_at = ReleaseStatus.awaiting_proof.value, 0, None
+    release.reason = "En attente de preuve hors production : " + "; ".join(gate.reasons) + "."
+    await _record(session, release, "awaiting_proof", None, release.reason)
+
+
+async def retry_held(session: AsyncSession, agent: str, source: policy_gate.ProofSource | None) -> int:
+    """Ask the gate again for every candidate held for lack of proof; returns how many were released."""
+    held = (
+        await session.scalars(select(Release).where(Release.agent == agent, Release.status == ReleaseStatus.awaiting_proof.value))
+    ).all()
+    released = 0
+    for release in held:
+        candidate = await session.get(AgentPolicy, release.policy_id)
+        baseline = await session.get(AgentPolicy, release.baseline_policy_id) if release.baseline_policy_id else None
+        if candidate is None or candidate.status != "candidate":
+            continue
+        gate = await policy_gate.evaluate(
+            candidate, baseline, source=source, lesson_sources=release.evidence.get("lesson_sources") or []
+        )
+        release.evidence = {**release.evidence, "gate": policy_gate.evidence_of(gate)}
+        if not policy_gate.admits(gate):
+            await _hold(session, release, gate)  # the reasons may have changed
+            continue
+        release.status, release.canary_percent = ReleaseStatus.canary.value, get_settings().release_canary_percent
+        release.canary_started_at = utcnow()
+        await _begin(session, release)
+        released += 1
+    return released
+
+
+async def _begin(session: AsyncSession, release: Release) -> None:
+    settings = get_settings()
     if settings.release_canary_percent > 0:
         release.reason = f"Déploiement progressif : {settings.release_canary_percent} % des utilisateurs."
         learning.invalidate()
         await _record(session, release, "canary_started", None, release.reason)
-        return release
+        return
     release.canary_percent = 0
     await _after_healthy(session, release, "Aucun déploiement progressif configuré.")
-    return release
 
 
 async def _after_healthy(session: AsyncSession, release: Release, why: str) -> None:
@@ -245,7 +299,7 @@ async def rollback(session: AsyncSession, release_id: uuid.UUID, actor_id: str |
     if release is None:
         raise ReleaseError("not_found", "Release introuvable.")
     policy = await session.get(AgentPolicy, release.policy_id)
-    if release.status in (ReleaseStatus.canary.value, ReleaseStatus.awaiting_approval.value):
+    if release.status in (ReleaseStatus.awaiting_proof.value, ReleaseStatus.canary.value, ReleaseStatus.awaiting_approval.value):
         if policy is not None and policy.status == "candidate":
             policy.status = "rejected"
         if policy is not None and policy.cycle_id:

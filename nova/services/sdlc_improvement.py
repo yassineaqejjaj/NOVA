@@ -27,7 +27,7 @@ from nova.domain.trust import TRUST_RULES, detect_injection
 from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import AgentPolicy, IntegrationReference, Release, SdlcRun
 from nova.integrations.forge.client import ForgeError
-from nova.services import providers, releases
+from nova.services import policy_gate, providers, releases
 from nova.services.audit import audit
 from nova.services.sdlc_metrics import run_evaluation
 
@@ -148,6 +148,7 @@ def policy_view(policy: AgentPolicy, stats: dict[int, dict[str, Any]], release: 
             "status": release.status,
             "canary_percent": release.canary_percent,
             "reason": release.reason,
+            "gate": release.evidence.get("gate"),
         }
         if release
         else None,
@@ -342,6 +343,7 @@ async def improve() -> dict[str, Any]:
     if not settings.sdlc_improvement or client is None:
         return {"status": "disabled"}
     async with session_scope() as session:
+        await releases.retry_held(session, SDLC_AGENT, providers.policy_proof_source())  # proof may have arrived
         await releases.evaluate_open(session)  # a running canary may have enough runs for a verdict
     rolled_back = await guard()
     async with session_scope() as session:
@@ -415,10 +417,23 @@ async def improve() -> dict[str, Any]:
             await session.flush()
             outcome = "candidate"
             if settings.sdlc_improvement_auto_deploy:
-                release = await releases.start(
-                    session, policy, None, {"source": "sdlc_improvement", "evidence_runs": len(evidence)}
+                lesson_sources = [r.external_id for r in pending]  # FORGE runs the lessons come from: not a validation set
+                gate = await policy_gate.evaluate(
+                    policy, base, source=providers.policy_proof_source(), lesson_sources=lesson_sources
                 )
-                outcome = {"active": "deployed", "canary": "canary", "awaiting_approval": "awaiting_approval"}[release.status]
+                release = await releases.start(
+                    session,
+                    policy,
+                    None,
+                    {"source": "sdlc_improvement", "evidence_runs": len(evidence), "lesson_sources": lesson_sources},
+                    gate=gate,
+                )
+                outcome = {
+                    "active": "deployed",
+                    "canary": "canary",
+                    "awaiting_approval": "awaiting_approval",
+                    "awaiting_proof": "awaiting_proof",
+                }[release.status]
         for ref in pending:
             row = await session.get(IntegrationReference, ref.id)
             if row is not None:
