@@ -12,6 +12,7 @@ import type {
   CommentInfo,
   ComposerPayload,
   Conversation,
+  Links,
   Me,
   Message,
   Project,
@@ -28,6 +29,7 @@ import type {
 
 export const keys = {
   me: ["me"] as const,
+  links: ["links"] as const,
   today: ["today"] as const,
   conversations: (projectId?: string | null) => ["conversations", projectId ?? "all"] as const,
   conversation: (id: string) => ["conversation", id] as const,
@@ -49,6 +51,7 @@ export const keys = {
 };
 
 export const useMe = () => useQuery({ queryKey: keys.me, queryFn: () => api.get<Me>("/me"), staleTime: 60_000 });
+export const useLinks = () => useQuery({ queryKey: keys.links, queryFn: () => api.get<Links>("/me/links"), refetchInterval: 60_000 });
 export const useToday = () => useQuery({ queryKey: keys.today, queryFn: () => api.get<Today>("/today"), refetchInterval: 120_000 });
 export const useProjects = () => useQuery({ queryKey: keys.projects, queryFn: () => api.get<Project[]>("/projects") });
 export const useProject = (id: string) => useQuery({ queryKey: keys.project(id), queryFn: () => api.get<ProjectDetail>(`/projects/${id}`) });

@@ -13,6 +13,7 @@ import { LlmSettings } from "@/components/engineering/llm-settings";
 import { M as EM } from "@/components/engineering/engineering.messages";
 import { PermissionsCard } from "@/components/missions/permissions";
 import { FigmaLink } from "@/components/figma-link";
+import { LinksCard } from "@/components/links-card";
 import { OrbitLink } from "@/components/orbit-link";
 import { ORB_PALETTES, type OrbPalette, NovaOrb } from "@/components/shell/nova-orb";
 import { Page, PageHeader } from "@/components/shell/page";
@@ -61,6 +62,8 @@ const M = defineMessages({
     saved: "Saved.",
     figmaHint: "Lets NOVA read your Figma designs to generate code and audits, and push mockups to Figma when connected with Figma.",
     orbitHint: "NOVA retrieves context from ORBIT as you, so it only sees what you can see.",
+    linksTitle: "Links",
+    linksHint: "Who acts in ORBIT, until when and with which clearance, and the health of the ORBIT and FORGE links.",
     profile: "Your profile",
     profileHint: "The specialist agent of your profile leads your work; NOVA brings in the others when a task needs them.",
     profileSaved: "Profile updated.",
@@ -127,6 +130,8 @@ const M = defineMessages({
     saved: "Enregistré.",
     figmaHint: "Permet à NOVA de lire vos maquettes Figma pour générer du code et des audits, et d’y pousser des maquettes lorsque la connexion se fait avec Figma.",
     orbitHint: "NOVA récupère le contexte d’ORBIT en votre nom : il ne voit que ce que vous pouvez voir.",
+    linksTitle: "Liens",
+    linksHint: "Qui agit dans ORBIT, jusqu’à quand et avec quelle habilitation, et la santé des liens ORBIT et FORGE.",
     profile: "Votre profil",
     profileHint: "L’agent spécialiste de votre profil pilote votre travail ; NOVA fait intervenir les autres quand une tâche le demande.",
     profileSaved: "Profil mis à jour.",
@@ -342,6 +347,11 @@ export default function SettingsPage() {
               <h3 className="text-[15px] font-semibold">ORBIT</h3>
               <p className="mb-4 mt-0.5 text-[13px] text-muted">{t("orbitHint")}</p>
               <OrbitLink identity={me.orbit} />
+            </Card>
+            <Card id="links" className="scroll-mt-10 p-5">
+              <h3 className="text-[15px] font-semibold">{t("linksTitle")}</h3>
+              <p className="mb-4 mt-0.5 text-[13px] text-muted">{t("linksHint")}</p>
+              <LinksCard />
             </Card>
             <Card id="github" className="scroll-mt-10 p-5">
               <h3 className="text-[15px] font-semibold">{te("ghTitle")}</h3>
