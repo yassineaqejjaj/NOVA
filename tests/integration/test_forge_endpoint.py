@@ -123,3 +123,54 @@ def _record():
         task_id=str(uuid.uuid4()), trace_id=None, user_intent="x", origin="interactive", agent_version="0.1.0", model="m",
         status="completed", started_at=now, finished_at=now,
     )  # fmt: skip
+
+
+async def test_two_models_on_the_same_release_and_catalog_are_two_forge_versions(forge):
+    one = ForgeEvaluationSink(get_settings(), get_skill_registry(), "model-a", client=forge)  # type: ignore[arg-type]
+    two = ForgeEvaluationSink(get_settings(), get_skill_registry(), "model-b", client=forge)  # type: ignore[arg-type]
+    first, second = await one.agent_version_id(), await two.agent_version_id()
+    assert first != second
+    a, b = registered(forge, "nova")
+    assert a["version"] != b["version"] and (a["model"]["model"], b["model"]["model"]) == ("model-a", "model-b")
+    assert await one.agent_version_id() == first and await two.agent_version_id() == second  # cached per model
+
+
+async def test_the_announced_provider_is_the_configured_one(forge, monkeypatch):
+    monkeypatch.setattr(get_settings(), "llm_provider", "anthropic")
+    await sink(forge).agent_version_id()
+    assert registered(forge, "nova")[0]["model"] == {"provider": "anthropic", "model": "model-a"}
+
+
+async def test_a_409_on_the_label_does_not_reuse_a_version_registered_with_another_model(forge):
+    # An older NOVA registered this very label with another model (labels used to ignore the model)
+    from nova.integrations.forge import mapper
+
+    s = sink(forge)
+    label = mapper.release_label(get_settings().version, "model-a", get_skill_registry().catalog_digest(), provider="vllm")
+    agent = await forge.create_agent(mapper.agent_body())
+    stale = await forge.create_agent_version(
+        agent["id"],
+        {
+            "version": label,
+            "endpoint": API,
+            "credential_id": "configured-credential",
+            "model": {"provider": "vllm", "model": "old"},
+        },
+    )
+    assert await s.agent_version_id() != stale["id"]
+    assert registered(forge, "nova")[-1]["model"]["model"] == "model-a"
+
+
+async def test_a_training_policy_is_registered_again_when_the_model_or_provider_changes(forge, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "llm_model", "model-a")
+    async with db.session_scope() as session:
+        policy = await learning_policy(session)
+        first = await training.forge_version_id(forge, policy, settings, get_skill_registry())
+        monkeypatch.setattr(settings, "llm_provider", "anthropic")
+        second = await training.forge_version_id(forge, policy, settings, get_skill_registry())
+    assert first != second
+    assert [v["model"] for v in registered(forge, "nova-product")] == [
+        {"provider": "vllm", "model": "model-a"},
+        {"provider": "anthropic", "model": "model-a"},
+    ]

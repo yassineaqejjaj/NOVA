@@ -54,9 +54,9 @@ class ForgeEvaluationSink:
     async def agent_version_id(self) -> str:
         """Find or register the FORGE agent version of this NOVA release (cached in integration_references)."""
         digest = self.skills.catalog_digest()
-        release = mapper.release_label(self.settings.version, self.model, digest)
+        release = mapper.release_label(self.settings.version, self.model, digest, self.settings.llm_provider)
         link = connection.connection_key(self.nova_inbound_url, self.credential_id)
-        key = f"{release}|{self.model}"
+        key = release  # the label holds the model fingerprint
         if cached := await cached_version_id("release", key, link):  # a version of another connection is not reused
             return cached
         agent = await self.client.find_agent(mapper.AGENT_SLUG) or await self.client.create_agent(mapper.agent_body())
@@ -67,6 +67,7 @@ class ForgeEvaluationSink:
             skills=self.skills.all(),
             nova_base_url=self.nova_inbound_url,
             credential_id=self.credential_id,
+            provider=self.settings.llm_provider,
         )
         version = await register_agent_version(self.client, str(agent["id"]), body)
         await remember_version("release", key, link, str(version["id"]), {"agent_id": str(agent["id"]), "release": release})

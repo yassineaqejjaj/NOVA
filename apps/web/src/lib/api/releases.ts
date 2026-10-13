@@ -8,7 +8,7 @@ import { api } from "./client";
 
 /** Releases of learned policies: canary, approval and rollback (`/api/v1/releases`, docs/TRAINING.md). */
 
-export type ReleaseStatus = "canary" | "awaiting_approval" | "active" | "rolled_back" | "rejected" | "superseded";
+export type ReleaseStatus = "awaiting_proof" | "canary" | "awaiting_approval" | "active" | "rolled_back" | "rejected" | "superseded";
 
 export interface Cohort {
   runs: number;
@@ -29,6 +29,8 @@ export interface ReleaseView {
     baseline_mean?: number | null;
     candidate_mean?: number | null;
     manual?: boolean;
+    /** FORGE's proof outside production, judged by NOVA_POLICY_GATE_MODE (docs/TRAINING.md). */
+    gate?: { mode: "enforce" | "warn" | "off"; verdict: "passed" | "insufficient" | "unavailable" | "skipped"; reasons: string[] };
     /** FORGE's last comparison of a live release with the one it replaced. */
     health?: { status: "healthy" | "degraded" | "insufficient_data" | null; reason: string | null; alerts: string[]; checked_at: string };
   };
@@ -47,7 +49,7 @@ export interface ReleasesOverview {
   releases: ReleaseView[];
 }
 
-export const OPEN_RELEASE: ReleaseStatus[] = ["canary", "awaiting_approval"];
+export const OPEN_RELEASE: ReleaseStatus[] = ["awaiting_proof", "canary", "awaiting_approval"];
 
 const releaseKey = ["releases"] as const;
 

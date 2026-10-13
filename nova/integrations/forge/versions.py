@@ -2,7 +2,7 @@
 
 FORGE versions are immutable and their label is unique per agent: creating the same label again answers ``409``.
 Reusing the version found under that label is only right when it was registered with the same connection (endpoint and
-credential) — otherwise FORGE would keep calling a stale URL, or call NOVA without credential. A mismatch registers a
+credential) and the same model (provider included) — otherwise FORGE would keep calling a stale URL, call NOVA without credential, or evaluate another model than the one announced. A mismatch registers a
 new version under a label made unique by the fingerprint of the body.
 """
 
@@ -17,8 +17,6 @@ from nova.infra.models import IntegrationReference
 from nova.integrations.forge import mapper
 from nova.integrations.forge.client import ForgeClient, ForgeError
 
-LABEL_MAX = 40  # FORGE's limit for a version label
-
 
 def _credential_of(version: dict[str, Any]) -> str | None:
     credential = version.get("credential")
@@ -26,16 +24,23 @@ def _credential_of(version: dict[str, Any]) -> str | None:
     return str(found) if found else None
 
 
+def _model_of(version: dict[str, Any]) -> tuple[Any, Any] | None:
+    model = version.get("model_configuration") or version.get("model")  # FORGE's output, or a body-shaped record
+    return (model.get("provider"), model.get("model")) if isinstance(model, dict) else None
+
+
 def matches(version: dict[str, Any], body: dict[str, Any]) -> bool:
-    """The FORGE version was registered with the endpoint and credential of ``body``."""
+    """The FORGE version was registered with the endpoint, credential, provider and model of ``body``."""
     same_endpoint = (version.get("endpoint") or "").rstrip("/") == (body.get("endpoint") or "").rstrip("/")
     wanted = body.get("credential_id")
-    return same_endpoint and _credential_of(version) == (str(wanted) if wanted else None)
+    return (
+        same_endpoint and _credential_of(version) == (str(wanted) if wanted else None) and _model_of(version) == _model_of(body)
+    )
 
 
 def unique_label(body: dict[str, Any]) -> str:
     suffix = "." + mapper.version_key(body)[:6]
-    return body["version"][: LABEL_MAX - len(suffix)] + suffix
+    return body["version"][: mapper.VERSION_LABEL_MAX - len(suffix)] + suffix
 
 
 async def _existing(client: ForgeClient, agent_id: str, label: str) -> dict[str, Any] | None:

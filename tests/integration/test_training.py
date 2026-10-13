@@ -14,7 +14,7 @@ from sqlalchemy import delete, select
 from nova.config import get_settings
 from nova.domain.agents import AgentProfile
 from nova.infra import db
-from nova.infra.models import AgentPolicy, TrainingCycle, User
+from nova.infra.models import AgentPolicy, Release, TrainingCycle, User
 from nova.integrations.forge.client import ForgeError
 from nova.services import learning, providers, training
 from nova.skills.registry import get_skill_registry
@@ -348,3 +348,40 @@ async def test_a_validated_candidate_starts_a_canary_by_default(fake_forge):
         candidate = await session.get(AgentPolicy, cycle.candidate_policy_id)
         assert candidate.status == "candidate"  # the active policy is unchanged
         assert (await learning.snapshot(session))["product"]["version"] == 0
+
+
+async def _run_to_decision(cycle_id: uuid.UUID, fake_forge) -> TrainingCycle:
+    fake_forge.run_status = fake_forge.experiment_status = "completed"
+    for _ in range(3):
+        await training.advance(cycle_id)
+    return await _cycle(cycle_id)
+
+
+async def test_enforce_holds_a_validated_candidate_whose_proof_is_too_thin(fake_forge, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "release_canary_percent", 0)
+    monkeypatch.setattr(settings, "release_approval", "none")
+    monkeypatch.setattr(settings, "policy_gate_mode", "enforce")
+    monkeypatch.setattr(settings, "policy_gate_min_evaluations", 1000)
+    cycle = await _run_to_decision(await _start(), fake_forge)
+    assert cycle.status == "validated" and cycle.result["decision"]["promote"]  # FORGE said ship; the gate wants more
+    async with db.session_scope() as session:
+        release = await session.get(Release, uuid.UUID(cycle.result["release_id"]))
+        policy = await session.get(AgentPolicy, release.policy_id)
+        assert release.status == "awaiting_proof" and policy.status == "candidate"
+        assert "évaluation(s) indépendante(s)" in release.reason and release.evidence["gate"]["verdict"] == "insufficient"
+        assert (await learning.snapshot(session))["product"]["skills"] == {}  # nothing was activated
+
+
+async def test_enforce_promotes_when_the_experiment_gives_independent_proof(fake_forge, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "release_canary_percent", 0)
+    monkeypatch.setattr(settings, "release_approval", "none")
+    monkeypatch.setattr(settings, "policy_gate_mode", "enforce")
+    monkeypatch.setattr(settings, "policy_gate_min_evaluations", 3)
+    cycle = await _run_to_decision(await _start(), fake_forge)
+    assert cycle.status == "promoted"
+    async with db.session_scope() as session:
+        release = await session.get(Release, uuid.UUID(cycle.result["release_id"]))
+        gate = release.evidence["gate"]
+        assert gate["verdict"] == "passed" and gate["gain"] == 0.06 and gate["evaluations"] >= 3
