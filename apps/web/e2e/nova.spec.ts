@@ -448,3 +448,16 @@ test("the menu collapses to icons, keeps its state and toggles with ⌘\\", asyn
   await expect(menu).not.toHaveAttribute("data-collapsed", "true");
   await expect(page.getByRole("button", { name: "Collapse the menu" })).toBeVisible();
 });
+
+test("Settings → Links shows who acts in ORBIT and the health of the link, with no secret", async ({ page }) => {
+  await signIn(page);
+  await linkOrbit(page);
+  await page.goto("/settings#integrations");
+  const orbit = page.getByTestId("link-orbit");
+  await expect(orbit).toHaveAttribute("data-status", "ok");
+  await expect(page.getByTestId("orbit-acting")).toContainText("you (ORBIT session)");
+  await expect(orbit).toContainText("Clearance");
+  await expect(orbit).toContainText("Last successful exchange");
+  await expect(page.getByTestId("orbit-health").first()).toHaveAttribute("data-status", "ok");
+  await expect(page.getByTestId("link-forge")).toHaveCount(0); // administrators only
+});

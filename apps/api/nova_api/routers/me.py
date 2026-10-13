@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from typing import Annotated, Any, Literal
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field, field_validator
@@ -11,11 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import get_settings
 from nova.domain.agents import AgentProfile
-from nova.domain.context import ContextError
+from nova.domain.context import ContextError, ContextIdentity
 from nova.domain.enums import AutonomyMode
 from nova.domain.permissions import ACTION_DEFAULTS, ACTIONS
 from nova.infra.db import get_session, utcnow
 from nova.infra.models import User, UserPreferences
+from nova.integrations import link_health
 from nova.services import providers
 from nova.services.audit import audit
 from nova.services.projects import sync_from_orbit
@@ -86,6 +88,57 @@ async def me(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]
     return await _me(session, principal.user_id)
 
 
+def _later(a: Any, b: Any) -> bool:
+    """``a`` is a more recent timestamp than ``b`` (``b`` may be missing)."""
+    return a is not None and (b is None or a > b)
+
+
+def _orbit_status(identity: ContextIdentity) -> str:
+    if identity.fallback:
+        return "fallback"  # the session is gone: the project agent key acts, with its own (reduced) clearance
+    if identity.session_expired:
+        return "expired"
+    if not identity.linked:
+        return "agent_key" if identity.mode == "agent_key" else "unlinked"
+    return "degraded" if _later(identity.last_error_at, identity.last_success_at) else "ok"
+
+
+def _public_endpoint(url: str) -> str:
+    """Scheme, host and port of a configured URL: never a user, a password, a path or a query."""
+    parts = urlsplit(url)
+    return f"{parts.scheme}://{parts.hostname}{f':{parts.port}' if parts.port else ''}" if parts.hostname else ""
+
+
+async def _forge_link(settings: Any) -> dict[str, Any]:
+    state = await link_health.forge_state()
+    if not settings.forge_api_key:
+        status = "not_configured"
+    else:
+        status = "degraded" if _later(state["last_error_at"], state["last_success_at"]) else "ok"
+    return {
+        "status": status,
+        "configured": bool(settings.forge_api_key),
+        "endpoint": _public_endpoint(settings.forge_base_url),
+        "api_key_present": bool(settings.forge_api_key),
+        "inbound_credential_set": bool(settings.forge_credential_id),
+        "capture_policy": settings.forge_capture_policy,
+        "capture_mode": settings.forge_capture_mode,
+        **state,
+        "capture_queue": None,  # no capture outbox yet: not available
+    }
+
+
+@router.get("/me/links")
+async def links(principal: CurrentPrincipal) -> dict[str, Any]:
+    """Health of the ORBIT and FORGE links: who acts, until when, with which clearance, last exchange. Never a secret."""
+    provider = providers.context()
+    identity = await provider.identity(principal.user_id)
+    keys_status = getattr(provider, "agent_keys_status", None)
+    agent_keys = await keys_status() if keys_status and identity.agent_projects else []
+    orbit = {**identity.model_dump(mode="json"), "status": _orbit_status(identity), "agent_keys": agent_keys}
+    return {"orbit": orbit, "forge": await _forge_link(get_settings()) if principal.is_admin else None}
+
+
 async def _apply(prefs: UserPreferences, body: PreferencesIn) -> None:
     for field, value in body.model_dump(exclude_unset=True, exclude={"title"}).items():
         if value is not None:
@@ -150,6 +203,7 @@ async def link_orbit(body: OrbitLinkIn, principal: CurrentPrincipal, session: Se
         target_id=principal.user_id,
         summary=f"Linked ORBIT account {identity.email}",
     )
+    await session.commit()  # the sync below talks to ORBIT, which records the health of the link in its own transaction
     synced = await sync_from_orbit(session, principal)
     await session.commit()
     return {"orbit": identity.model_dump(mode="json"), "projects_synced": synced}
