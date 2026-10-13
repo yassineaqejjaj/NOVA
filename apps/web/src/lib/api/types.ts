@@ -84,6 +84,9 @@ export interface ForgeLink {
   endpoint: string;
   api_key_present: boolean;
   inbound_credential_set: boolean;
+  /** Where FORGE calls NOVA back, and what is wrong with that connection (setting names only). */
+  callback_endpoint: string;
+  problems: string[];
   capture_policy: string;
   capture_mode: string;
   last_success_at: string | null;

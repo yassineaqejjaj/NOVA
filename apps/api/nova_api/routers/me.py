@@ -18,6 +18,7 @@ from nova.domain.permissions import ACTION_DEFAULTS, ACTIONS
 from nova.infra.db import get_session, utcnow
 from nova.infra.models import User, UserPreferences
 from nova.integrations import link_health
+from nova.integrations.forge import connection as forge_connection
 from nova.services import providers
 from nova.services.audit import audit
 from nova.services.projects import sync_from_orbit
@@ -121,6 +122,9 @@ async def _forge_link(settings: Any) -> dict[str, Any]:
         "endpoint": _public_endpoint(settings.forge_base_url),
         "api_key_present": bool(settings.forge_api_key),
         "inbound_credential_set": bool(settings.forge_credential_id),
+        # How FORGE calls NOVA back, and what is wrong with it (names of settings, never their values)
+        "callback_endpoint": _public_endpoint(forge_connection.forge_callback_endpoint(settings)),
+        "problems": forge_connection.connection_problems(settings),
         "capture_policy": settings.forge_capture_policy,
         "capture_mode": settings.forge_capture_mode,
         **state,

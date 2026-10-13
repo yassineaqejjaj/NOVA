@@ -119,6 +119,8 @@ async def test_the_forge_link_is_for_administrators_and_hides_every_secret(app, 
     forge = response.json()["forge"]
     assert forge["configured"] and forge["api_key_present"] and forge["inbound_credential_set"]
     assert forge["endpoint"] == "https://forge.example.com:8100"  # resolved, with no userinfo
+    assert forge["callback_endpoint"].startswith("http")
+    assert forge["problems"] == [] or all("NOVA_FORGE" in p for p in forge["problems"])
     assert forge["status"] == "degraded" and forge["last_error"] == "HTTP 503" and forge["capture_queue"] is None
     for secret in (FORGE_KEY, "user:pw", settings.forge_credential_id):
         assert secret not in response.text

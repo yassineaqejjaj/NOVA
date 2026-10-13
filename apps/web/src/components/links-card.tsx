@@ -40,6 +40,7 @@ const M = defineMessages({
     present: "present",
     missing: "missing",
     inboundCredential: "Callback credential",
+    callback: "FORGE calls NOVA at",
     capture: "Capture",
     queue: "Capture queue",
     queueNA: "not available",
@@ -77,6 +78,7 @@ const M = defineMessages({
     present: "présente",
     missing: "absente",
     inboundCredential: "Identifiant de rappel",
+    callback: "FORGE rappelle NOVA à",
     capture: "Capture",
     queue: "File de capture",
     queueNA: "non disponible",
@@ -142,10 +144,14 @@ function ForgeSection({ forge }: { forge: ForgeLink }) {
     <section data-testid="link-forge" data-status={forge.status}>
       <h4 className="flex items-center gap-2 text-[14px] font-semibold">{t("forge")} <Badge tone={TONE[forge.status]}>{t(`s_${forge.status}` as "s_ok")}</Badge></h4>
       {!forge.configured ? <p className="mt-2 text-[13px] text-muted">{t("forgeOff")}</p> : null}
+      {forge.configured && forge.problems.length > 0 ? (
+        <ul className="mt-2 list-disc pl-5 text-[13px] text-warning" data-testid="forge-problems">{forge.problems.map((p) => <li key={p}>{p}</li>)}</ul>
+      ) : null}
       <dl className="mt-1 divide-y divide-border/60">
         <Row label={t("endpoint")}>{forge.endpoint || "—"}</Row>
         <Row label={t("apiKey")}>{forge.api_key_present ? t("present") : t("missing")}</Row>
         <Row label={t("inboundCredential")}>{forge.inbound_credential_set ? t("present") : t("missing")}</Row>
+        <Row label={t("callback")}>{forge.callback_endpoint || "—"}</Row>
         <Row label={t("capture")}>{`${forge.capture_mode} · ${forge.capture_policy}`}</Row>
         <Row label={t("queue")}>{forge.capture_queue == null ? t("queueNA") : String(forge.capture_queue)}</Row>
         <Row label={t("lastOk")}>{forge.last_success_at ? dateTime(forge.last_success_at) : t("never")}</Row>
