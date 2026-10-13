@@ -14,7 +14,7 @@ See `integration-analysis.md` §1 (ORBIT), §2 (FORGE), §3 (gaps). Summary of t
 | NOVA → ORBIT | `POST /projects/{slug}/context`, `/ask`, `/context/requests/{id}[/feedback]`, `GET /projects`, `/changes`, `/search`, `/auth/login`, `/auth/me`, `POST /memory` (proposed), `POST /documents/text` | existing |
 | FORGE → NOVA | NOVA Agent Protocol `POST /v1/agents/{nova_agent_id}/runs` (FAP v1 + `nova_agent_id`) | existing (FORGE `nova` adapter) — implemented by NOVA |
 | NOVA → FORGE | `POST /agents`, `POST /agents/{id}/versions`, `POST /scenarios`, `POST /runs`, `GET /runs/{id}`, `POST /runs/{id}/human-evaluations`, OTLP `/v1/traces` | existing |
-| NOVA → FORGE | observed production runs | **gap G-F1** (documented extension) |
+| NOVA → FORGE | `POST /runs/observed` (SDLC runs always; production executions with `NOVA_FORGE_CAPTURE_MODE=observed`), release comparison `GET /analytics/releases/compare` | existing — gap G-F1 closed; replay capture stays the default |
 
 ## 4. NOVA architecture
 
