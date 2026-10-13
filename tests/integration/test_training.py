@@ -57,9 +57,12 @@ class FakeForge:
         return self.versions.get(agent_id, [])
 
     async def create_agent_version(self, agent_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        hashed = ("adapter_config", "budget", "model", "endpoint", "system_prompt")  # like FORGE's content hash
-        if any(all(v.get(k) == body.get(k) for k in hashed) for v in self.versions.get(agent_id, [])):
+        hashed = ("adapter_config", "budget", "model", "endpoint", "system_prompt", "credential_id")  # FORGE's content hash
+        existing = self.versions.get(agent_id, [])
+        if any(all(v.get(k) == body.get(k) for k in hashed) for v in existing):
             raise ForgeError(409, "identical version")
+        if any(v.get("version") == body.get("version") for v in existing):  # the label is unique per agent
+            raise ForgeError(409, "label exists")
         version = {"id": self._id(), **body}
         self.versions.setdefault(agent_id, []).append(version)
         return version

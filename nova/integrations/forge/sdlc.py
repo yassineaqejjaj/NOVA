@@ -29,13 +29,15 @@ def agent_body() -> dict[str, Any]:
     }
 
 
-def agent_version_body(*, nova_version: str, model: str, endpoint: str, policy: dict[str, Any] | None = None) -> dict[str, Any]:
+def agent_version_body(
+    *, nova_version: str, model: str, endpoint: str, credential_id: str | None = None, policy: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """One immutable FORGE agent version per NOVA release × model × policy version (the model is the user's own).
 
     A new policy (lessons learned from low-scored runs) is a new version, so FORGE compares the scores version by version.
     """
     version = int((policy or {}).get("version", 0))
-    return {
+    body: dict[str, Any] = {
         "version": f"{nova_version}+p{version}+{model}"[:40],
         "adapter_kind": "nova",
         "endpoint": endpoint,
@@ -50,6 +52,9 @@ def agent_version_body(*, nova_version: str, model: str, endpoint: str, policy: 
         },
         "changelog": f"NOVA {nova_version} SDLC Autopilot — policy v{version} — model {model}",
     }
+    if credential_id:
+        body["credential_id"] = credential_id
+    return body
 
 
 CONFIG_KEY = "nova-delivery"

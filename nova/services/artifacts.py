@@ -19,7 +19,7 @@ from nova.domain.artifacts import (
 )
 from nova.domain.context import ContextItem
 from nova.domain.enums import ProjectRole
-from nova.domain.permissions import Principal
+from nova.domain.permissions import Principal, may_read_classification
 from nova.infra.db import aware, utcnow
 from nova.infra.models import (
     Artifact,
@@ -32,7 +32,7 @@ from nova.infra.models import (
     TaskStep,
     User,
 )
-from nova.services.access import AccessDenied, project_role, require_artifact
+from nova.services.access import AccessDenied, project_role, require_artifact, within_clearance
 from nova.services.audit import audit
 
 
@@ -83,7 +83,9 @@ async def list_artifacts(
     uid = uuid.UUID(principal.user_id)
     member_projects = select(ProjectMember.project_id).where(ProjectMember.user_id == uid)
     query = select(Artifact).where(
-        or_(Artifact.owner_id == uid, Artifact.project_id.in_(member_projects)), Artifact.status != "archived"
+        or_(Artifact.owner_id == uid, Artifact.project_id.in_(member_projects)),
+        Artifact.status != "archived",
+        within_clearance(principal),
     )
     if project_id:
         query = query.where(Artifact.project_id == uuid.UUID(project_id))
@@ -419,7 +421,12 @@ async def _sources(session: AsyncSession, principal: Principal, citations: list)
             )
         )
     ).all()
-    by_key = {(str(r.id), i["citation"]): ContextItem.model_validate(i) for r in refs for i in r.items}
+    by_key = {
+        (str(r.id), i["citation"]): item
+        for r in refs
+        for i in r.items
+        if may_read_classification(principal, (item := ContextItem.model_validate(i)).classification)
+    }  # an extract above the clearance is shown as unresolvable, like one the user never retrieved
     result, seen = [], set()
     for c in citations:
         item = by_key.get((c.ref or "", c.label))

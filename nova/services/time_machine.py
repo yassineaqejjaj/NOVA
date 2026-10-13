@@ -17,7 +17,7 @@ from nova.domain.permissions import Principal
 from nova.domain.time_machine import pair_by_type, relative_change, word_count
 from nova.infra.db import aware
 from nova.infra.models import Artifact, ArtifactVersion, Task
-from nova.services.access import require_task
+from nova.services.access import require_task, within_clearance
 from nova.services.replay import ReplayError
 
 
@@ -52,8 +52,12 @@ def _side(task: Task) -> dict[str, Any]:
     }
 
 
-async def _artifacts(session: AsyncSession, task: Task) -> list[tuple[str, tuple[str, ArtifactContent]]]:
-    rows = (await session.scalars(select(Artifact).where(Artifact.task_id == task.id).order_by(Artifact.created_at))).all()
+async def _artifacts(session: AsyncSession, task: Task, principal: Principal) -> list[tuple[str, tuple[str, ArtifactContent]]]:
+    rows = (
+        await session.scalars(
+            select(Artifact).where(Artifact.task_id == task.id, within_clearance(principal)).order_by(Artifact.created_at)
+        )
+    ).all()
     found = []
     for artifact in rows:
         version = await session.scalar(
@@ -104,7 +108,7 @@ async def compare(session: AsyncSession, principal: Principal, task_id: str, rep
     if replay.replay_of != original.id:
         raise ReplayError("not_a_replay", "This run is not a replay of the original.")
     left, right = _side(original), _side(replay)
-    pairs = pair_by_type(await _artifacts(session, original), await _artifacts(session, replay))
+    pairs = pair_by_type(await _artifacts(session, original, principal), await _artifacts(session, replay, principal))
     diffs = [_artifact_diff(kind, a, b) for kind, a, b in pairs]
     return {
         "original": left,

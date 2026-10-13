@@ -17,8 +17,10 @@ from sqlalchemy import select
 from nova.config import get_settings
 from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import IntegrationReference, SdlcRun
+from nova.integrations.forge import connection
 from nova.integrations.forge import sdlc as mapping
 from nova.integrations.forge.client import ForgeClient, ForgeError
+from nova.integrations.forge.versions import cached_version_id, register_agent_version, remember_version
 from nova.services import providers
 
 log = logging.getLogger(__name__)
@@ -53,21 +55,16 @@ async def _remember(kind: str, nova_type: str, nova_id: str, external_id: str, d
 async def _agent_version(client: ForgeClient, model: str, policy: dict[str, Any] | None = None) -> str:
     settings = get_settings()
     key = f"{settings.version}|{model}|p{int((policy or {}).get('version', 0))}"
-    if cached := await _cached("agent_version", "sdlc_release", key):
+    endpoint, credential_id = connection.forge_callback_endpoint(settings), connection.forge_credential(settings)
+    link = connection.connection_key(endpoint, credential_id)
+    if cached := await cached_version_id("sdlc_release", key, link):  # a version of another connection is not reused
         return cached
     agent = await client.find_agent(mapping.AGENT_SLUG) or await client.create_agent(mapping.agent_body())
-    endpoint = settings.forge_nova_endpoint or settings.public_url
-    body = mapping.agent_version_body(nova_version=settings.version, model=model, endpoint=endpoint, policy=policy)
-    try:
-        version = await client.create_agent_version(str(agent["id"]), body)
-    except ForgeError as exc:
-        if exc.status != 409:
-            raise
-        versions = await client.list_agent_versions(str(agent["id"]))
-        version = next((v for v in versions if v.get("version") == body["version"]), None)
-        if version is None:
-            raise
-    await _remember("agent_version", "sdlc_release", key, str(version["id"]), {"agent_id": str(agent["id"])})
+    body = mapping.agent_version_body(
+        nova_version=settings.version, model=model, endpoint=endpoint, credential_id=credential_id, policy=policy
+    )
+    version = await register_agent_version(client, str(agent["id"]), body)
+    await remember_version("sdlc_release", key, link, str(version["id"]), {"agent_id": str(agent["id"])})
     return str(version["id"])
 
 

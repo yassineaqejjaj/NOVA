@@ -80,7 +80,7 @@ Settings (all `NOVA_*`, see `.env.example`):
 |---|---|---|
 | `FORGE_API_KEY` | — | FORGE key with role **editor** (creates agents, scenarios, runs, experiments) |
 | `FORGE_CREDENTIAL_ID` | — | id of FORGE's `nova` credential (secret = `NOVA_FORGE_INBOUND_TOKEN`) |
-| `FORGE_NOVA_ENDPOINT` | derived | NOVA API URL as reachable from FORGE's runner |
+| `FORGE_NOVA_ENDPOINT` | derived (local dev only) | NOVA API URL as reachable from FORGE's runner; the same URL is registered by production capture, training and SDLC ingestion. Required outside local development: the web URL is not the API |
 | `TRAINING_ENABLED` | `true` | |
 | `TRAINING_INTERVAL_DAYS` | `0` | `0` = cycles started by an administrator; `N` = automatic cycle per agent every N days |
 | `TRAINING_REPETITIONS` | `1` | runs per Skill and per arm |
