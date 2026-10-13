@@ -34,7 +34,7 @@ from nova.infra.models import ContextRetrievalReference, Task, WorkflowExecution
 from nova.services import compositions, learning, llm_calls, providers, skill_scores
 from nova.services.access import effective_permissions
 from nova.services.execution_store import SqlExecutionStore, emit_event
-from nova.services.users import get_user, principal_for
+from nova.services.users import get_user, resolve_principal
 from nova.skills.registry import get_skill_registry
 
 log = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ async def build_deps(
     async with session_scope() as session:
         user = await get_user(session, principal_user_id)
         assert user is not None
-        principal = principal_for(user)
+        principal = await resolve_principal(session, user)
         permissions = await effective_permissions(session, principal, project_id)
     async with session_scope() as session:
         scores = await skill_scores.latest(session)

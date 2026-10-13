@@ -131,7 +131,7 @@ async def test_an_unreachable_orbit_is_not_remembered_and_never_breaks_the_page(
 async def test_the_spoken_briefing_matches_the_page_and_keeps_classified_items_off_the_air(app, llm, orbit, forge):
     from sqlalchemy import update
 
-    from nova.infra.models import Artifact
+    from nova.infra.models import Artifact, OrbitAccount
 
     client, uid = await _client(app)
     merge = await _run(uid, gate="merge", preview="https://nova-pr-12.vercel.app")
@@ -149,7 +149,8 @@ async def test_the_spoken_briefing_matches_the_page_and_keeps_classified_items_o
     open_air = (await client.get("/api/v1/today/briefing")).json()
     assert open_air["withheld"] == 0 and any(title in s for s in open_air["sentences"])  # readable while unclassified
 
-    async with db.session_scope() as session:
+    async with db.session_scope() as session:  # cleared for C3 (ORBIT): the page lists it, the voice must not read it
+        session.add(OrbitAccount(user_id=uid, orbit_user_id="o-1", orbit_email="o@example.com", clearance=3))
         await session.execute(update(Artifact).where(Artifact.id == uuid.UUID(artifact_id)).values(classification=3))
     freshness.forget()
     classified = (await client.get("/api/v1/today/briefing")).json()

@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.domain.enums import ProjectRole, role_at_least
-from nova.domain.permissions import Permission, Principal, project_permissions
+from nova.domain.permissions import Permission, Principal, may_read_classification, project_permissions
 from nova.infra.models import Artifact, ProjectMember, Task
 
 
@@ -25,8 +25,19 @@ async def project_role(session: AsyncSession, project_id: uuid.UUID | None, user
     return ProjectRole(role) if role else None
 
 
+def within_clearance(principal: Principal):
+    """SQL condition: Artifacts the principal's clearance covers (lists must filter, not just ``require_artifact``)."""
+    return Artifact.classification <= principal.clearance
+
+
 async def artifact_role(session: AsyncSession, artifact: Artifact, principal: Principal) -> ProjectRole | None:
-    """Owner of the Artifact = owner role; otherwise the project role (if any)."""
+    """Owner of the Artifact = owner role; otherwise the project role (if any).
+
+    No role at all above the principal's clearance: a derived Artifact is as sensitive as the sources it was built
+    from, for its owner and for admins too (the Artifact then does not exist for them: 404, no title, no preview).
+    """
+    if not may_read_classification(principal, artifact.classification):
+        return None
     if principal.is_admin or str(artifact.owner_id) == principal.user_id:
         return ProjectRole.owner
     return await project_role(session, artifact.project_id, uuid.UUID(principal.user_id))
