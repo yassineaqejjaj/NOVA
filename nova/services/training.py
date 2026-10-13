@@ -248,6 +248,7 @@ async def forge_version_id(client: ForgeClient, policy: AgentPolicy, settings: S
         catalog_digest=registry.catalog_digest(),
         nova_version=settings.version,
         model=settings.llm_model,
+        provider=settings.llm_provider,
         nova_base_url=connection.forge_callback_endpoint(settings),
         credential_id=connection.forge_credential(settings),
         timeout_seconds=settings.training_run_timeout_seconds,
