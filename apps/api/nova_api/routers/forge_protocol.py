@@ -67,6 +67,15 @@ async def run(
         policy = await session.get(AgentPolicy, _uuid(policy_id))
         if policy is None or (profile and policy.agent != profile.value):
             return _error(400, "EXECUTION_ERROR", f"Version apprise inconnue pour cet agent : {policy_id}")
+    provided = mapper.provided_context(body)
+    over = [i for i in provided if i.classification > settings.policy_max_classification]
+    if over:  # the same ceiling ORBIT applies to retrieved context (an unclassified source counts as C3)
+        return _error(
+            403,
+            "CLASSIFICATION_REFUSED",
+            f"Contexte au-dessus du plafond de classification NOVA (C{settings.policy_max_classification}) : "
+            + ", ".join(i.ref_id for i in over[:10]),
+        )
     if body.constraints:
         prompt += "\n\nConstraints:\n" + "\n".join(f"- {c}" for c in body.constraints)
 
@@ -76,7 +85,7 @@ async def run(
         "autonomy": AutonomyMode.execute_automatically.value,
         "intent": prompt,
         "context_mode": "none",
-        "provided_context": [i.model_dump(mode="json") for i in mapper.provided_context(body)],
+        "provided_context": [i.model_dump(mode="json") for i in provided],
         "preferences": {"nova_name": "NOVA", "max_workflow_steps": min(body.budget.max_steps or 8, 8)},
         "skill_refs": [skill_id] if skill_id else [],
         "agent_scope": profile.value if profile else None,

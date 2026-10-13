@@ -11,7 +11,7 @@ from nova.domain.agents import AGENTS, AgentProfile, agent_instructions
 from nova.domain.context import ContextItem
 from nova.domain.evaluation import ExecutionRecord
 from nova.domain.skills import SkillSpec
-from nova.integrations.forge.schemas import FapEvent, NovaRunRequest
+from nova.integrations.forge.schemas import FapEvent, NovaRunRequest, classification_level
 
 AGENT_SLUG = "nova"
 NOVA_AGENT_ID = "nova-orchestrator"
@@ -19,6 +19,8 @@ SCENARIO_CATEGORY = "nova-production"
 USEFULNESS_CRITERION = "ux.perceived_usefulness"
 TRAINING_CATEGORY = "nova-training"
 TRAINING_TAG = "nova-training"
+UNCLASSIFIED_LEVEL = 3  # context FORGE hands over without a level is read as C3: fail closed, never as C1
+ORBIT_CONTEXT_REF = "orbit-context"
 
 
 def agent_body() -> dict[str, Any]:
@@ -112,9 +114,16 @@ def usefulness_evaluation(useful: bool, comment: str | None) -> dict[str, Any]:
 
 
 def provided_context(request: NovaRunRequest) -> list[ContextItem]:
-    """FORGE-prepared context → NOVA context items (reproducible evaluation, ORBIT is not called)."""
+    """FORGE-prepared context → NOVA context items (reproducible evaluation, ORBIT is not called).
+
+    Each item keeps its C0-C3 level, raised to the maximum FORGE declared for the whole context when that is higher.
+    A document, fact or ORBIT text without a level is C3 (``UNCLASSIFIED_LEVEL``): a run never silently drops to C1.
+    """
+    context = request.context
+    declared = context.declared_max_classification()
     items = []
-    for i, doc in enumerate(request.context.documents, 1):
+    for i, doc in enumerate(context.documents, 1):
+        level = classification_level(doc.classification)
         items.append(
             ContextItem(
                 citation=f"S{i}",
@@ -122,20 +131,35 @@ def provided_context(request: NovaRunRequest) -> list[ContextItem]:
                 kind="document",
                 title=doc.title or doc.id or f"Document {i}",
                 excerpt=doc.content[:6000],
+                document_id=doc.document_id,
+                version=doc.version,
+                classification=max(UNCLASSIFIED_LEVEL if level is None else level, declared or 0),
                 source_system=doc.source or "forge",
             )
         )
-    offset = len(items)
-    for j, fact in enumerate(request.context.facts, 1):
+    for j, fact in enumerate(context.facts, 1):
         items.append(
             ContextItem(
-                citation=f"S{offset + j}",
+                citation=f"S{len(items) + 1}",
                 ref_id=f"fact-{j}",
                 kind="memory",
                 memory_kind="fact",
                 title=fact[:80],
                 excerpt=fact,
+                classification=UNCLASSIFIED_LEVEL,  # FAP facts carry no level
                 source_system="forge",
+            )
+        )
+    if text := context.orbit_text():  # ORBIT's global context: without it a FORGE run knows nothing ORBIT assembled
+        items.append(
+            ContextItem(
+                citation=f"S{len(items) + 1}",
+                ref_id=ORBIT_CONTEXT_REF,
+                kind="document",
+                title="ORBIT context",
+                excerpt=text[:6000],
+                classification=UNCLASSIFIED_LEVEL if declared is None else declared,
+                source_system="orbit",
             )
         )
     return items

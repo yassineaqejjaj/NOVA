@@ -33,7 +33,7 @@ class ExecutionRecord(BaseModel):
     workflow: list[str] = Field(default_factory=list)  # skill ids in order
     skills: list[SkillUse] = Field(default_factory=list)
     context_retrieval_ids: list[str] = Field(default_factory=list)
-    context_documents: list[dict[str, Any]] = Field(default_factory=list)  # {id, title, content, source}
+    context_documents: list[dict[str, Any]] = Field(default_factory=list)  # {id, title, content, source, classification}
     context_max_classification: int = 0
     tools: list[str] = Field(default_factory=list)
     artifact_ids: list[str] = Field(default_factory=list)

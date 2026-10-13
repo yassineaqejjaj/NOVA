@@ -126,7 +126,14 @@ async def build_execution_record(state: NovaState, d: AgentDeps) -> ExecutionRec
         ],
         context_retrieval_ids=[state.context_retrieval_id] if state.context_retrieval_id else [],
         context_documents=[
-            {"id": i.citation, "title": i.title, "content": i.excerpt, "source": i.source_system} for i in state.context_items
+            {
+                "id": i.citation,
+                "title": i.title,
+                "content": i.excerpt,
+                "source": i.source_system,
+                "classification": i.classification,
+            }
+            for i in state.context_items
         ],
         context_max_classification=max((i.classification for i in state.context_items), default=0),
         tools=sorted({r.tool for o in state.step_outputs.values() for r in o.tool_results}),
