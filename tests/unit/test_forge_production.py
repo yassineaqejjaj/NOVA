@@ -130,3 +130,46 @@ def test_the_sdlc_labels_of_two_long_model_names_do_not_collapse():
         label("organization/very-long-model-name-70b-instruct-b"),
     )
     assert one != two and len(one) <= 40 and len(two) <= 40
+
+
+# --- What FORGE declared against what NOVA runs (NOV-72) ----------------------------------------------------------------
+
+
+def _runtime(**over):
+    from nova.integrations.forge import runtime
+
+    base = dict(nova_version="1.0", runtime_commit="abc123", skill_catalog="d" * 16, provider="vllm", model="m")
+    return runtime.Runtime(**{**base, **over})
+
+
+def test_only_the_parts_of_the_agent_nova_cannot_run_as_declared_are_conflicts():
+    from nova.integrations.forge import runtime
+    from nova.integrations.forge.schemas import FapAgent
+
+    current = _runtime()
+    declared = FapAgent(version=runtime.current_label(current), model={"provider": "vllm", "model": "m"}, system_prompt="")
+    assert runtime.override_conflicts(declared, current, profile=None, standards=None, policy_version=None) == []
+    other = FapAgent(version="0.9+old", model={"provider": "vllm", "model": "other"}, system_prompt="x", tools=[{"name": "t"}])
+    fields = [c[0] for c in runtime.override_conflicts(other, current, profile=None, standards=None, policy_version=None)]
+    assert fields == ["agent.version", "agent.model", "agent.system_prompt", "agent.tools"]
+
+
+def test_the_executed_fingerprint_follows_the_runtime_the_policy_and_the_parameters():
+    from nova.integrations.forge import runtime
+
+    base = runtime.executed_fingerprint(_runtime(), None, {"max_steps": 8})
+    assert base == runtime.executed_fingerprint(_runtime(), None, {"max_steps": 8})  # stable
+    for changed in (
+        runtime.executed_fingerprint(_runtime(runtime_commit="def456"), None, {"max_steps": 8}),
+        runtime.executed_fingerprint(_runtime(skill_catalog="e" * 16), None, {"max_steps": 8}),
+        runtime.executed_fingerprint(_runtime(model="other"), None, {"max_steps": 8}),
+        runtime.executed_fingerprint(_runtime(), "policy-1", {"max_steps": 8}),
+        runtime.executed_fingerprint(_runtime(), None, {"max_steps": 4}),
+    ):
+        assert changed["version"] != base["version"]
+
+
+def test_the_tightest_cap_is_the_lowest_one_that_is_set():
+    from nova.agent.providers.budget import tightest
+
+    assert tightest(0, None) == 0 and tightest(5, None) == 5 and tightest(5, 2) == 2 and tightest(0, 3.5) == 3.5
