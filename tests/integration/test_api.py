@@ -293,18 +293,22 @@ async def test_voice_relays_audio_to_the_voice_service_and_never_without_auth(ap
     monkeypatch.setattr(voice, "TRANSPORT", _httpx.ASGITransport(app=fake_voice_server.app))
 
     anonymous = _httpx.AsyncClient(transport=_httpx.ASGITransport(app=app), base_url="http://test")
-    assert (await anonymous.post("/api/v1/voice/speak", json={"text": "Bonjour"})).status_code == 401
+    assert (await anonymous.post("/api/v1/voice/speak", json={"text": "Bonjour", "classification": 0})).status_code == 401
 
     client = await _client(app)
     assert (await client.get("/api/v1/voice/status")).json() == {"enabled": True, "stt": "selfhosted", "tts": "selfhosted"}
     heard = await client.post("/api/v1/voice/transcribe", files={"audio": ("speech.webm", b"\x1aE\xdf\xa3fake", "audio/webm")})
     assert heard.status_code == 200 and heard.json()["text"] == fake_voice_server.TRANSCRIPT
-    spoken = await client.post("/api/v1/voice/speak", json={"text": "Bonjour, je suis NOVA.", "language": "fr"})
+    spoken = await client.post(
+        "/api/v1/voice/speak", json={"text": "Bonjour, je suis NOVA.", "language": "fr", "classification": 0}
+    )
     assert spoken.status_code == 200 and spoken.headers["content-type"] == "audio/wav" and spoken.content[:4] == b"RIFF"
     assert (await client.post("/api/v1/voice/transcribe", files={"audio": ("s.webm", b"", "audio/webm")})).status_code == 422
 
     monkeypatch.setattr(get_settings(), "voice_url", "")
-    assert (await client.post("/api/v1/voice/speak", json={"text": "x"})).json()["code"] == "voice_unavailable"
+    assert (await client.post("/api/v1/voice/speak", json={"text": "x", "classification": 0})).json()[
+        "code"
+    ] == "voice_unavailable"
 
 
 async def test_voice_uses_elevenlabs_and_falls_back_to_the_self_hosted_service(app, monkeypatch):
@@ -331,7 +335,7 @@ async def test_voice_uses_elevenlabs_and_falls_back_to_the_self_hosted_service(a
     assert status == {"enabled": True, "stt": "elevenlabs", "tts": "elevenlabs"}
     heard = (await client.post("/api/v1/voice/transcribe", files={"audio": ("s.webm", b"\x1aE\xdf\xa3x", "audio/webm")})).json()
     assert heard == {"text": fake.TRANSCRIPT, "language": "fr", "provider": "elevenlabs"}
-    spoken = await client.post("/api/v1/voice/speak", json={"text": "Bonjour", "language": "fr"})
+    spoken = await client.post("/api/v1/voice/speak", json={"text": "Bonjour", "language": "fr", "classification": 1})
     assert spoken.headers["content-type"] == "audio/mpeg" and spoken.content.startswith(b"ID3")
     assert any(c.startswith("el-tts:EXAVITQu4vr4xnSDxMaL:eleven_multilingual_v2:fr") for c in fake.calls)
 
@@ -340,6 +344,8 @@ async def test_voice_uses_elevenlabs_and_falls_back_to_the_self_hosted_service(a
         assert (await client.post("/api/v1/voice/transcribe", files={"audio": ("s.webm", b"x", "audio/webm")})).json()[
             "provider"
         ] == "selfhosted"
-        assert (await client.post("/api/v1/voice/speak", json={"text": "Bonjour"})).headers["content-type"] == "audio/wav"
+        assert (await client.post("/api/v1/voice/speak", json={"text": "Bonjour", "classification": 1})).headers[
+            "content-type"
+        ] == "audio/wav"
     finally:
         fake.elevenlabs_down["value"] = False

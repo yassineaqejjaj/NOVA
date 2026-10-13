@@ -107,7 +107,11 @@ Current production setup: **Claude Haiku 4.5 through the Claude API** (`NOVA_LLM
 forced tool call. A request takes seconds (Gemma 4 on LM Studio through the laptop tunnel took minutes; that setup
 remains documented in `docs/OPERATIONS.md` but its launchd services are unloaded).
 
-With the Claude API, the ORBIT context of each request is sent to Anthropic. `NOVA_POLICY_MAX_CLASSIFICATION`
+With the Claude API, the ORBIT context of each request is sent to Anthropic. NOVA enforces it on every call:
+`NOVA_LLM_MAX_CLASSIFICATION` (default `1`) is the highest classification sent to an external model; a run holding
+C2/C3 material is refused with a clear error and an `llm.blocked` audit event, and nothing is sent. In production the
+API refuses to start with a ceiling above C1 on an external model unless `NOVA_LLM_LOCAL=true` (model inside the
+perimeter) or `NOVA_LLM_ALLOW_CLASSIFIED_EXTERNAL=true` (explicit override). `NOVA_POLICY_MAX_CLASSIFICATION`
 (0–3) caps what ORBIT returns to NOVA: set it to `1` to keep Confidential (C2) and Secret (C3) context out of
 external model calls. For demos without either, `docs/OPERATIONS.md` (“Demo LLM from a laptop”) describes exposing a
 laptop's Ollama through an authenticated tunnel.

@@ -111,6 +111,7 @@ export function LlmSettings() {
         <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5" />
         <span><AlertTriangle className="mr-1 inline size-3.5 text-warning" aria-hidden />{t("llmAck")}</span>
       </label>
+      {data.max_classification < 3 ? <p className="text-[12.5px] text-subtle">{t("llmCeiling", { level: String(data.max_classification) })}</p> : null}
       {err(save.error)}
       {err(test.error)}
       <div className="flex justify-end">

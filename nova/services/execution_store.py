@@ -13,6 +13,7 @@ from nova.domain.artifacts import ArtifactContent
 from nova.domain.blocks import Block, ProgressLine
 from nova.domain.context import ContextBundle, ContextItem, SnapshotRef
 from nova.domain.enums import BlockType, EventType, NovaPhase, ProjectRole, StepStatus, role_at_least
+from nova.domain.llm_guardrail import CallScope
 from nova.domain.outputs import EvaluationReference, ExecutionPlan, TokenUsage, ToolRequest, ToolResult
 from nova.domain.permissions import Principal, may_read_classification
 from nova.domain.skills import SkillSpec
@@ -53,9 +54,11 @@ async def emit_event(
 
 
 class SqlExecutionStore:
-    def __init__(self, principal: Principal, publisher: Publisher | None = None) -> None:
+    def __init__(self, principal: Principal, publisher: Publisher | None = None, scope: CallScope | None = None) -> None:
         self.principal = principal
         self.publisher = publisher or get_publisher()
+        # Everything this store hands to the agents raises the run's level: the outbound guardrail reads it
+        self.scope = scope or CallScope()
 
     # --- Streaming & progress ------------------------------------------------------------------
 
@@ -261,7 +264,7 @@ class SqlExecutionStore:
                 )
             ).all()
             # Stored extracts are never re-served above the user's *current* clearance (it may have dropped since).
-            return [
+            served = [
                 StoredContextReference(
                     id=str(r.id),
                     retrieval_id=r.retrieval_id,
@@ -277,6 +280,10 @@ class SqlExecutionStore:
                 )
                 for r in rows
             ]
+            for reference in served:
+                for item in reference.items:
+                    self.scope.raise_to(item.classification, "context")
+            return served
 
     # --- Skills & tools ------------------------------------------------------------------------
 
@@ -377,6 +384,7 @@ class SqlExecutionStore:
             artifact = await session.get(Artifact, aid)
             if artifact is None or (await artifact_role(session, artifact, self.principal)) is None:
                 return None
+            self.scope.raise_to(artifact.classification, "artifact")
             return await self._snapshot(session, artifact)
 
     async def list_artifact_outlines(
@@ -397,6 +405,7 @@ class SqlExecutionStore:
             rows = (await session.scalars(query.order_by(Artifact.updated_at.desc()).limit(limit))).all()
             outlines = []
             for artifact in rows:
+                self.scope.raise_to(artifact.classification, "artifact")
                 snap = await self._snapshot(session, artifact)
                 outlines.append(
                     ArtifactOutline(

@@ -19,6 +19,7 @@ x-backend-env: &backend-env
   NOVA_ORBIT_BASE_URL: ${NOVA_DOCKER_ORBIT_BASE_URL:-http://host.docker.internal:8000}
   NOVA_FORGE_BASE_URL: ${NOVA_DOCKER_FORGE_BASE_URL:-http://host.docker.internal:8100}
   NOVA_LLM_BASE_URL: ${NOVA_DOCKER_LLM_BASE_URL:-http://vllm:8000/v1}
+  NOVA_LLM_LOCAL: ${NOVA_DOCKER_LLM_LOCAL:-true}  # the bundled vLLM is inside the perimeter: no C1 ceiling (docs/ARCHITECTURE §11)
   NOVA_BIND_HOST: 0.0.0.0
   NOVA_VOICE_URL: ${NOVA_DOCKER_VOICE_URL:-http://voice:8300}
   NOVA_VOICE_TOKEN: ${NOVA_VOICE_TOKEN:-nova-dev-voice-token-0123456789}
