@@ -33,6 +33,8 @@ Freeze rule: pre-production only. Changes below marked "preprod only" go to prod
 | **NOVA → FORGE**: SDLC runs ingested as observed runs (`NOVA_FORGE_SDLC_INGEST`) | yes | `tests/integration/test_sdlc.py`, `test_sdlc_improvement.py` | yes | yes (expected) |
 | **NOVA → FORGE**: user feedback as human evaluation; an unhelpful rating promoted to a regression scenario | yes | `tests/integration/test_feedback_regression.py` | yes | yes (expected) |
 | **FORGE link health** (last exchange, endpoint, credential present, callback problems; administrators) | yes (NOV-93) | `tests/unit/test_forge_link_health.py`, `tests/integration/test_links_api.py` | no | no |
+| **FORGE → NOVA protocol pinning**: executed version reported, received budgets applied, unsupported overrides refused (NOV-72) | PR #35 **open**, not in `preprod` at the time of writing | its own tests (`tests/integration/test_forge_protocol_pinning.py`), CI of the PR | no | no |
+| **Classification ceiling on output to LLMs** (`NOVA_LLM_MAX_CLASSIFICATION`, BYOK, voice) (NOV-76) | PR #34 **open**, not in `preprod` at the time of writing | its own tests (`tests/integration/test_llm_guardrail.py`), CI of the PR | no | no |
 | **FORGE capture outbox** (queue of captures when FORGE is unreachable) | **not in `preprod` at the time of writing** (separate ticket); the links screen shows the queue as "not available" | — | no | no |
 | **FORGE calibrated promotion gate** (FORGE side of the proof NOVA asks for) | **not in NOVA's scope here**; NOVA's gate sits behind an interface and is tested against a fake FORGE | `tests/unit/test_policy_gate.py` | no | no |
 
