@@ -195,6 +195,77 @@ async def test_autopilot_with_auto_merge_needs_no_human_when_everything_is_green
     assert gh.prs[1]["merged"]
 
 
+NO_CI = CheckSummary(state="none", total=0)
+
+
+async def test_auto_merge_needs_a_green_ci_and_waits_for_a_human_when_there_is_none(app, gh, model):
+    gh.check_script = [NO_CI]
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot", auto_merge=True)
+    assert run["status"] == "waiting_user" and run["gate"] == "merge" and not gh.prs[1]["merged"]
+    assert stages(run)["ci"] == "skipped"
+    merge = next(s for s in run["stages"] if s["key"] == "merge")
+    assert "no CI" in merge["summary"] and "auto-merge" in merge["summary"]
+    # Tests were written but nothing ran them: the three states are told apart
+    assert run["tests"] == {
+        "written": 1,
+        "files": ["src/farewell.test.ts"],
+        "executed": False,
+        "checks": 0,
+        "passed": False,
+        "ci": "none",
+    }
+    # A human can still decide to merge after reading the warning
+    approved = await client.post(f"{API}/sdlc/runs/{run['id']}/approve", json={})
+    assert approved.status_code == 200 and approved.json()["status"] == "completed" and gh.prs[1]["merged"]
+
+
+async def test_merge_without_ci_is_an_explicit_per_run_choice_and_is_logged(app, gh, model):
+    gh.check_script = [NO_CI]
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot", auto_merge=True, allow_merge_without_ci=True)
+    assert run["status"] == "completed" and gh.prs[1]["merged"]
+    detail = (await client.get(f"{API}/sdlc/runs/{run['id']}")).json()
+    assert any("without CI" in entry["message"] for entry in detail["log"])
+    assert detail["allow_merge_without_ci"] is True
+    created = await scalar(select(AuditEvent).where(AuditEvent.action == "sdlc.create", AuditEvent.target_id == run["id"]))
+    assert created is not None and "without CI" in created.summary
+    # The option means nothing when auto-merge is off, and a plain run does not carry it
+    plain = await start(client, autonomy="autopilot", allow_merge_without_ci=True)
+    assert plain["allow_merge_without_ci"] is False and plain["status"] == "waiting_user"
+
+
+async def test_auto_merge_merges_when_ci_is_green_and_reports_the_tests(app, gh, model):
+    gh.check_script = [CheckSummary(state="success", total=3)]
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot", auto_merge=True)
+    assert run["status"] == "completed" and gh.prs[1]["merged"]
+    assert run["tests"] == {
+        "written": 1,
+        "files": ["src/farewell.test.ts"],
+        "executed": True,
+        "checks": 3,
+        "passed": True,
+        "ci": "success",
+    }
+    assert run["allow_merge_without_ci"] is False
+
+
+async def test_red_ci_is_repaired_then_blocks_the_merge(app, gh, model):
+    failing = CheckSummary(
+        state="failure",
+        total=1,
+        failures=[{"name": "test", "conclusion": "failure", "title": "", "summary": "", "annotations": [], "log": "boom"}],
+    )
+    gh.check_script = [failing]
+    client = await linked(app)
+    run = await start(client, autonomy="autopilot", auto_merge=True, allow_merge_without_ci=True)
+    # The "without CI" option never lets a failing CI through
+    assert run["status"] == "failed" and run["evaluation"]["failed_stage"] == "ci" and not gh.prs[1]["merged"]
+    assert run["evaluation"]["ci_fix_rounds"] == 2
+    assert run["tests"]["executed"] is True and run["tests"]["passed"] is False
+
+
 async def test_autopilot_still_asks_before_merging_by_default(app, gh, model):
     client = await linked(app)
     run = await start(client, autonomy="autopilot")

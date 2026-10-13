@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -219,6 +219,36 @@ def validate_changeset(changeset: ChangeSet, existing: dict[str, str], tree: set
             )
         safe.append(FileChange(path=path, action="modify" if path in tree else "create", content=change.content))
     return safe
+
+
+def merge_blocker(*, blocking: int, ci: str | None, require_ci: bool, allow_without_ci: bool) -> str | None:
+    """Why auto-merge must not merge on its own (``None``: it may). ``ci`` is the CI outcome kept by the run."""
+    if blocking:
+        return "the review has blocking findings"
+    if ci == "success":
+        return None
+    if ci == "none" and (allow_without_ci or not require_ci):
+        return None
+    if ci == "none":
+        return (
+            "no CI checks ran on this repository, so the tests NOVA wrote were never executed and auto-merge is blocked: "
+            "review the change yourself, or turn auto-merge off for runs on this repository"
+        )
+    return "CI is not green"
+
+
+def ci_tests_status(context: dict[str, Any], *, ci_failed: bool) -> dict[str, Any]:
+    """Tests written, executed (did CI run any check) and passed are three different facts, shown as such."""
+    tests = context.get("tests") or []
+    ci = context.get("ci")
+    return {
+        "written": len(tests),
+        "files": [t["path"] for t in tests],
+        "executed": bool(context.get("ci_seen")) or ci == "success",
+        "checks": int(context.get("ci_checks", 0)),
+        "passed": True if ci == "success" else (False if ci == "none" or ci_failed else None),
+        "ci": ci,
+    }
 
 
 def slugify(text: str, limit: int = 40) -> str:

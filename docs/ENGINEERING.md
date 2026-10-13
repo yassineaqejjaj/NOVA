@@ -18,7 +18,7 @@ deploy** — pausing only where a human decision is wanted.
 | 8 | **AI code review** — diff review with severity-ranked findings, posted on the PR; blocking findings are fixed automatically (2 rounds max) | review | ✅ v1 |
 | 9 | **PR review on demand** — review any existing pull request by URL, optionally posting the review | review | ✅ v1 |
 | 10 | **CI watch & self-repair** — NOVA waits for checks, reads failures and annotations, pushes a fix (2 rounds max) | test / integrate | ✅ v1 |
-| 11 | **Guarded merge** — always asks for approval unless you opted in to auto-merge (green CI + no blocking finding) | integrate | ✅ v1 |
+| 11 | **Guarded merge** — always asks for approval unless you opted in to auto-merge (**green CI** + no blocking finding; a repository without CI is not merged automatically, see [Merging and CI](#merging-and-ci)) | integrate | ✅ v1 |
 | 12 | **Release notes & GitHub release** — notes from the merged change, draft release | release | ✅ v1 |
 | 13 | **Deploy hook** — trigger your deployment webhook (explicit action) | deploy | ✅ v1 |
 | 14 | **Bug-fix mode** — root-cause analysis first, regression test required | operate | ✅ v1 |
@@ -55,6 +55,30 @@ Intent / issue ─► Spec ─► Design ─(approve, guided)─► Implement �
   encrypted with `NOVA_SECRETS_KEY` (Fernet) and never returned by the API (only the last four characters).
 * **GitHub** access uses the user's token through the Git Data API (one atomic commit per step). NOVA only ever writes
   to its own `nova/*` branch, then to the pull request, comments, and (after approval) the merge.
+
+## Merging and CI
+
+NOVA writes tests (stage *Tests*) but **does not run them**: execution is the job of the repository's own CI (sandboxed
+execution is on the roadmap, v1.1). The run therefore reports three distinct facts (`tests` in `GET /sdlc/runs/{id}`,
+"Tests" card in the run view):
+
+| State | Meaning |
+|---|---|
+| **written** | number and paths of the test files NOVA committed |
+| **executed** | CI reported at least one check on the head commit (`checks` = how many) |
+| **passed** | CI concluded green; `false` when there is no CI or when it stayed red; `null` while it is pending |
+
+Auto-merge (opt-in per run, off by default) merges only if the review has no blocking finding **and CI is green**:
+
+* CI green → merge. CI red → NOVA pushes up to 2 fixes, then the run fails: nothing is merged.
+* **No CI** (no check appeared after 3 polls, the CI stage is *skipped*) → auto-merge is **blocked** and the run waits at
+  the merge gate with an explicit message (tests written but never executed): review the change yourself, or start runs
+  on that repository with auto-merge off. Approving the gate by hand is still possible: that is a human decision.
+* A run can opt in to merging without CI with `allow_merge_without_ci` (a switch shown under *auto-merge* in the form).
+  It is a conscious, per-run choice: it is recorded in the `sdlc.create` audit event and a line is written in the run's
+  activity when the merge happens without CI. It never lets a failing CI through, and has no effect without auto-merge.
+* `NOVA_SDLC_REQUIRE_CI` (default `true`) is the organization policy. `false` restores the former behaviour (no CI
+  accepted for every run); keep it `true` unless every repository is covered by another gate.
 
 ## Safety
 

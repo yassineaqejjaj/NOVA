@@ -29,6 +29,7 @@ export function RunForm({ onCreated, onCancel }: { onCreated: (id: string) => vo
   const [postReview, setPostReview] = useState(false);
   const [autonomy, setAutonomy] = useState<"guided" | "autopilot">("guided");
   const [autoMerge, setAutoMerge] = useState(false);
+  const [withoutCi, setWithoutCi] = useState(false);
   const [hook, setHook] = useState("");
 
   const review = kind === "review";
@@ -44,6 +45,7 @@ export function RunForm({ onCreated, onCancel }: { onCreated: (id: string) => vo
           issue_url: issue.trim(),
           autonomy,
           auto_merge: autonomy === "autopilot" && autoMerge,
+          allow_merge_without_ci: autonomy === "autopilot" && autoMerge && withoutCi,
           deploy_hook: hook.trim() || null,
         };
     create.mutate(body, { onSuccess: (run) => onCreated(run.id) });
@@ -138,6 +140,15 @@ export function RunForm({ onCreated, onCancel }: { onCreated: (id: string) => vo
               <Switch checked={autoMerge} onCheckedChange={setAutoMerge} aria-label={t("autoMerge")} className="mt-0.5" />
               {t("autoMerge")}
             </label>
+          ) : null}
+          {autonomy === "autopilot" && autoMerge ? (
+            <div className="ml-[2.6rem] space-y-1">
+              <label className="flex items-start gap-2.5 text-[13px] text-muted">
+                <Switch checked={withoutCi} onCheckedChange={setWithoutCi} aria-label={t("withoutCi")} className="mt-0.5" />
+                {t("withoutCi")}
+              </label>
+              <p className="text-[12px] text-subtle">{t("withoutCiHint")}</p>
+            </div>
           ) : null}
           <div className="space-y-1.5">
             <Label htmlFor="run-hook">{t("deployHook")}</Label>
