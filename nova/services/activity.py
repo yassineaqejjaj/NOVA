@@ -139,7 +139,9 @@ async def activity(
             )
 
     if not (artifact_id or status or skill_id):
-        refs_q = select(ContextRetrievalReference).where(ContextRetrievalReference.user_id == uid)
+        refs_q = select(ContextRetrievalReference).where(
+            ContextRetrievalReference.user_id == uid, ContextRetrievalReference.revoked_at.is_(None)
+        )
         if since:
             refs_q = refs_q.where(ContextRetrievalReference.created_at >= since)
         for ref in (await session.scalars(refs_q.order_by(ContextRetrievalReference.created_at.desc()).limit(limit))).all():

@@ -23,6 +23,7 @@ class ArtifactSnapshot(BaseModel):
     classification: int = 0
     project_id: str | None = None
     skill_execution_ids: list[str] = Field(default_factory=list)
+    needs_review: bool = False  # a source it cites was forgotten or restricted in ORBIT: not to be exported
 
 
 class ArtifactOutline(BaseModel):

@@ -50,6 +50,7 @@ async def cited_sources(session: AsyncSession, principal: Principal, content: Ar
         await session.scalars(
             select(ContextRetrievalReference).where(
                 ContextRetrievalReference.id.in_([uuid.UUID(ref) for ref, _ in cites]),
+                ContextRetrievalReference.revoked_at.is_(None),
                 ContextRetrievalReference.user_id == uuid.UUID(principal.user_id) if not principal.is_admin else True,
             )
         )

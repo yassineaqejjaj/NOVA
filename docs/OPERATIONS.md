@@ -13,6 +13,34 @@
   (outbound guardrail: what may be sent to an external model, see ARCHITECTURE §11), `NOVA_DEFAULT_CLEARANCE` (default `1`: clearance of a user with no linked ORBIT account, see ARCHITECTURE §11).
 * Retention: `NOVA_CONTEXT_REFERENCE_RETENTION_DAYS`, `NOVA_EXECUTION_EVENT_RETENTION_DAYS` (daily job).
 
+## ORBIT revocation events (webhook)
+
+After a change of rights in ORBIT, NOVA must stop using what it kept (extracts, derived Artifacts, replays, sessions).
+ORBIT announces it with its signed webhooks (ORBIT NOV-80); NOVA receives them at `POST /api/v1/webhooks/orbit`.
+
+**Configure ORBIT**: in the ORBIT project, add a webhook to `https://<nova-host>/api/v1/webhooks/orbit`, subscribed to
+`document.forgotten`, `memory.forgotten`, `document.acl_changed`, `memory.acl_changed`,
+`document.classification_changed`, `member.removed` and `agent.revoked` (an empty selection also works: other types are
+acknowledged and ignored). Put the webhook's signing secret in `NOVA_ORBIT_WEBHOOK_SECRET` on `api` (also `worker`,
+`beat` for consistency). Without it the endpoint answers 503 and nothing is accepted. Create one webhook per ORBIT
+project (the payload names the project slug).
+
+**Contract** (ORBIT's `webhook_payload`, JSON): `id`, `type`, `project {id, slug}`, `target_type`
+(`document | memory | user | agent`), `target_id`, `created_at`, `effective_at`, `restricted`, `old_classification`,
+`new_classification`; headers `X-Orbit-Event`, `X-Orbit-Delivery` (idempotence key) and
+`X-Orbit-Signature: sha256=<HMAC-SHA256(secret, raw body)>`. NOVA answers 401 on a bad or missing signature, 400 on a
+malformed or stale event (`NOVA_ORBIT_WEBHOOK_MAX_AGE_SECONDS`, default 24 h), `200 {"status": "duplicate"}` for a
+delivery already received. `member.removed` carries the ORBIT user id in `target_id`; `agent.revoked` the key id.
+
+**Effects** (all audited, idempotent): the retrieval references holding the source are marked revoked (never served
+again: pinned context, replay with the original context, citations); the Artifacts citing them are flagged "to review"
+(banner, no export or publication until an editor reviews them, `POST /artifacts/{id}/review`); `member.removed` drops
+that user's ORBIT session, resets their clearance to `NOVA_DEFAULT_CLEARANCE` and revokes what they were served in that
+project (status "revoked" on the links screen until they link ORBIT again); `agent.revoked` stops NOVA using the
+project's configured agent key (ORBIT's key id cannot be matched to NOVA's configuration, so the check on the links
+screen restores it when ORBIT still accepts the key; rotating the key also lifts it). Administrators list the received
+events (`GET /admin/orbit-events`) and replay one (`POST /admin/orbit-events/{id}/replay`).
+
 ## Scaling
 
 | Component | Scaling |

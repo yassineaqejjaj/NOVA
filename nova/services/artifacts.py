@@ -32,6 +32,7 @@ from nova.infra.models import (
     TaskStep,
     User,
 )
+from nova.services import revocation
 from nova.services.access import AccessDenied, project_role, require_artifact, within_clearance
 from nova.services.audit import audit
 
@@ -55,6 +56,7 @@ def summary(a: Artifact) -> dict[str, Any]:
         "version": a.current_version,
         "classification": a.classification,
         "owner_id": str(a.owner_id),
+        "review": revocation.review_view(a),  # "to review": a source was forgotten or restricted in ORBIT
         "conversation_id": str(a.conversation_id) if a.conversation_id else None,
         "task_id": str(a.task_id) if a.task_id else None,
         "created_at": aware(a.created_at).isoformat(),
@@ -392,8 +394,20 @@ async def resolve_comment(session: AsyncSession, principal: Principal, artifact_
     comment.resolved = True
 
 
+class NeedsReview(Exception):
+    """A source of the Artifact was forgotten or restricted in ORBIT: it is not exported until someone has reviewed it."""
+
+
+async def review(session: AsyncSession, principal: Principal, artifact_id: str) -> None:
+    """A person confirms the Artifact after ORBIT revoked one of its sources (editors only)."""
+    artifact, _ = await require_artifact(session, artifact_id, principal, ProjectRole.editor)
+    await revocation.mark_reviewed(session, artifact, principal.user_id)
+
+
 async def export(session: AsyncSession, principal: Principal, artifact_id: str, fmt: str) -> tuple[str, str, str]:
     artifact, _ = await require_artifact(session, artifact_id, principal)
+    if artifact.review_requested_at is not None:
+        raise NeedsReview
     content = ArtifactContent.model_validate((await _version(session, artifact.id, artifact.current_version)).content)
     filename = "".join(ch if ch.isalnum() else "-" for ch in artifact.title.lower()).strip("-")[:80] or "artifact"
     if fmt == "json":
@@ -417,6 +431,7 @@ async def _sources(session: AsyncSession, principal: Principal, citations: list)
         await session.scalars(
             select(ContextRetrievalReference).where(
                 ContextRetrievalReference.id.in_([uuid.UUID(r) for r in ref_ids]),
+                ContextRetrievalReference.revoked_at.is_(None),  # a forgotten source is no longer resolvable
                 ContextRetrievalReference.user_id == uuid.UUID(principal.user_id) if not principal.is_admin else True,
             )
         )

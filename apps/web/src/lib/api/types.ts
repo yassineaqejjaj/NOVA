@@ -71,7 +71,7 @@ export interface OrbitAgentKey {
   project: string;
   available: boolean;
   valid: boolean | null;
-  reason: "unsupported" | "forbidden" | "unreachable" | "key_rejected" | null;
+  reason: "unsupported" | "forbidden" | "unreachable" | "key_rejected" | "revoked" | null;
   name?: string;
   clearance?: number | null;
   scopes?: string[];
@@ -98,7 +98,7 @@ export interface ForgeLink {
 
 /** `GET /me/links`: the health of the ORBIT and FORGE links; `forge` is for administrators only. */
 export interface Links {
-  orbit: OrbitIdentity & { status: "ok" | "degraded" | "fallback" | "expired" | "agent_key" | "unlinked"; agent_keys: OrbitAgentKey[] };
+  orbit: OrbitIdentity & { status: "ok" | "degraded" | "fallback" | "expired" | "revoked" | "agent_key" | "unlinked"; revoked_reason?: string | null; agent_keys: OrbitAgentKey[] };
   forge: ForgeLink | null;
 }
 
@@ -396,6 +396,8 @@ export interface ArtifactSummary {
   owner_id: string;
   conversation_id: string | null;
   task_id: string | null;
+  /** "To review" after ORBIT forgot or restricted a source it cites (no export until reviewed). */
+  review?: { pending: boolean; reason: string | null; since: string | null };
   created_at: string;
   updated_at: string;
 }

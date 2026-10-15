@@ -33,6 +33,7 @@ from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import OrbitAccount
 from nova.integrations.orbit import mapper
 from nova.integrations.orbit.client import OrbitAuth, OrbitClient
+from nova.services import revocation
 from nova.services.audit import audit
 
 CHANGE_TYPES_FOR_TODAY = (
@@ -59,6 +60,9 @@ class OrbitContextProvider:
 
     async def _auth(self, user_id: str, project_slug: str | None, *, user_endpoint: bool) -> OrbitAuth:
         account = await self._account(user_id)
+        if account and account.revoked_at is not None:
+            # ORBIT removed this member: no session, and no agent key acting for them either, until they link again
+            raise ContextError("unauthorized", "Your ORBIT access was revoked: link your ORBIT account again")
         if account and account.token_ciphertext and (account.expires_at is None or aware(account.expires_at) > utcnow()):
             token = decrypt(account.token_ciphertext)
             if token:
@@ -66,6 +70,8 @@ class OrbitContextProvider:
         if not user_endpoint and project_slug:
             key = self.settings.orbit_agent_key_map().get(project_slug)
             if key:
+                if await self._key_revoked(project_slug, key):
+                    raise ContextError("unauthorized", "The ORBIT agent key of this project was revoked")
                 if account and account.token_ciphertext:  # the session is gone: the identity and clearance change, say so
                     await self._note_fallback(user_id, project_slug)
                 return OrbitAuth("agent_key", key, on_behalf_of=account.orbit_user_id if account else None)
@@ -73,6 +79,10 @@ class OrbitContextProvider:
             await self._record(user_id, error="unauthorized: your ORBIT session has expired")
             raise ContextError("unauthorized", "Your ORBIT session has expired")
         raise ContextError("not_linked", "ORBIT is not connected for this user")
+
+    async def _key_revoked(self, project_slug: str, key: str) -> bool:
+        async with session_scope() as session:
+            return await revocation.agent_key_revoked(session, project_slug, key)
 
     # --- Health of the link ------------------------------------------------------------------------
 
@@ -136,6 +146,7 @@ class OrbitContextProvider:
             account.orbit_name, account.clearance = str(user.get("full_name") or ""), int(user.get("clearance", 1))
             account.token_ciphertext, account.expires_at, account.linked_at = encrypt(token), expires_at, utcnow()
             account.agent_fallback_at = None  # a fresh session ends any fallback
+            account.revoked_at = account.revoked_reason = None  # and any revocation (the user signed in to ORBIT again)
         return ContextIdentity(
             linked=True,
             external_user_id=str(user["id"]),
@@ -179,9 +190,13 @@ class OrbitContextProvider:
         """Ask ORBIT (``GET /agents/self``) about each configured project key. Unavailable is a state, never an error."""
         states: list[dict[str, Any]] = []
         for slug, key in list(self.settings.orbit_agent_key_map().items())[:MAX_AGENT_KEYS_CHECKED]:
+            revoked = await self._key_revoked(slug, key)
             try:
                 raw = await self.client.agent_self(OrbitAuth("agent_key", key))
             except ContextError as exc:
+                if revoked:  # ORBIT told NOVA this key was revoked and cannot say otherwise: it stays unused
+                    states.append({"project": slug, "available": False, "valid": False, "reason": "revoked"})
+                    continue
                 # 404/403: ORBIT does not offer (or does not allow) the endpoint; 401: it refused this key
                 known = {"not_found": "unsupported", "forbidden": "forbidden", "unauthorized": "key_rejected"}
                 reason = known.get(exc.code, "unreachable")
@@ -194,6 +209,9 @@ class OrbitContextProvider:
                     }
                 )
                 continue
+            if revoked:  # the revoked key was another one of the project: ORBIT still accepts this one
+                async with session_scope() as session:
+                    await revocation.restore_agent_key(session, slug)
             states.append({"project": slug, "available": True, "valid": True, "reason": None, **mapper.agent_self(raw)})
         return states
 

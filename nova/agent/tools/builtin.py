@@ -238,6 +238,8 @@ async def publish_artifact_to_orbit(ctx: ToolContext, args: PublishArtifactIn) -
     snapshot = await ctx.deps.store.get_artifact(args.artifact_id, ctx.state.user_id)
     if snapshot is None:
         raise ToolDenied("Artifact not found or not accessible")
+    if snapshot.needs_review:
+        raise ToolDenied("A source of this Artifact was forgotten or restricted in ORBIT: review it before publishing it")
     markdown = render_markdown(snapshot.content, ctx.deps.artifacts.get(snapshot.type))
     external_id = await ctx.deps.context.publish_document(
         ctx.state.user_id,

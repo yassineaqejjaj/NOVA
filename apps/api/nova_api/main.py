@@ -30,6 +30,7 @@ from nova_api.routers import (
     forge_protocol,
     me,
     missions,
+    orbit_events,
     releases,
     training,
     voice,
@@ -88,6 +89,7 @@ def create_app() -> FastAPI:
         missions,
         training,
         releases,
+        orbit_events,
     ):
         api.include_router(module.router)
     app.include_router(api)
