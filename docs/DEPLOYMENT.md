@@ -177,6 +177,12 @@ The request text is **not** sent by default (`NOVA_FORGE_CAPTURE_INTENT=false`):
 it that way unless the organization decides requests may leave NOVA, since a request can hold confidential (C2) or
 secret (C3) material. The answer and the context are never sent.
 
+Classification guard (`NOVA_FORGE_MAX_CAPTURE_CLASSIFICATION`, default `1`): capture by re-execution sends the request (personal
+data masked) and context excerpts so FORGE can replay them; a run whose context holds a document above C1 (or without a
+level) is **not captured**: its evaluation shows `skipped` with the reason, and nothing is sent. Observed capture of such a
+run sends outcomes only, and withholds the request text even when `NOVA_FORGE_CAPTURE_INTENT=true`. Regression tests from
+an unhelpful rating keep their own fixed ceiling (C1).
+
 ### 1. In FORGE (once, by an administrator)
 
 * The `nova` API key must have the role **editor** (it ingests observed runs and reads release comparisons).

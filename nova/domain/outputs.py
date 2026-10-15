@@ -182,6 +182,7 @@ class EvaluationReference(BaseModel):
     composite_score: float | None = None
     passed: bool | None = None
     url: str | None = None
+    note: str | None = None  # why nothing was captured (status "skipped")
 
 
 class TaskStatusView(BaseModel):

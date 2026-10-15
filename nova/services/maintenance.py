@@ -102,7 +102,7 @@ async def refresh_evaluations() -> int:
         ).all()
         for row in rows:
             reference = EvaluationReference.model_validate(row.data)
-            if reference.status in ("completed", "failed", "cancelled") and not row.data.get("pending_feedback"):
+            if reference.status in ("completed", "failed", "cancelled", "skipped") and not row.data.get("pending_feedback"):
                 continue
             try:
                 reference = await sink.refresh(reference)

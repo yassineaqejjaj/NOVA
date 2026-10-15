@@ -278,6 +278,7 @@ export interface EvaluationRef {
   composite_score?: number | null;
   passed?: boolean | null;
   url?: string | null;
+  note?: string | null;
   pending_feedback?: unknown[];
 }
 
