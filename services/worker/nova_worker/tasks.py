@@ -40,6 +40,12 @@ def requeue_stale() -> int:
     return run(maintenance.requeue_stale_tasks())
 
 
+@celery_app.task(name="nova.process_forge_outbox")
+def process_forge_outbox() -> int:
+    """Send the FORGE captures that are due (retries with backoff; see services/forge_outbox.py)."""
+    return run(maintenance.process_forge_outbox())
+
+
 @celery_app.task(name="nova.refresh_evaluations")
 def refresh_evaluations() -> int:
     return run(maintenance.refresh_evaluations())

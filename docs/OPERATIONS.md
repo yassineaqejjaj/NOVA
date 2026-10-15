@@ -41,6 +41,20 @@ project's configured agent key (ORBIT's key id cannot be matched to NOVA's confi
 screen restores it when ORBIT still accepts the key; rotating the key also lifts it). Administrators list the received
 events (`GET /admin/orbit-events`) and replay one (`POST /admin/orbit-events/{id}/replay`).
 
+## FORGE capture outbox
+
+A finished run's capture into FORGE is recorded first in the `forge_outbox` table (before the run completes, key
+`nova-task:<task id>`), then sent right away. If FORGE is down the row stays `pending` and the worker task
+`nova.process_forge_outbox` (every minute, queue `maintenance`) retries it with an exponential backoff (30 s, 1 min … 1 h)
+up to `NOVA_FORGE_OUTBOX_MAX_ATTEMPTS` (default 10), then marks it `failed` (the failure queue; a refusal by FORGE other
+than 408/425/429 fails at once). `skipped` = nothing was sent (classification guard, FORGE not configured). A run already
+linked to a FORGE run is never sent twice; the answer is never stored in the outbox, and a row is emptied once settled.
+Unhelpful feedback that cannot reach FORGE waits the same way and is delivered after the capture, with no user action.
+State: `GET /api/v1/admin/forge-outbox` (counts per status, age of the oldest waiting row) and
+`GET /api/v1/admin/forge-outbox/metrics` (Prometheus text format: `nova_forge_outbox_rows{status}` and
+`nova_forge_outbox_oldest_waiting_seconds`; administrator credentials required, no `prometheus_client` dependency).
+Alert on `failed > 0` or an oldest waiting age above a few minutes.
+
 ## Scaling
 
 | Component | Scaling |

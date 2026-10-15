@@ -10,7 +10,8 @@ from nova.domain.artifacts import ArtifactContent
 from nova.domain.blocks import Block, ProgressLine
 from nova.domain.context import ContextBundle, ContextItem, SnapshotRef
 from nova.domain.enums import NovaPhase, StepStatus
-from nova.domain.outputs import EvaluationReference, ExecutionPlan, TokenUsage, ToolRequest, ToolResult
+from nova.domain.evaluation import EvaluationSink, ExecutionRecord
+from nova.domain.outputs import ExecutionPlan, TokenUsage, ToolRequest, ToolResult
 from nova.domain.skills import SkillSpec
 
 
@@ -119,8 +120,9 @@ class ExecutionStore(Protocol):
         classification: int,
         proposed: bool = False,
     ) -> tuple[str, int]: ...
-    # Evaluation references (FORGE scenario/run ids — FORGE keeps the traces)
-    async def save_evaluation_reference(self, task_id: str, reference: EvaluationReference) -> None: ...
+    # Capture into the evaluation platform: the intent is recorded first (outbox), then delivered with retries
+    async def queue_capture(self, record: ExecutionRecord) -> str: ...
+    async def deliver_capture(self, outbox_id: str, sink: EvaluationSink | None) -> str | None: ...
 
     async def promote_proposed_version(self, artifact_id: str, version: int, user_id: str) -> None: ...
     async def discard_proposed_version(self, artifact_id: str, version: int, user_id: str) -> None: ...
