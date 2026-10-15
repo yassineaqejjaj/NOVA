@@ -13,8 +13,9 @@ from nova.domain.artifacts import ArtifactContent
 from nova.domain.blocks import Block, ProgressLine
 from nova.domain.context import ContextBundle, ContextItem, SnapshotRef
 from nova.domain.enums import BlockType, EventType, NovaPhase, ProjectRole, StepStatus, role_at_least
+from nova.domain.evaluation import EvaluationSink, ExecutionRecord
 from nova.domain.llm_guardrail import CallScope
-from nova.domain.outputs import EvaluationReference, ExecutionPlan, TokenUsage, ToolRequest, ToolResult
+from nova.domain.outputs import ExecutionPlan, TokenUsage, ToolRequest, ToolResult
 from nova.domain.permissions import Principal, may_read_classification
 from nova.domain.skills import SkillSpec
 from nova.infra.db import session_scope, utcnow
@@ -24,7 +25,6 @@ from nova.infra.models import (
     ArtifactVersion,
     ContextRetrievalReference,
     ExecutionEvent,
-    IntegrationReference,
     MessageBlock,
     ProjectMember,
     SkillExecution,
@@ -35,6 +35,7 @@ from nova.infra.models import (
     WorkflowExecution,
 )
 from nova.infra.redaction import redact_obj
+from nova.services import forge_outbox
 from nova.services.access import AccessDenied, artifact_role, within_clearance
 
 
@@ -518,27 +519,8 @@ class SqlExecutionStore:
                 .values(state="rejected")
             )
 
-    async def save_evaluation_reference(self, task_id: str, reference: EvaluationReference) -> None:
-        async with session_scope() as session:
-            row = await session.scalar(
-                select(IntegrationReference).where(
-                    IntegrationReference.system == "forge",
-                    IntegrationReference.kind == "evaluation",
-                    IntegrationReference.nova_type == "task",
-                    IntegrationReference.nova_id == task_id,
-                )
-            )
-            data = reference.model_dump(mode="json")
-            if row is None:
-                session.add(
-                    IntegrationReference(
-                        system="forge",
-                        kind="evaluation",
-                        nova_type="task",
-                        nova_id=task_id,
-                        external_id=reference.run_id or reference.scenario_id or "",
-                        data=data,
-                    )
-                )
-            else:
-                row.external_id, row.data = reference.run_id or row.external_id, data
+    async def queue_capture(self, record: ExecutionRecord) -> str:
+        return await forge_outbox.enqueue_capture(record)
+
+    async def deliver_capture(self, outbox_id: str, sink: EvaluationSink | None) -> str | None:
+        return await forge_outbox.deliver(outbox_id, sink)
