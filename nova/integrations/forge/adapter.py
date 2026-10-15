@@ -17,7 +17,7 @@ from nova.domain.evaluation import ExecutionRecord, FeedbackRecord, RegressionCa
 from nova.domain.outputs import EvaluationReference
 from nova.infra.db import session_scope
 from nova.infra.models import IntegrationReference
-from nova.integrations.forge import connection, mapper, production
+from nova.integrations.forge import connection, guard, mapper, production
 from nova.integrations.forge.client import ForgeClient, ForgeError
 from nova.integrations.forge.versions import cached_version_id, register_agent_version, remember_version
 from nova.skills.registry import SkillRegistry
@@ -121,7 +121,7 @@ class ForgeEvaluationSink:
                 )
             )
 
-    async def capture_observed(self, record: ExecutionRecord) -> EvaluationReference | None:
+    async def capture_observed(self, record: ExecutionRecord, *, include_intent: bool) -> EvaluationReference | None:
         version_id = await self.agent_version_id()
         scenario_id, config_id = await self._production_ids()
         run = await self.client.create_observed_run(
@@ -130,7 +130,7 @@ class ForgeEvaluationSink:
                 agent_version_id=version_id,
                 scenario_id=scenario_id,
                 evaluation_config_id=config_id,
-                include_intent=self.settings.forge_capture_intent,
+                include_intent=include_intent,
             )
         )
         return EvaluationReference(
@@ -143,8 +143,12 @@ class ForgeEvaluationSink:
     async def capture(self, record: ExecutionRecord) -> EvaluationReference | None:
         if not self.enabled:
             return None
-        if self.settings.forge_capture_mode == "observed":
-            return await self.capture_observed(record)
+        ceiling = self.settings.forge_max_capture_classification
+        too_high = guard.above_ceiling(record, ceiling)
+        if self.settings.forge_capture_mode == "observed":  # outcomes only; the request text never leaves above the ceiling
+            return await self.capture_observed(record, include_intent=self.settings.forge_capture_intent and too_high is None)
+        if too_high is not None:  # FORGE would have to replay the text: not captured, and visibly so
+            return EvaluationReference(status="skipped", note=guard.not_captured_note(too_high, ceiling))
         # FORGE replays the request against NOVA: it must know where and with which credential, before anything is registered
         connection.require_connection(self.settings, endpoint=self._explicit_endpoint, credential_id=self.credential_id)
         version_id = await self.agent_version_id()

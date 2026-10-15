@@ -161,6 +161,8 @@ async def _forge_feedback(session: AsyncSession, task: Task, record: FeedbackRec
             )
             session.add(row)
         reference = EvaluationReference.model_validate(row.data)
+        if reference.status == "skipped":  # the run was not captured (classification): nothing to attach the feedback to
+            return "skipped"
         if reference.status in ("completed", "failed"):
             await sink.feedback(reference, record)
             return "sent"

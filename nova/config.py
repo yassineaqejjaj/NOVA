@@ -125,6 +125,9 @@ class Settings(BaseSettings):
     # Observed capture reports outcomes, never text. The user's request (redacted of personal data) is only sent when
     # this is on: it may hold confidential (C2) or secret (C3) material, so it is off unless the organization opts in.
     forge_capture_intent: bool = False
+    # Highest classification (0-3) of the context of a run that may be captured: above it, capture by re-execution is
+    # skipped (its state says so) and observed capture withholds the request text. C2 and C3 never leave by default.
+    forge_max_capture_classification: int = Field(default=1, ge=0, le=3)
     forge_timeout_seconds: float = 20.0
     # FORGE `nova` credential (Settings → Credentials) whose secret is NOVA_FORGE_INBOUND_TOKEN: FORGE uses it to
     # authenticate when it calls NOVA back. Agent versions registered by NOVA reference it.

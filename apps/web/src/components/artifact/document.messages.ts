@@ -117,11 +117,13 @@ const EVALUATION_STATUS_FR: Record<string, string> = {
   running: "en cours",
   completed: "terminée",
   failed: "échouée",
+  skipped: "non capturée",
 };
 
-/** Status of a FORGE evaluation (English keeps the raw API value). */
+/** Status of a FORGE evaluation (English keeps the raw API value, except a run withheld by the classification guard). */
 export function evaluationStatusLabel(status: string, lang: Lang): string {
-  return lang === "fr" ? (EVALUATION_STATUS_FR[status] ?? status) : status;
+  if (lang !== "fr") return status === "skipped" ? "not captured" : status;
+  return EVALUATION_STATUS_FR[status] ?? status;
 }
 
 const s = (n: number) => (n > 1 ? "s" : "");
