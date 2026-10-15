@@ -28,6 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import Settings, get_settings
+from nova.domain import training_pack
 from nova.domain.agents import AGENTS, AgentProfile
 from nova.domain.learning import (
     MAX_SKILL_LESSONS,
@@ -38,6 +39,7 @@ from nova.domain.learning import (
     promotion_decision,
 )
 from nova.domain.llm import LLMMessage
+from nova.domain.llm_guardrail import CallScope
 from nova.domain.policy_gate import Proof
 from nova.domain.skills import SkillSpec
 from nova.infra.db import aware, session_scope, utcnow
@@ -45,7 +47,7 @@ from nova.infra.models import AgentPolicy, TrainingCycle
 from nova.integrations.forge import connection, mapper
 from nova.integrations.forge.client import ForgeClient, ForgeError
 from nova.integrations.forge.versions import register_agent_version
-from nova.services import learning, policy_gate, providers, releases
+from nova.services import learning, llm_guard, policy_gate, providers, releases
 from nova.services.audit import audit
 from nova.skills.registry import SkillRegistry, get_skill_registry
 
@@ -343,7 +345,11 @@ async def _condense(skill: SkillSpec, item: SkillFeedback, current: AgentLearnin
     if not raw and not item.weaknesses:
         return None
     try:
-        result = await providers.llm().structured_output(
+        # The training pack is synthetic and C1: still sent through the guard, like every other model call
+        model = llm_guard.guard(
+            providers.llm(), CallScope(training_pack.PACK_CLASSIFICATION), llm_guard.org_destination(get_settings())
+        )
+        result = await model.structured_output(
             condense_messages(skill, raw, item.weaknesses, current.skills.get(skill.id, [])), _Lessons
         )
     except Exception:  # the model is optional here: fall back to the deterministic lessons

@@ -15,12 +15,14 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nova.config import get_settings
 from nova.domain.llm import LLMMessage
+from nova.domain.llm_guardrail import CallScope
 from nova.domain.outputs import LearnedSkillDraft
 from nova.domain.trust import TRUST_RULES
 from nova.infra.db import aware, utcnow
 from nova.infra.models import Artifact, ArtifactVersion, AuditEvent, LearnedSkill, Task, UserPreferences
-from nova.services import providers
+from nova.services import llm_guard, providers
 from nova.skills.registry import get_skill_registry
 from nova.skills.router import SkillRouter
 
@@ -75,6 +77,7 @@ async def observed(session: AsyncSession, user_id: uuid.UUID, since: Any) -> lis
                 "at": aware(version.created_at).isoformat(),
                 "kind": "edit",
                 "text": f"{artifact.title} — {', '.join(version.changed_sections or [])}"[:300],
+                "classification": artifact.classification,  # titles of restricted Artifacts do not go to an external model
                 "skills": [],
             }
         )
@@ -150,7 +153,9 @@ async def finish(session: AsyncSession, user_id: uuid.UUID, *, description: str,
         f"OBSERVED IN NOVA:\n{observed_text}\n\nDESCRIBED BY THE USER:\n{description.strip() or 'none'}\n\nCANDIDATE SKILLS:\n"
         + "\n".join(lines)
     )
-    result = await providers.llm().structured_output(
+    scope = CallScope(max((int(e.get("classification", 0)) for e in events), default=0))
+    model = llm_guard.guard(providers.llm(), scope, llm_guard.org_destination(get_settings()), user_id=str(user_id))
+    result = await model.structured_output(
         [LLMMessage(role="system", content=system), LLMMessage(role="user", content=user)], LearnedSkillDraft
     )
     draft: LearnedSkillDraft = result.value

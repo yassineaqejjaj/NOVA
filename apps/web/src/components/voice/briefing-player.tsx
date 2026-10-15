@@ -54,7 +54,7 @@ export function BriefingPlayer() {
         if (run.current !== mine) return; // stopped meanwhile
         setPhase("speaking");
         setCaption(sentence);
-        await player.current?.speak(sentence, briefing.lang);
+        await player.current?.speak(sentence, briefing.lang, 1); // the server already left C2+ items out of the script
       }
     } catch {
       if (run.current === mine) toast(t("failed"));

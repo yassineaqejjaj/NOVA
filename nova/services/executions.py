@@ -24,6 +24,7 @@ from nova.domain.blocks import error_block
 from nova.domain.context import ContextError
 from nova.domain.enums import EventType, ExecutionOrigin, NovaPhase, TaskStatus
 from nova.domain.llm import LLMError
+from nova.domain.llm_guardrail import CallScope
 from nova.domain.manifest import manifest_from_state
 from nova.domain.pricing import Pricing
 from nova.domain.release import TRAFFIC_ORIGINS
@@ -31,7 +32,7 @@ from nova.domain.state import NovaState
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import get_publisher
 from nova.infra.models import ContextRetrievalReference, Task, WorkflowExecution
-from nova.services import compositions, learning, llm_calls, providers, skill_scores
+from nova.services import compositions, learning, llm_calls, llm_config, llm_guard, providers, skill_scores
 from nova.services.access import effective_permissions
 from nova.services.execution_store import SqlExecutionStore, emit_event
 from nova.services.users import get_user, resolve_principal
@@ -77,6 +78,13 @@ async def build_deps(
     pricing = Pricing(settings.llm_price_input_per_mtok, settings.llm_price_output_per_mtok, settings.llm_price_table)
 
     uses_org_model = llm is org_llm  # false for a user's own key (bring your own model): their data stays where they chose
+    # What this run has read (context, extracts, Artifacts) caps where its model calls may go (domain/llm_guardrail.py)
+    scope = CallScope()
+    destination = (
+        llm_guard.org_destination(settings)
+        if uses_org_model or model_override
+        else (await llm_config.destination_for_user(principal_user_id)) or llm_guard.org_destination(settings)
+    )
 
     def recorded(provider: Any) -> Any:  # every attempt is recorded, including the failed ones that trigger a fallback
         return RecordingProvider(provider, llm_calls.recorder_for(task_id), pricing) if task_id else provider
@@ -107,6 +115,12 @@ async def build_deps(
         check = llm_calls.budget_check(task_id, principal_user_id, settings.model_copy(update=limits))
         llm = BudgetedProvider(llm, check)
         skill_llms = {k: BudgetedProvider(v, check) for k, v in skill_llms.items()}
+    # Outermost: a refused call is neither budgeted nor recorded, and nothing is sent (explicit error, audit event)
+    llm = llm_guard.guard(llm, scope, destination, settings=settings, task_id=task_id, user_id=principal_user_id)
+    skill_llms = {
+        k: llm_guard.guard(v, scope, destination, settings=settings, task_id=task_id, user_id=principal_user_id)
+        for k, v in skill_llms.items()
+    }
     return AgentDeps(
         settings=settings,
         llm=llm,
@@ -117,10 +131,11 @@ async def build_deps(
         skills=get_skill_registry(),
         artifacts=get_artifact_registry(),
         tools=get_tool_registry(),
-        store=SqlExecutionStore(principal),
+        store=SqlExecutionStore(principal, scope=scope),
         design=providers.design(),
         evaluation=None if origin == ExecutionOrigin.forge_protocol else providers.evaluation(),
         permissions=permissions,
+        scope=scope,
     )
 
 

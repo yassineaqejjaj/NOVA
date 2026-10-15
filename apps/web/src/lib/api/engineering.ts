@@ -167,6 +167,8 @@ export interface LlmConfig {
   key_hint: string;
   verified_at: string | null;
   default_model: string;
+  /** Highest classification (C0-C3) NOVA lets this model see; below 3 for an external endpoint. */
+  max_classification: number;
 }
 
 export interface GithubStatus {
