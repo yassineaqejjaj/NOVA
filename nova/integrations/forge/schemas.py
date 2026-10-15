@@ -84,6 +84,9 @@ class FapAgent(_In):
     slug: str | None = None
     version: str | None = None
     parameters: dict[str, Any] = Field(default_factory=dict)
+    model: dict[str, Any] | None = None
+    system_prompt: str | None = None
+    tools: list[Any] = Field(default_factory=list)
 
 
 class FapBudget(_In):
@@ -135,6 +138,7 @@ class FapError(BaseModel):
     type: str
     message: str
     retryable: bool = False
+    fields: list[str] | None = None  # unsupported_override: the parts of the request NOVA cannot honour
 
 
 class NovaRunResponse(BaseModel):
