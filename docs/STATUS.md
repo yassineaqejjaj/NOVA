@@ -33,7 +33,8 @@ Freeze rule: pre-production only. Changes below marked "preprod only" go to prod
 | **NOVA → FORGE**: SDLC runs ingested as observed runs (`NOVA_FORGE_SDLC_INGEST`) | yes | `tests/integration/test_sdlc.py`, `test_sdlc_improvement.py` | yes | yes (expected) |
 | **NOVA → FORGE**: user feedback as human evaluation; an unhelpful rating promoted to a regression scenario | yes | `tests/integration/test_feedback_regression.py` | yes | yes (expected) |
 | **FORGE link health** (last exchange, endpoint, credential present, callback problems; administrators) | yes (NOV-93) | `tests/unit/test_forge_link_health.py`, `tests/integration/test_links_api.py` | no | no |
-| **FORGE → NOVA protocol pinning**: executed version reported, received budgets applied, unsupported overrides refused (NOV-72) | PR #35 **open**, not in `preprod` at the time of writing | its own tests (`tests/integration/test_forge_protocol_pinning.py`), CI of the PR | no | no |
+| **FORGE → NOVA protocol pinning**: executed version reported, received budgets applied, unsupported overrides refused with 422 (NOV-72) | yes (PR #35) | `tests/integration/test_forge_protocol_pinning.py` | no | no. After deployment an agent version registered by older code is refused until NOVA registers its current one (next capture or training cycle) |
+| **FORGE capture classification ceiling** (`NOVA_FORGE_MAX_CAPTURE_CLASSIFICATION`, default C1): above it a re-execution capture is skipped (visible as "not captured"), an observed one sends metadata only; the request text is redacted of personal data (NOV-79) | yes (PR #37) | `tests/integration/test_forge_capture_guard.py` | no | no |
 | **Classification ceiling on output to LLMs** (`NOVA_LLM_MAX_CLASSIFICATION`, BYOK, voice) (NOV-76) | PR #34 **open**, not in `preprod` at the time of writing | its own tests (`tests/integration/test_llm_guardrail.py`), CI of the PR | no | no |
 | **FORGE capture outbox** (queue of captures when FORGE is unreachable) | **not in `preprod` at the time of writing** (separate ticket); the links screen shows the queue as "not available" | — | no | no |
 | **FORGE calibrated promotion gate** (FORGE side of the proof NOVA asks for) | **not in NOVA's scope here**; NOVA's gate sits behind an interface and is tested against a fake FORGE | `tests/unit/test_policy_gate.py` | no | no |
@@ -69,6 +70,7 @@ history. Decision needed from the team: untrack (and rotate nothing, the keys ar
 | `NOVA_POLICY_GATE_MIN_EVALUATIONS` | `3` | independent scored runs per arm |
 | `NOVA_FORGE_NOVA_ENDPOINT`, `NOVA_FORGE_CREDENTIAL_ID` | empty | how FORGE calls NOVA back: required and validated, one resolution for capture, training and SDLC (NOV-70); shown in Settings → Links for administrators |
 | `NOVA_DEFAULT_CLEARANCE` | `1` | clearance (0–3) of a user with no linked ORBIT account, for derived content (NOV-75) |
+| `NOVA_FORGE_MAX_CAPTURE_CLASSIFICATION` | `C1` | highest classification of a production execution NOVA captures into FORGE (NOV-79) |
 | `NOVA_POLICY_MAX_CLASSIFICATION` | `3` | context above this level is refused, including context FORGE hands over (NOV-68) |
 | `NOVA_ORBIT_AGENT_KEYS` | empty | `slug:key` per project; when a session expires NOVA falls back to it, now signalled and audited (NOV-93) |
 

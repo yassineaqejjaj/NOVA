@@ -278,6 +278,10 @@ protocol router `apps/api/nova_api/routers/forge_protocol.py`.
    | Limits | not the exact production output; a replay costs model calls | rule-based score only (completed, Skills completed, no error); the request text leaves NOVA only with `NOVA_FORGE_CAPTURE_INTENT=true` (redacted); the answer and the context are never sent |
    | Visibility / classification | scenario `visibility` is **`private` as soon as the context holds C2 or C3 material** (`mapper.py`), `public` for C0/C1 context; `classification` = max classification of the ORBIT context used (at least 1) | one shared scenario, `visibility=public`, `classification=1`: no content in it |
 
+   A production execution above `NOVA_FORGE_MAX_CAPTURE_CLASSIFICATION` (default C1; a document without a level counts C3)
+   is **not captured** in `reexecute` mode (shown as "not captured" in Work) and reported as metadata only, without the
+   request text, in `observed` mode; the request is always redacted of personal data first.
+
    The SDLC Autopilot's runs are always ingested as observed runs (`NOVA_FORGE_SDLC_INGEST`), never code or diffs.
    Operating the observed mode: [`DEPLOYMENT.md`](DEPLOYMENT.md#enabling-the-release-watch-observed-capture--automatic-rollback).
 5. **Feedback**: "Useful / Not useful" on a captured execution → FORGE human evaluation on
