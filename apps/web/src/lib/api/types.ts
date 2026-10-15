@@ -279,7 +279,21 @@ export interface EvaluationRef {
   passed?: boolean | null;
   url?: string | null;
   note?: string | null;
+  /** What `composite_score` measures: execution health of the real run (observed) or a replay's score (reexecute). */
+  mode?: "observed" | "reexecute" | null;
   pending_feedback?: unknown[];
+}
+
+export interface ScoreView {
+  score: number | null;
+  checks: { key: string; weight: number; value: number; detail: string }[];
+}
+
+/** Three separate indicators of a settled run: never merged into one number. */
+export interface TaskScores {
+  execution_health: number;
+  deliverable_quality: ScoreView;
+  business_gain: ScoreView;
 }
 
 export interface WorkItem {
@@ -302,6 +316,7 @@ export interface WorkItem {
   artifact_ids: string[];
   steps?: TaskStep[];
   artifacts?: { id: string; title: string; type: string; version: number }[];
+  scores?: TaskScores | null;
   model?: string | null;
   usage?: { input_tokens?: number; output_tokens?: number; model_calls?: number };
   waiting_for?: WaitingFor | null;

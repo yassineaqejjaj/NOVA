@@ -183,6 +183,20 @@ level) is **not captured**: its evaluation shows `skipped` with the reason, and 
 run sends outcomes only, and withholds the request text even when `NOVA_FORGE_CAPTURE_INTENT=true`. Regression tests from
 an unhelpful rating keep their own fixed ceiling (C1).
 
+What the FORGE score means depends on the capture mode, and NOVA says so (Work → task detail):
+
+* `observed` (production reality): the score is the **execution health** of the run the user actually got: it completed, every
+  Skill delivered, no error. A run that finished but produced something empty or wrong still scores 100.
+* `reexecute` (the default, kept): FORGE replays the request under the version active at that moment and scores **that other
+  execution**. Scores stay comparable across versions (a regression test), but it is not the user's run. It remains the default
+  because it needs no change on the FORGE side, sends no outcome data and its scores do not depend on live traffic; use
+  `observed` to monitor real releases (below).
+
+Two other indicators are computed by NOVA from what it stores, never merged into the FORGE score: **deliverable quality**
+(content present, validation passed, citations kept, the user's rating) and **business gain** (deliverable accepted or refused,
+share corrected by people). A signal NOVA does not have is left out, not counted as good or bad. No LLM judge grades the
+output; if one is ever added it may only read declassified output (the capture classification guard above).
+
 ### 1. In FORGE (once, by an administrator)
 
 * The `nova` API key must have the role **editor** (it ingests observed runs and reads release comparisons).
