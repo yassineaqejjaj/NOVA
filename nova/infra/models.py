@@ -530,6 +530,30 @@ class IntegrationReference(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
+class ForgeOutbox(Base):
+    """Intent to capture a finished run into FORGE, recorded before the run completes and delivered with retries.
+
+    ``status``: ``pending`` (to send, ``next_attempt_at`` says when) → ``sent`` | ``failed`` (gave up: the failure queue)
+    | ``skipped`` (nothing was sent, e.g. the classification guard). ``idempotency_key`` is ``nova-task:<task id>``, FORGE's
+    own idempotency key for observed runs: one NOVA run is never captured twice.
+    """
+
+    __tablename__ = "forge_outbox"
+    __table_args__ = (Index("ix_forge_outbox_due", "status", "next_attempt_at"),)
+    id: Mapped[uuid.UUID] = _pk()
+    kind: Mapped[str] = mapped_column(String(20), default="capture")
+    task_id: Mapped[str] = mapped_column(String(64), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(100), unique=True)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(String(300))
+    payload: Mapped[dict] = mapped_column(JSONType, default=dict)  # {record, feedback}; emptied once settled
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
     __table_args__ = (Index("ix_audit_created", "created_at"),)
