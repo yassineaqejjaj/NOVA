@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import ExecutionPaused
-from nova.agent.providers.budget import BudgetedProvider, BudgetExceeded
+from nova.agent.providers.budget import BudgetedProvider, BudgetExceeded, tightest
 from nova.agent.providers.factory import build_llm_provider
 from nova.agent.providers.fallback import FallbackProvider, fallback_breakers
 from nova.agent.providers.recording import RecordingProvider
@@ -59,8 +59,12 @@ async def build_deps(
     origin: str,
     task_id: str | None = None,
     model_override: str | None = None,
+    run_budget: dict[str, Any] | None = None,
 ) -> AgentDeps:
-    """The ports of one execution. With a ``task_id`` every model call is recorded (tokens, cost, latency)."""
+    """The ports of one execution. With a ``task_id`` every model call is recorded (tokens, cost, latency).
+
+    ``run_budget`` (``max_tokens``, ``max_cost``) is a cap the caller asks for (FORGE): the tighter of it and NOVA's own applies.
+    """
     async with session_scope() as session:
         user = await get_user(session, principal_user_id)
         assert user is not None
@@ -103,8 +107,12 @@ async def build_deps(
                 skill_llms[skill_id] = recorded(build_llm_provider(settings.model_copy(update={"llm_model": model})))
             else:
                 log.warning("Model %s routed to Skill %s is not an allowed model: ignored", model, skill_id)
-    if task_id and (settings.run_cost_budget_usd or settings.run_token_budget or settings.user_daily_cost_budget_usd):
-        check = llm_calls.budget_check(task_id, principal_user_id, settings)
+    limits = {
+        "run_cost_budget_usd": tightest(settings.run_cost_budget_usd, (run_budget or {}).get("max_cost")),
+        "run_token_budget": int(tightest(settings.run_token_budget, (run_budget or {}).get("max_tokens"))),
+    }
+    if task_id and (any(limits.values()) or settings.user_daily_cost_budget_usd):
+        check = llm_calls.budget_check(task_id, principal_user_id, settings.model_copy(update=limits))
         llm = BudgetedProvider(llm, check)
         skill_llms = {k: BudgetedProvider(v, check) for k, v in skill_llms.items()}
     # Outermost: a refused call is neither budgeted nor recorded, and nothing is sent (explicit error, audit event)
@@ -215,7 +223,14 @@ async def _run_segment(
         message_id = str(task.message_id) if task.message_id else None
         await emit_event(session, get_publisher(), tid, EventType.task, {"status": "running"})
 
-    deps = await build_deps(user_id, project_id, origin, task_id, model_override=initial_input.get("model_override"))
+    deps = await build_deps(
+        user_id,
+        project_id,
+        origin,
+        task_id,
+        model_override=initial_input.get("model_override"),
+        run_budget=initial_input.get("run_budget"),
+    )
     parent = extract(traceparent) if traceparent else otel_context.get_current()
     settings = get_settings()
     try:

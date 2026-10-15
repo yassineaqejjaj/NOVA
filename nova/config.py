@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
     version: str = "0.1.0"
+    build_commit: str = ""  # commit of the running build (NOVA_BUILD_COMMIT; else the platform's, reported to FORGE)
     public_url: str = "http://localhost:3200"
 
     # --- Infrastructure -------------------------------------------------------------------------

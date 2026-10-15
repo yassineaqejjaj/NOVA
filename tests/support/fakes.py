@@ -222,6 +222,9 @@ class FakeContextProvider:
     async def identity(self, user_id: str) -> ContextIdentity:
         return ContextIdentity(linked=True, external_user_id="orbit-user", email="y@example.com", mode="session")
 
+    async def agent_keys_status(self) -> list[dict[str, Any]]:
+        return []
+
     async def propose_memory(self, user_id: str, project_slug: str, **kwargs: Any) -> str:
         self.proposals.append(kwargs)
         return "memory-1"

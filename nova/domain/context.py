@@ -6,7 +6,7 @@ The NOVA domain never sees ORBIT payloads — only these types.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -166,7 +166,14 @@ class ContextIdentity(BaseModel):
     display_name: str | None = None
     clearance: int | None = None
     expires_at: datetime | None = None
-    mode: Literal["session", "agent_key", "none"] = "none"
+    mode: Literal["session", "agent_key", "none"] = "none"  # the credential actually used for ORBIT calls
+    session_expired: bool = False
+    # The session is gone and the project agent key acts instead: another identity, a lower clearance
+    fallback: bool = False
+    agent_projects: list[str] = []  # projects with an agent key configured (slugs only, never the keys)
+    last_success_at: datetime | None = None
+    last_error_at: datetime | None = None
+    last_error: str | None = None
 
 
 class ContextError(Exception):
@@ -207,6 +214,8 @@ class ContextProvider(Protocol):
     ) -> None: ...
 
     async def identity(self, user_id: str) -> ContextIdentity: ...
+
+    async def agent_keys_status(self) -> list[dict[str, Any]]: ...
 
     # Write-back (external writes: always behind the approval policy)
     async def propose_memory(

@@ -69,6 +69,19 @@ resumed execution keeps its lessons and FORGE knows which policy it evaluated (`
   and its records then inherit that level, tools that write to an external system are withheld at C3, and context
   above `NOVA_POLICY_MAX_CLASSIFICATION` is refused (`403 CLASSIFICATION_REFUSED`). The training pack is not
   classified yet, so its runs read as C3 (harmless: synthetic data, no external write).
+* NOVA runs its **current** runtime and never pretends otherwise. The response `metadata` distinguishes
+  `requested_version` (the label FORGE declared in `agent.version`), `executed_version` (fingerprint of what ran,
+  detailed in `executed`: NOVA version, runtime commit, Skill catalog digest, provider/model, `policy_id` and the
+  parameters of the run) and `accepted_overrides` (`options.policy_id`, `input.nova_skill`, `budget.*`).
+  A call whose `agent.version` is not the version NOVA registered for its current release (or, for a specialist, for
+  the policy of `options.policy_id`), whose `agent.model` differs from the runtime's, or that brings a foreign
+  `agent.system_prompt` or `agent.tools` is **refused**: `422`, error `type: "unsupported_override"` with the list
+  of `fields` and nothing is executed (decision: refuse rather than run "unpinned"). A FORGE agent version created
+  by hand therefore has to match NOVA's runtime, or NOVA registers its own (`NOVA_FORGE_CAPTURE_POLICY`).
+* `budget.max_tokens` and `budget.max_cost` are enforced before each model call, together with
+  `NOVA_RUN_TOKEN_BUDGET` / `NOVA_RUN_COST_BUDGET_USD` (the tighter wins); a cost cap needs prices
+  (`NOVA_LLM_PRICE_*`) to ever trigger. `NOVA_BUILD_COMMIT` (else the platform's commit) is reported as `runtime_commit`.
+* Any bearer token that is not the NOVA service token, whatever its characters, is a `401`.
 * NOVA's citation labels are rewritten for FORGE: `[S1]` → `[source: <FORGE document id>]`, the form FORGE's
   citation rules recognise (NOVA's own Artifacts are unchanged).
 

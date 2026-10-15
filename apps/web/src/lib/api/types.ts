@@ -55,7 +55,51 @@ export interface OrbitIdentity {
   display_name?: string | null;
   clearance?: number | null;
   expires_at?: string | null;
+  /** The credential ORBIT calls really use: the user's session, or the project's agent key. */
   mode: "session" | "agent_key" | "none";
+  session_expired?: boolean;
+  /** The session is gone and the project agent key acts instead (another identity, a lower clearance). */
+  fallback?: boolean;
+  agent_projects?: string[];
+  last_success_at?: string | null;
+  last_error_at?: string | null;
+  last_error?: string | null;
+}
+
+/** State of an ORBIT agent key (`GET /agents/self`); `available: false` when ORBIT does not tell. Never the key. */
+export interface OrbitAgentKey {
+  project: string;
+  available: boolean;
+  valid: boolean | null;
+  reason: "unsupported" | "forbidden" | "unreachable" | "key_rejected" | null;
+  name?: string;
+  clearance?: number | null;
+  scopes?: string[];
+  orbit_project?: string;
+}
+
+export interface ForgeLink {
+  status: "ok" | "degraded" | "not_configured";
+  configured: boolean;
+  endpoint: string;
+  api_key_present: boolean;
+  inbound_credential_set: boolean;
+  /** Where FORGE calls NOVA back, and what is wrong with that connection (setting names only). */
+  callback_endpoint: string;
+  problems: string[];
+  capture_policy: string;
+  capture_mode: string;
+  last_success_at: string | null;
+  last_error_at: string | null;
+  last_error: string | null;
+  /** Pending captures (outbox); null while NOVA has no capture outbox. */
+  capture_queue: number | null;
+}
+
+/** `GET /me/links`: the health of the ORBIT and FORGE links; `forge` is for administrators only. */
+export interface Links {
+  orbit: OrbitIdentity & { status: "ok" | "degraded" | "fallback" | "expired" | "agent_key" | "unlinked"; agent_keys: OrbitAgentKey[] };
+  forge: ForgeLink | null;
 }
 
 export interface Block<T = Record<string, unknown>> { key: string; type: BlockType; position: number; data: T }
