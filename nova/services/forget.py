@@ -34,6 +34,7 @@ from nova.infra.models import (
     ContextRetrievalReference,
     ExecutionEvent,
     ForgeErasureRequest,
+    ForgeOutbox,
     ForgetRequest,
     IntegrationReference,
     Message,
@@ -169,6 +170,11 @@ async def _erase(
             for skill_run in await session.scalars(select(SkillExecution).where(SkillExecution.task_id == task.id)):
                 skill_run.output = None  # the derived content of the step
         effects["forge_requests"] += await _request_forge_erasure(session, task.id)
+        # A capture still waiting to be sent to FORGE holds the run's context: it is emptied and never sent
+        for outbox in await session.scalars(select(ForgeOutbox).where(ForgeOutbox.task_id == str(task.id))):
+            outbox.payload = {}
+            if outbox.status == "pending":
+                outbox.status, outbox.last_error, outbox.settled_at = "skipped", "forgotten", now
 
     # 4. Checkpoints (they carry the whole context of the run): last, once the database side is consistent
     await session.flush()

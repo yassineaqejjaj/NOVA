@@ -151,7 +151,7 @@ async def build_execution_record(state: NovaState, d: AgentDeps) -> ExecutionRec
 
 @node("emit_forge_trace")
 async def emit_forge_trace(state: NovaState, runtime: Runtime[AgentDeps]) -> dict[str, Any]:
-    """Record execution attributes on the trace; capture into FORGE according to policy.
+    """Record execution attributes on the trace; queue the capture into FORGE according to policy (outbox, with retries).
 
     FORGE-initiated runs are already in FORGE (the protocol response carries the events).
     """
@@ -171,9 +171,9 @@ async def emit_forge_trace(state: NovaState, runtime: Runtime[AgentDeps]) -> dic
         return {}
     try:
         record = await build_execution_record(state, d)
-        reference = await d.evaluation.capture(record)
-        if reference is not None:
-            await d.store.save_evaluation_reference(state.task_id, reference)
+        # The intent is durable before the run completes; a FORGE that is down only delays it (services/forge_outbox.py)
+        outbox_id = await d.store.queue_capture(record)
+        await d.store.deliver_capture(outbox_id, d.evaluation)
     except Exception:
         log.warning("FORGE capture failed for task %s", state.task_id, exc_info=True)
     return {}

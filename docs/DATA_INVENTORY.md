@@ -14,6 +14,7 @@ erasure by source, project or user (`nova/services/forget.py`) goes further, at 
 | Run input | `tasks.input` | `provided_context` (FORGE-driven runs), pinned references | kept | items scrubbed, pins removed, `forgotten_at` set: no replay with the original context |
 | Skill outputs | `skill_executions.output` | derived content of a step | kept | emptied under `NOVA_FORGET_ARTIFACTS=purge` |
 | Derived Artifacts | `artifacts`, `artifact_versions`, `artifact_comments` | content written from the sources | kept (user content) | flagged "source removed" (`mark`, default) or deleted (`purge`) |
+| FORGE capture outbox | `forge_outbox.payload` | the run record waiting to be sent to FORGE (context items) | emptied once settled | emptied, a waiting capture is cancelled (`skipped`) and never sent |
 | FORGE evaluations | `integration_references` (kind `evaluation`), and FORGE's own run | run id, scores; FORGE holds the captured run | kept | link deleted, a `forge_erasure_requests` row asks FORGE to delete the run (`DELETE /api/v1/runs/{id}`, acknowledged by a 2xx, retried every 10 min) |
 | ORBIT events and forget requests | `orbit_events`, `forget_requests`, `audit_events` | ids, types, counts of what was done | kept (audit trail) | never hold content |
 

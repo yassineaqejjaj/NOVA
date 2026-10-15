@@ -1,7 +1,7 @@
 """ORBIT revocation events: revoked extracts, Artifacts to review, revoked accounts, received events
 
-Revision ID: 0017
-Revises: 0016
+Revision ID: 0018
+Revises: 0017
 Create Date: 2026-10-14 09:00:00
 """
 
@@ -13,8 +13,8 @@ from sqlalchemy.dialects import postgresql
 
 JSON = sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql")
 
-revision: str = "0017"
-down_revision: str | None = "0016"
+revision: str = "0018"
+down_revision: str | None = "0017"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

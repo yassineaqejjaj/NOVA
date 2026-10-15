@@ -138,6 +138,7 @@ class ForgeEvaluationSink:
             run_id=str(run.get("id")),
             status=run.get("status"),
             url=f"{self.settings.forge_public_url.rstrip('/')}/runs/{run.get('id')}",
+            mode="observed",
         )
 
     async def capture(self, record: ExecutionRecord) -> EvaluationReference | None:
@@ -148,7 +149,7 @@ class ForgeEvaluationSink:
         if self.settings.forge_capture_mode == "observed":  # outcomes only; the request text never leaves above the ceiling
             return await self.capture_observed(record, include_intent=self.settings.forge_capture_intent and too_high is None)
         if too_high is not None:  # FORGE would have to replay the text: not captured, and visibly so
-            return EvaluationReference(status="skipped", note=guard.not_captured_note(too_high, ceiling))
+            return EvaluationReference(status="skipped", note=guard.not_captured_note(too_high, ceiling), mode="reexecute")
         # FORGE replays the request against NOVA: it must know where and with which credential, before anything is registered
         connection.require_connection(self.settings, endpoint=self._explicit_endpoint, credential_id=self.credential_id)
         version_id = await self.agent_version_id()
@@ -160,6 +161,7 @@ class ForgeEvaluationSink:
             run_id=str(run.get("id")) if run else None,
             status=run.get("status"),
             url=f"{self.settings.forge_public_url.rstrip('/')}/runs/{run.get('id')}" if run else None,
+            mode="reexecute",
         )
 
     async def refresh(self, reference: EvaluationReference) -> EvaluationReference:

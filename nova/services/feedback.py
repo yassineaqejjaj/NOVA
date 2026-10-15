@@ -25,7 +25,7 @@ from nova.infra.models import (
     SkillExecution,
     Task,
 )
-from nova.services import providers
+from nova.services import forge_outbox, providers
 from nova.services.access import AccessDenied, require_artifact, require_task
 from nova.services.audit import audit
 
@@ -148,7 +148,13 @@ async def _forge_feedback(session: AsyncSession, task: Task, record: FeedbackRec
             from nova.services.executions import build_deps
 
             deps = await build_deps(str(task.user_id), task.project_id, task.origin)
-            reference = await sink.capture(await build_execution_record(state, deps))
+            captured = await build_execution_record(state, deps)
+            try:
+                reference = await sink.capture(captured)
+            except Exception:  # FORGE is unavailable: the capture and this feedback wait in the outbox, no action needed
+                log.warning("FORGE capture for feedback on task %s queued for retry", task.id, exc_info=True)
+                await forge_outbox.enqueue_capture(captured, feedback=[record.model_dump(mode="json")], session=session)
+                return "pending"
             if reference is None:
                 return None
             row = IntegrationReference(
@@ -164,8 +170,11 @@ async def _forge_feedback(session: AsyncSession, task: Task, record: FeedbackRec
         if reference.status == "skipped":  # the run was not captured (classification): nothing to attach the feedback to
             return "skipped"
         if reference.status in ("completed", "failed"):
-            await sink.feedback(reference, record)
-            return "sent"
+            try:
+                await sink.feedback(reference, record)
+                return "sent"
+            except Exception:  # kept for the refresh job instead of being lost
+                log.warning("FORGE feedback on task %s will be retried", task.id, exc_info=True)
         row.data = {**row.data, "pending_feedback": [*(row.data.get("pending_feedback") or []), record.model_dump(mode="json")]}
         return "pending"  # delivered by the refresh job once FORGE has evaluated the run
     except Exception:

@@ -1,7 +1,7 @@
 """Forgetting and propagated retention: forget requests, FORGE erasure requests
 
-Revision ID: 0018
-Revises: 0017
+Revision ID: 0019
+Revises: 0018
 Create Date: 2026-10-14 14:00:00
 """
 
@@ -13,8 +13,8 @@ from sqlalchemy.dialects import postgresql
 
 JSON = sa.JSON().with_variant(postgresql.JSONB(astext_type=sa.Text()), "postgresql")
 
-revision: str = "0018"
-down_revision: str | None = "0017"
+revision: str = "0019"
+down_revision: str | None = "0018"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

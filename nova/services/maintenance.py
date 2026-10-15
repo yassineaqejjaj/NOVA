@@ -13,7 +13,7 @@ from nova.domain.evaluation import FeedbackRecord
 from nova.domain.outputs import EvaluationReference
 from nova.infra.db import session_scope, utcnow
 from nova.infra.models import ContextRetrievalReference, ExecutionEvent, IntegrationReference, Task
-from nova.services import forget, providers
+from nova.services import forge_outbox, forget, providers
 from nova.services.dispatch import dispatch
 
 log = logging.getLogger(__name__)
@@ -82,6 +82,11 @@ async def requeue_stale_tasks(older_than: timedelta = timedelta(minutes=2)) -> i
             continue  # a resume carries the user's answer in the broker message; it cannot be rebuilt here
         await dispatch(task_id, mode)
     return len(work)
+
+
+async def process_forge_outbox() -> int:
+    """Catch-up pass: captures FORGE could not take (it was down, a worker died) are attempted again when they are due."""
+    return await forge_outbox.process_due(providers.evaluation())
 
 
 async def refresh_evaluations() -> int:

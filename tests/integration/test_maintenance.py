@@ -129,6 +129,24 @@ async def test_forgetting_a_source_leaves_no_readable_copy_even_in_the_checkpoin
     assert f"run-{task_id}" in fake.deleted  # FORGE was asked to delete the run it received
 
 
+async def test_a_capture_waiting_for_forge_is_emptied_and_never_sent(user, project, llm, orbit, forge):
+    from nova.infra.models import ForgeOutbox
+
+    providers.override("forge_client", FakeForge())
+    task_id = await _run(user, project, orbit)
+    async with db.session_scope() as session:
+        row = await session.scalar(select(ForgeOutbox).where(ForgeOutbox.task_id == task_id))
+        if row is None:
+            row = ForgeOutbox(task_id=task_id, idempotency_key=f"nova-task:{task_id}")
+            session.add(row)
+        row.status, row.payload = "pending", {"record": {"context": MARKER}}
+    async with db.session_scope() as session:
+        await forget.forget_source(session, document_id=DOC, project_slug="forge", actor_id=None)
+    async with db.session_scope() as session:
+        row = await session.scalar(select(ForgeOutbox).where(ForgeOutbox.task_id == task_id))
+    assert row.payload == {} and row.status == "skipped"
+
+
 async def test_other_sources_of_a_reference_are_kept_out_of_replays_but_not_erased(user, project, llm, orbit, forge):
     providers.override("forge_client", FakeForge())
     task_id = await _run(user, project, orbit)

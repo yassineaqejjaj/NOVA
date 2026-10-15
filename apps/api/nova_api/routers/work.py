@@ -21,6 +21,7 @@ from nova.infra.models import Artifact, IntegrationReference, Task, Workflow
 from nova.services import activity as activity_service
 from nova.services import briefing as briefing_service
 from nova.services import projects as project_service
+from nova.services import scores as scores_service
 from nova.services import today as today_service
 from nova.services.access import AccessDenied, project_role, require_task, within_clearance
 from nova.services.feedback import FeedbackIn, RegressionError, promote_to_regression, submit_feedback
@@ -104,6 +105,8 @@ async def _task_view(session: AsyncSession, task: Task, principal: Principal, *,
             model=task.model,
             autonomy=task.autonomy,
             artifacts=[{"id": str(a.id), "title": a.title, "type": a.type, "version": a.current_version} for a in artifacts],
+            # Three separate indicators (never one number): the FORGE score of an observed run is the first one only
+            scores=await scores_service.task_scores(session, task, principal),
         )
     return view
 
