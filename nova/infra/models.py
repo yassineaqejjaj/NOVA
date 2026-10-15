@@ -93,6 +93,9 @@ class OrbitAccount(Base):
     last_error_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_error: Mapped[str | None] = mapped_column(String(300))
     agent_fallback_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # ORBIT revoked this access (member removed): the session was dropped, relinking is needed (NOV-81)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_reason: Mapped[str | None] = mapped_column(String(60))
 
 
 class OrbitSnapshotReference(Base):
@@ -398,6 +401,9 @@ class Artifact(Base):
     task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tasks.id", ondelete="SET NULL"))
     current_version: Mapped[int] = mapped_column(Integer, default=1)
     classification: Mapped[int] = mapped_column(Integer, default=1)
+    # A source it cites was forgotten or its access changed in ORBIT: to review before it can be exported (NOV-81)
+    review_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_reason: Mapped[str | None] = mapped_column(String(60))
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -449,7 +455,28 @@ class ContextRetrievalReference(Base):
     max_classification: Mapped[int] = mapped_column(Integer, default=0)
     snapshot_name: Mapped[str | None] = mapped_column(String(200))  # ORBIT base snapshot applied (reference only)
     snapshot_version: Mapped[int | None] = mapped_column(Integer)
+    # ORBIT forgot the source or changed who may read it: never served again, never replayed (NOV-81)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_reason: Mapped[str | None] = mapped_column(String(60))
     created_at: Mapped[datetime] = _created()
+
+
+class OrbitEvent(Base):
+    """A revocation event received from ORBIT (signed webhook): idempotence key, audit and replay. No content."""
+
+    __tablename__ = "orbit_events"
+    id: Mapped[uuid.UUID] = _pk()
+    delivery_id: Mapped[str] = mapped_column(String(80), unique=True)  # ORBIT's ``X-Orbit-Delivery``
+    type: Mapped[str] = mapped_column(String(60))
+    project_slug: Mapped[str | None] = mapped_column(String(120))
+    target_type: Mapped[str] = mapped_column(String(20))
+    target_id: Mapped[str] = mapped_column(String(80))
+    payload: Mapped[dict] = mapped_column(JSONType, default=dict)  # the minimal payload ORBIT sends: ids and levels
+    status: Mapped[str] = mapped_column(String(20), default="received")  # received | processed | failed
+    effects: Mapped[dict] = mapped_column(JSONType, default=dict)
+    error: Mapped[str | None] = mapped_column(String(300))
+    received_at: Mapped[datetime] = _created()
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class LLMCall(Base):

@@ -15,6 +15,9 @@ const M = defineMessages({
     s_degraded: "Last exchange failed",
     s_fallback: "Acting with the project key",
     s_expired: "Session expired",
+    s_revoked: "Access revoked by ORBIT",
+    revokedWarning: "ORBIT removed you from a project: your session was dropped and your clearance reset. Reconnect ORBIT to continue.",
+    keyRevoked: "revoked by ORBIT",
     s_agent_key: "Project key only",
     s_unlinked: "Not connected",
     s_not_configured: "Not configured",
@@ -53,6 +56,9 @@ const M = defineMessages({
     s_degraded: "Dernier échange en erreur",
     s_fallback: "Agit avec la clé du projet",
     s_expired: "Session expirée",
+    s_revoked: "Accès révoqué par ORBIT",
+    revokedWarning: "ORBIT vous a retiré d’un projet : votre session a été supprimée et votre habilitation réinitialisée. Reconnectez ORBIT pour continuer.",
+    keyRevoked: "révoquée par ORBIT",
     s_agent_key: "Clé de projet uniquement",
     s_unlinked: "Non connecté",
     s_not_configured: "Non configuré",
@@ -86,7 +92,7 @@ const M = defineMessages({
   },
 });
 
-const TONE = { ok: "success", degraded: "warning", fallback: "warning", expired: "danger", agent_key: "neutral", unlinked: "neutral", not_configured: "neutral" } as const;
+const TONE = { ok: "success", degraded: "warning", fallback: "warning", expired: "danger", revoked: "danger", agent_key: "neutral", unlinked: "neutral", not_configured: "neutral" } as const;
 
 function Row({ label, children, testId }: { label: string; children: React.ReactNode; testId?: string }) {
   return (
@@ -99,11 +105,11 @@ function Row({ label, children, testId }: { label: string; children: React.React
 
 function AgentKey({ k }: { k: OrbitAgentKey }) {
   const t = useT(M);
-  const state = !k.available ? t("keyUnavailable") : k.valid ? t("keyValid") : t("keyRejected");
+  const state = k.reason === "revoked" ? t("keyRevoked") : !k.available ? t("keyUnavailable") : k.valid ? t("keyValid") : t("keyRejected");
   return (
     <li className="flex flex-wrap items-center gap-2" data-testid="agent-key">
       <code className="text-[12.5px]">{k.project}</code>
-      <Badge tone={k.available && k.valid ? "success" : k.available ? "danger" : "neutral"}>{state}</Badge>
+      <Badge tone={k.available && k.valid ? "success" : k.available || k.reason === "revoked" ? "danger" : "neutral"}>{state}</Badge>
       {k.available && k.valid ? (
         <span className="text-[12px] text-muted">
           {k.clearance != null ? `C${k.clearance}` : ""}{k.scopes?.length ? ` · ${t("keyScopes")}: ${k.scopes.join(", ")}` : ""}
@@ -120,6 +126,7 @@ function OrbitSection({ orbit }: { orbit: Links["orbit"] }) {
     <section data-testid="link-orbit" data-status={orbit.status}>
       <h4 className="flex items-center gap-2 text-[14px] font-semibold">{t("orbit")} <Badge tone={TONE[orbit.status]}>{t(`s_${orbit.status}` as "s_ok")}</Badge></h4>
       {orbit.fallback ? <p role="alert" className="mt-2 rounded-[10px] border border-warning/40 bg-warning/[0.06] px-3 py-2 text-[13px]" data-testid="orbit-fallback">{t("fallbackWarning")}</p> : null}
+      {orbit.status === "revoked" ? <p role="alert" className="mt-2 text-[13px] text-danger" data-testid="orbit-revoked">{t("revokedWarning")}</p> : null}
       {orbit.status === "expired" ? <p role="alert" className="mt-2 text-[13px] text-danger">{t("expiredWarning")}</p> : null}
       <dl className="mt-1 divide-y divide-border/60">
         <Row label={t("acting")} testId="orbit-acting">{acting}</Row>

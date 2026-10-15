@@ -16,7 +16,7 @@ from nova.domain.context import ContextError, ContextIdentity
 from nova.domain.enums import AutonomyMode
 from nova.domain.permissions import ACTION_DEFAULTS, ACTIONS
 from nova.infra.db import get_session, utcnow
-from nova.infra.models import User, UserPreferences
+from nova.infra.models import OrbitAccount, User, UserPreferences
 from nova.integrations import link_health
 from nova.integrations.forge import connection as forge_connection
 from nova.services import providers
@@ -133,13 +133,16 @@ async def _forge_link(settings: Any) -> dict[str, Any]:
 
 
 @router.get("/me/links")
-async def links(principal: CurrentPrincipal) -> dict[str, Any]:
+async def links(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
     """Health of the ORBIT and FORGE links: who acts, until when, with which clearance, last exchange. Never a secret."""
     provider = providers.context()
     identity = await provider.identity(principal.user_id)
     keys_status = getattr(provider, "agent_keys_status", None)
     agent_keys = await keys_status() if keys_status and identity.agent_projects else []
     orbit = {**identity.model_dump(mode="json"), "status": _orbit_status(identity), "agent_keys": agent_keys}
+    revoked = await session.get(OrbitAccount, uuid.UUID(principal.user_id))
+    if revoked is not None and revoked.revoked_at is not None:  # ORBIT removed this member (NOV-81): link again
+        orbit.update(status="revoked", revoked_at=revoked.revoked_at.isoformat(), revoked_reason=revoked.revoked_reason)
     return {"orbit": orbit, "forge": await _forge_link(get_settings()) if principal.is_admin else None}
 
 

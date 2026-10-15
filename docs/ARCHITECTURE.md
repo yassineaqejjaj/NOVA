@@ -326,6 +326,10 @@ The Python core lives in one package (`nova/`) used by both the API and the work
   condensation) use the same guard with the level of their input. Not covered: conversation history carried in
   prompts has no level of its own. In production the settings validation refuses a ceiling above C1 on an external
   model unless it is declared local or explicitly overridden (`NOVA_LLM_ALLOW_CLASSIFIED_EXTERNAL`).
+* **Revocation from ORBIT** (`nova/services/revocation.py`, `POST /api/v1/webhooks/orbit`, HMAC `X-Orbit-Signature`,
+  idempotent by delivery id): a forgotten or restricted source revokes the stored extracts holding it, flags the
+  Artifacts citing them "to review" (no export until reviewed), a removed member loses the ORBIT session, a revoked agent
+  key stops being used. Details and ORBIT configuration: `docs/OPERATIONS.md`.
 * **Autonomy**: `suggest | assist (default) | execute_with_approval | execute_automatically`. Tools
   flagged `external_write` always require approval unless `NOVA_POLICY_ALLOW_AUTO_EXTERNAL_WRITES=true`
   (organization policy). Personalization can never lower policy.

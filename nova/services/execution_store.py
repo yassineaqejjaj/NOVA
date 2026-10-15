@@ -260,7 +260,9 @@ class SqlExecutionStore:
             rows = (
                 await session.scalars(
                     select(ContextRetrievalReference).where(
-                        ContextRetrievalReference.id.in_(ids), ContextRetrievalReference.user_id == _uuid(user_id)
+                        ContextRetrievalReference.id.in_(ids),
+                        ContextRetrievalReference.user_id == _uuid(user_id),
+                        ContextRetrievalReference.revoked_at.is_(None),  # ORBIT forgot or restricted a source of it
                     )
                 )
             ).all()
@@ -374,6 +376,7 @@ class SqlExecutionStore:
             content=ArtifactContent.model_validate(version.content),
             classification=artifact.classification,
             project_id=str(artifact.project_id) if artifact.project_id else None,
+            needs_review=artifact.review_requested_at is not None,
             skill_execution_ids=[str(e) for e in executions],
         )
 

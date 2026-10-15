@@ -106,6 +106,9 @@ class Settings(BaseSettings):
     llm_allow_classified_external: bool = False  # production: explicit override to allow a ceiling above C1 on an external model
 
     # --- ORBIT --------------------------------------------------------------------------------
+    # Revocation events (POST /api/v1/webhooks/orbit): HMAC secret of the ORBIT webhook; empty = endpoint disabled (503)
+    orbit_webhook_secret: str = ""
+    orbit_webhook_max_age_seconds: int = Field(default=86400, ge=0)  # older events are refused (0 = no limit)
     orbit_base_url: str = "http://localhost:8000"
     orbit_public_url: str = "http://localhost:3000"
     orbit_agent_keys: str = ""  # "slug:orb_key,slug2:orb_key2" (service mode, see integration-analysis G-O2)

@@ -53,15 +53,21 @@ async def create_replay(session: AsyncSession, principal: Principal, task_id: st
         for k, v in (original.input or {}).items()
         if k not in ("learning", "learning_policy_id", "pinned_context_ref_ids", "excluded_context_refs")
     }
-    overrides: dict[str, str] = {"context": options.context}
+    overrides: dict[str, Any] = {"context": options.context}
     if options.context == "original":
-        stored = (
+        every = (
             await session.execute(
-                select(ContextRetrievalReference.id, ContextRetrievalReference.items).where(
+                select(ContextRetrievalReference.id, ContextRetrievalReference.items, ContextRetrievalReference.revoked_at).where(
                     ContextRetrievalReference.task_id == original.id
                 )
             )
         ).all()
+        # An extract ORBIT forgot or restricted since is never re-injected (NOV-81): the replay goes without it
+        stored = [(ref_id, items) for ref_id, items, revoked_at in every if revoked_at is None]
+        if len(stored) < len(every):
+            if not stored:
+                raise ReplayError("revoked", "Every source of this run was forgotten or restricted in ORBIT since.")
+            overrides["revoked_sources"] = len(every) - len(stored)
         # The stored extracts are re-served without asking ORBIT again: the user's *current* clearance must cover them
         # (fail-closed; a replay with ``live`` context re-queries ORBIT with the rights of today).
         if any(not may_read_classification(principal, int(i.get("classification", 3))) for _, items in stored for i in items):
