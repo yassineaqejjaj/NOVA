@@ -219,7 +219,7 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
             label={t("forgeEvaluation")}
             value={
               task.evaluation ? (
-                <a href={task.evaluation.url ?? "#"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
+                <a href={task.evaluation.url ?? "#"} title={task.evaluation.note ?? undefined} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
                   <FlaskConical className="size-3" />
                   {task.evaluation.composite_score != null ? `${Math.round(task.evaluation.composite_score)} / 100` : task.evaluation.status ? evaluationStatusLabel(task.evaluation.status, lang) : t("evalQueued")}
                   {task.evaluation.passed != null ? (task.evaluation.passed ? t("passed") : t("notPassed")) : ""}

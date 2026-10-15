@@ -11,6 +11,7 @@ from nova.domain.agents import AGENTS, AgentProfile, agent_instructions
 from nova.domain.context import ContextItem
 from nova.domain.evaluation import ExecutionRecord
 from nova.domain.skills import SkillSpec
+from nova.infra.redaction import redact
 from nova.integrations.forge.schemas import FapEvent, NovaRunRequest, classification_level
 
 AGENT_SLUG = "nova"
@@ -82,7 +83,7 @@ def agent_version_body(
 
 def scenario_body(record: ExecutionRecord) -> dict[str, Any]:
     """A production execution captured as a FORGE scenario (input + context served; no expected output)."""
-    intent = record.user_intent.strip()
+    intent = redact(record.user_intent.strip())  # personal data is masked before the request leaves NOVA
     skills = ", ".join(s.skill_id for s in record.skills) or "none"
     return {
         "name": f"NOVA · {intent[:120]}",
