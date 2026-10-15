@@ -14,6 +14,7 @@ data:
   NOVA_COOKIE_SECURE: "true"
   NOVA_LLM_PROVIDER: vllm
   NOVA_LLM_BASE_URL: http://vllm:8000/v1
+  NOVA_LLM_LOCAL: "true"  # in-cluster model: inside the perimeter (an external API keeps the C1 ceiling)
   NOVA_LLM_MODEL: Qwen/Qwen2.5-32B-Instruct
   NOVA_ORBIT_BASE_URL: http://orbit-api:8000
   NOVA_ORBIT_PUBLIC_URL: https://orbit.example.internal

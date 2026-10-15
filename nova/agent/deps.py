@@ -13,6 +13,7 @@ from nova.domain.context import ContextProvider
 from nova.domain.design import DesignProvider
 from nova.domain.evaluation import EvaluationSink
 from nova.domain.llm import LLMProvider
+from nova.domain.llm_guardrail import CallScope
 from nova.domain.permissions import Permission
 from nova.skills.registry import SkillRegistry
 
@@ -31,6 +32,7 @@ class AgentDeps:
     permissions: frozenset[Permission] = frozenset()  # effective permissions of the user on the project
     skill_llms: dict[str, LLMProvider] = field(default_factory=dict)  # per-Skill model for generation steps
     skill_scores: dict[str, float] = field(default_factory=dict)  # FORGE composite per Skill (dynamic assembly)
+    scope: CallScope = field(default_factory=CallScope)  # highest classification this run has read (outbound guardrail)
     composition_priors: Callable[[str], Awaitable[dict[str, float]]] | None = None  # bonuses per Skill for a category
 
     def llm_for(self, skill_id: str) -> LLMProvider:

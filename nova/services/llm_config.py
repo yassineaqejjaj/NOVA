@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nova.agent.providers.catalog import CATALOG, build_user_provider
 from nova.config import get_settings
 from nova.domain.llm import LLMError, LLMMessage, LLMProvider
+from nova.domain.llm_guardrail import Destination, ceiling
 from nova.infra.crypto import decrypt, encrypt
 from nova.infra.db import session_scope, utcnow
 from nova.infra.models import UserLLMConfig
@@ -39,7 +40,13 @@ def public_view(config: UserLLMConfig | None) -> dict[str, Any]:
         "key_hint": config.key_hint if config else "",
         "verified_at": config.verified_at.isoformat() if config and config.verified_at else None,
         "default_model": get_settings().llm_model,
+        # What this model may be given (domain/llm_guardrail.py): the ceiling, unless its endpoint is declared internal
+        "max_classification": ceiling(get_settings().llm_max_classification, local=_declared_local(config)),
     }
+
+
+def _declared_local(config: UserLLMConfig | None) -> bool:
+    return bool(config and config.base_url and get_settings().is_local_host(config.base_url))
 
 
 async def get_config(session: AsyncSession, user_id: str) -> UserLLMConfig | None:
@@ -99,6 +106,17 @@ async def delete_config(session: AsyncSession, user_id: str) -> bool:
     await session.flush()
     _cache.clear()
     return True
+
+
+async def destination_for_user(user_id: str) -> Destination | None:
+    """Where the user's own model is: inside the perimeter only when its endpoint host is declared internal."""
+    async with session_scope() as session:
+        row = await get_config(session, user_id)
+    if row is None:
+        return None
+    from nova.services.llm_guard import user_destination
+
+    return user_destination(get_settings(), row.provider, row.model, row.base_url)
 
 
 async def provider_for_user(user_id: str) -> LLMProvider | None:

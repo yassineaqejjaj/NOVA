@@ -97,6 +97,14 @@ class Settings(BaseSettings):
     llm_price_output_per_mtok: float = Field(default=0.0, ge=0)
     llm_price_table: dict[str, tuple[float, float]] = Field(default_factory=dict)  # model -> (input, output)
 
+    # Outbound guardrail (domain/llm_guardrail.py): content above this level is never sent to an external model.
+    # A destination declared local (the whole organization endpoint, or hosts on the list) is not capped.
+    llm_max_classification: int = Field(default=1, ge=0, le=3)
+    llm_local: bool = False  # the organization's own model runs inside the perimeter (vLLM, Ollama…)
+    llm_local_hosts: str = ""  # comma-separated hosts treated as internal (also for users' own endpoints)
+    llm_redact_pii: bool = True  # mask secrets, e-mails, IBANs and phone numbers in prompts sent to an external model
+    llm_allow_classified_external: bool = False  # production: explicit override to allow a ceiling above C1 on an external model
+
     # --- ORBIT --------------------------------------------------------------------------------
     orbit_base_url: str = "http://localhost:8000"
     orbit_public_url: str = "http://localhost:3000"
@@ -263,6 +271,22 @@ class Settings(BaseSettings):
     def oidc_backchannel(self) -> str:
         return (self.oidc_internal_url or self.oidc_issuer).rstrip("/")
 
+    def local_hosts(self) -> frozenset[str]:
+        """Hosts inside the perimeter: the loopback addresses and ``NOVA_LLM_LOCAL_HOSTS``."""
+        return frozenset(
+            {"localhost", "127.0.0.1", "::1"} | {h.strip().lower() for h in self.llm_local_hosts.split(",") if h.strip()}
+        )
+
+    def is_local_host(self, base_url: str) -> bool:
+        return (urlsplit(base_url).hostname or "").lower() in self.local_hosts()
+
+    @property
+    def llm_is_local(self) -> bool:
+        """Is the organization's model inside the perimeter (declared, or a self-hosted endpoint on an internal host)?"""
+        if self.llm_local:
+            return True
+        return self.llm_provider != "anthropic" and self.is_local_host(self.llm_base_url)
+
     def orbit_agent_key_map(self) -> dict[str, str]:
         result: dict[str, str] = {}
         for pair in self.orbit_agent_keys.split(","):
@@ -295,6 +319,11 @@ class Settings(BaseSettings):
                 problems.append("NOVA_VOICE_TOKEN (required with NOVA_VOICE_URL)")
             if self.llm_provider == "anthropic" and not self.llm_api_key:
                 problems.append("NOVA_LLM_API_KEY (required by NOVA_LLM_PROVIDER=anthropic)")
+            if self.llm_max_classification > 1 and not self.llm_is_local and not self.llm_allow_classified_external:
+                problems.append(
+                    "NOVA_LLM_MAX_CLASSIFICATION above 1 with an external model "
+                    "(declare it local with NOVA_LLM_LOCAL, or set NOVA_LLM_ALLOW_CLASSIFIED_EXTERNAL=true)"
+                )
             if problems:
                 raise ValueError("Development values are not allowed in production: " + ", ".join(problems))
         return self

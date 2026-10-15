@@ -4,6 +4,8 @@ import type { Message } from "@/lib/api/types";
 export interface Spoken {
   text: string;
   confidential: boolean;
+  /** Classification (C0-C3) of what the spoken text derives from; 0 for the generic "see it on screen" phrase. */
+  classification: number;
 }
 
 const MAX_CHARS = 650;
@@ -42,7 +44,7 @@ export function spokenReply(
     label?: (label: string) => string;
   },
 ): Spoken {
-  if (!message) return { text: "", confidential: false };
+  if (!message) return { text: "", confidential: false, classification: 0 };
   let classification = 0;
   const parts: string[] = [];
   for (const block of [...message.blocks].sort((a, b) => a.position - b.position)) {
@@ -56,8 +58,8 @@ export function spokenReply(
     if (block.type === "text" && typeof data.markdown === "string") parts.push(plainText(copy.markdown ? copy.markdown(data.markdown) : data.markdown));
     if (block.type === "error") parts.push(data.title ? (copy.label ?? String)(String(data.title)) : copy.failed);
   }
-  if (classification >= 2) return { text: copy.confidential, confidential: true };
-  return { text: clip(parts.filter(Boolean).join(" "), copy.more), confidential: false };
+  if (classification >= 2) return { text: copy.confidential, confidential: true, classification: 0 };
+  return { text: clip(parts.filter(Boolean).join(" "), copy.more), confidential: false, classification };
 }
 
 const YES = /\b(oui|ouais|ok|okay|d['’]accord|vas-y|go|valide|approuve|confirme|yes|yeah|sure|approve|confirm|continue)\b/i;

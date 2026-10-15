@@ -14,7 +14,7 @@ See `integration-analysis.md` §1 (ORBIT), §2 (FORGE), §3 (gaps). Summary of t
 | NOVA → ORBIT | `POST /projects/{slug}/context`, `/ask`, `/context/requests/{id}[/feedback]`, `GET /projects`, `/changes`, `/search`, `/auth/login`, `/auth/me`, `POST /memory` (proposed), `POST /documents/text` | existing |
 | FORGE → NOVA | NOVA Agent Protocol `POST /v1/agents/{nova_agent_id}/runs` (FAP v1 + `nova_agent_id`) | existing (FORGE `nova` adapter) — implemented by NOVA |
 | NOVA → FORGE | `POST /agents`, `POST /agents/{id}/versions`, `POST /scenarios`, `POST /runs`, `GET /runs/{id}`, `POST /runs/{id}/human-evaluations`, OTLP `/v1/traces` | existing |
-| NOVA → FORGE | observed production runs | **gap G-F1** (documented extension) |
+| NOVA → FORGE | `POST /runs/observed` (SDLC runs always; production executions with `NOVA_FORGE_CAPTURE_MODE=observed`), release comparison `GET /analytics/releases/compare` | existing — gap G-F1 closed; replay capture stays the default |
 
 ## 4. NOVA architecture
 
@@ -310,6 +310,22 @@ The Python core lives in one package (`nova/`) used by both the API and the work
   when a stored extract is above the *current* clearance, and pinned extracts above it are never re-injected.
   Limits: the clearance is the last one ORBIT reported (refreshed when the account is relinked), and a user without
   a linked ORBIT account cannot read an Artifact built from C2+ context retrieved through an agent key.
+* **Outbound guardrail (models and voice)**: `nova/domain/llm_guardrail.py` (`ceiling / allows / prepare`, same triplet
+  as ORBIT) and `nova/agent/providers/guard.py`. Every model call of a run goes through `GuardedProvider`, built in
+  `build_deps` outside the budget, recording and fallback decorators. The level of a call is the run's `CallScope`: the
+  highest classification of everything it has read (retrieved context, stored extracts, Artifacts, FORGE-provided
+  context; ORBIT search hits and snapshot content carry no level, so they count as C3). It only goes up. Above the
+  ceiling (`NOVA_LLM_MAX_CLASSIFICATION`, default C1) an external model is never called: `ClassificationBlocked`
+  (non-retryable, no fallback model), run failed with `classification_blocked`, audit event `llm.blocked`
+  (reason and level, never content), counter `nova_llm_guardrail_skips_total{reason}` (OpenTelemetry; NOVA has no
+  Prometheus endpoint). An internal destination lifts the ceiling: `NOVA_LLM_LOCAL=true`, a loopback host, or a host in
+  `NOVA_LLM_LOCAL_HOSTS`. A user's own key (BYOK) is external unless its endpoint host is on that list (an
+  administrator decision, not a user switch); Settings → AI model shows the ceiling. Prompts to an external model are
+  masked by `prepare` (`NOVA_LLM_REDACT_PII`). `POST /voice/speak` requires the `classification` of the text and never
+  sends text above the ceiling to ElevenLabs (self-hosted voice, else 403). Other model calls (teaching, feedback
+  condensation) use the same guard with the level of their input. Not covered: conversation history carried in
+  prompts has no level of its own. In production the settings validation refuses a ceiling above C1 on an external
+  model unless it is declared local or explicitly overridden (`NOVA_LLM_ALLOW_CLASSIFIED_EXTERNAL`).
 * **Autonomy**: `suggest | assist (default) | execute_with_approval | execute_automatically`. Tools
   flagged `external_write` always require approval unless `NOVA_POLICY_ALLOW_AUTO_EXTERNAL_WRITES=true`
   (organization policy). Personalization can never lower policy.

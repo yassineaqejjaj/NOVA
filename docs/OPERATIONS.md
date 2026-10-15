@@ -9,7 +9,8 @@
   redirect `https://<host>/api/v1/auth/callback`, audience mapper) — see `infrastructure/keycloak/nova-realm.json`.
 * Organization policy: `NOVA_POLICY_ALLOW_AUTO_EXTERNAL_WRITES` (default `false`: writes to ORBIT always need
   approval), `NOVA_POLICY_MAX_CLASSIFICATION` (cap on the classification NOVA requests from ORBIT),
-  `NOVA_DEFAULT_CLEARANCE` (default `1`: clearance of a user with no linked ORBIT account, see ARCHITECTURE §11).
+  `NOVA_LLM_MAX_CLASSIFICATION` (default `1`), `NOVA_LLM_LOCAL`, `NOVA_LLM_LOCAL_HOSTS`, `NOVA_LLM_REDACT_PII`
+  (outbound guardrail: what may be sent to an external model, see ARCHITECTURE §11), `NOVA_DEFAULT_CLEARANCE` (default `1`: clearance of a user with no linked ORBIT account, see ARCHITECTURE §11).
 * Retention: `NOVA_CONTEXT_REFERENCE_RETENTION_DAYS`, `NOVA_EXECUTION_EVENT_RETENTION_DAYS` (daily job).
 
 ## FORGE capture outbox
@@ -68,7 +69,8 @@ cloudflared tunnel --no-autoupdate --url http://127.0.0.1:11500      # prints ht
 Then set on `api`, `worker` and `beat`: `NOVA_LLM_PROVIDER=openai_compatible`,
 `NOVA_LLM_BASE_URL=https://<random>.trycloudflare.com/v1`, `NOVA_LLM_MODEL=<model id from GET /v1/models>`,
 `NOVA_LLM_API_KEY=<key>`, `NOVA_LLM_TIMEOUT_SECONDS=900`. The quick-tunnel URL changes on every restart and
-the laptop must stay awake: use a GPU vLLM server for real production.
+the laptop must stay awake: use a GPU vLLM server for real production. A tunnel URL is an *external* host to NOVA:
+set `NOVA_LLM_LOCAL=true` only if the model really runs inside your perimeter, otherwise C2/C3 work is refused.
 
 ### Permanent install on the Mac (launchd)
 
