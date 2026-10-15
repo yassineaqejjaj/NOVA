@@ -49,16 +49,16 @@ Freeze rule: pre-production only. Changes below marked "preprod only" go to prod
 | **SDLC Autopilot** (spec → PR → review → CI → merge → release) | yes | `tests/integration/test_sdlc.py`, e2e | yes | yes (expected) |
 | **SDLC auto-merge requires a green CI**; tests written / executed / passed shown separately (NOV-84, `NOVA_SDLC_REQUIRE_CI`) | yes | `tests/integration/test_sdlc.py`, `tests/unit/test_sdlc_domain.py` | no | no |
 | **SDLC self-improvement** (lessons from low-scored runs → policy → release) | yes | `tests/integration/test_sdlc_improvement.py` | yes | yes (expected) |
-| **Generated files out of git** (`apps/web/.next-dev-auth`, a stray `apps/<home path>` copy) (NOV-92) | **not done**: stopped on a finding, see below | — | no | — |
+| **Generated files out of git** (`apps/web/.next-dev-auth`, a stray `apps/<home path>` copy) (NOV-92) | yes: untracked (`git rm --cached`, files stay on disk), ignored, `tsconfig.json` no longer includes `.next-dev-auth/types` | typecheck, lint, build, CI of the PR | no | no |
 
-### Why NOV-92 is not done
+### NOV-92: dev keys remain in the history
 
-Untracking `apps/web/.next-dev-auth/` and `apps/Yassine AQEJJAJ/…` was stopped before any change, as planned for a finding:
-the tracked dev build holds **Next.js preview-mode key material** (`previewModeId`, `previewModeSigningKey`,
-`previewModeEncryptionKey` in `prerender-manifest.json`) and an **encryption key** in the server reference manifests. They
-are random per-build development keys, not credentials of an external service, but they are committed; and
-`apps/web/tsconfig.json` still lists `.next-dev-auth/types/**/*.ts` in `include`. Untracking does not remove them from
-history. Decision needed from the team: untrack (and rotate nothing, the keys are throwaway) or also rewrite history.
+The tracked dev build held **Next.js preview-mode key material** (`previewModeId`, `previewModeSigningKey`,
+`previewModeEncryptionKey` in `prerender-manifest.json`) and a server-actions `encryptionKey` in the server reference
+manifest. They are random keys of a development build, not credentials of an external service, and no API key, token
+or private key was found in those files. Untracking them (this change) does **not** remove them from the git history,
+which was not rewritten: purging it (and shrinking the ~190 MB clone) is a decision for the team, not taken here.
+No Dockerfile, script or CI step depended on these files; the only reference, `tsconfig.json`, was removed.
 
 ## Settings introduced by this work
 

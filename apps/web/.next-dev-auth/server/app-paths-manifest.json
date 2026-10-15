@@ -1,7 +1,0 @@
-{
-  "/icon.png/route": "app/icon.png/route.js",
-  "/api/[...path]/route": "app/api/[...path]/route.js",
-  "/landing/page": "app/landing/page.js",
-  "/(app)/page": "app/(app)/page.js",
-  "/(app)/skills/page": "app/(app)/skills/page.js"
-}
