@@ -25,7 +25,6 @@ from sqlalchemy import Text, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import get_settings
-from nova.domain.context import ContextItem
 from nova.infra.db import aware, utcnow
 from nova.infra.models import (
     Artifact,
@@ -47,6 +46,7 @@ SOURCE_EVENTS = frozenset(
         "document.classification_changed",
     }
 )
+FORGET_EVENTS = frozenset({"document.forgotten", "memory.forgotten"})
 ACCESS_EVENTS = frozenset({"member.removed"})
 KEY_EVENTS = frozenset({"agent.revoked"})
 HANDLED = SOURCE_EVENTS | ACCESS_EVENTS | KEY_EVENTS
@@ -128,6 +128,18 @@ async def apply(session: AsyncSession, row: OrbitEvent, *, replayed: bool = Fals
     try:
         if row.type in SOURCE_EVENTS:
             effects = await _revoke_sources(session, row, await _matching_references(session, row))
+            if row.type in FORGET_EVENTS:  # forgotten, not just restricted: nothing readable may be kept (NOV-98)
+                from nova.services import forget
+
+                erased = await forget.forget_source(
+                    session,
+                    document_id=row.target_id if row.target_type == "document" else None,
+                    memory_item_id=row.target_id if row.target_type == "memory" else None,
+                    project_slug=row.project_slug,
+                    actor_id=None,
+                    origin="orbit_event",
+                )
+                effects = {**effects, "forgotten_tasks": erased["tasks"], "checkpoints": erased["checkpoints"]}
         elif row.type in ACCESS_EVENTS:
             effects = await _remove_member(session, row)
         else:
@@ -152,10 +164,9 @@ async def apply(session: AsyncSession, row: OrbitEvent, *, replayed: bool = Fals
 
 
 def _holds(item: dict[str, Any], row: OrbitEvent) -> bool:
-    parsed = ContextItem.model_validate(item)
     if row.target_type == "document":
-        return parsed.document_id == row.target_id
-    return row.target_id in (parsed.memory_item_id, parsed.ref_id)
+        return item.get("document_id") == row.target_id
+    return row.target_id in (item.get("memory_item_id"), item.get("ref_id"))
 
 
 async def _matching_references(session: AsyncSession, row: OrbitEvent) -> list[ContextRetrievalReference]:
@@ -175,8 +186,8 @@ async def _revoke_sources(session: AsyncSession, row: OrbitEvent, refs: list[Con
     return {"references": len(refs), "artifacts": artifacts}
 
 
-async def flag_for_review(session: AsyncSession, ref_ids: list[str], reason: str, *, project: str | None = None) -> int:
-    """Artifacts citing one of these extracts: a banner, no export until reviewed. Returns how many."""
+async def artifacts_citing(session: AsyncSession, ref_ids: list[str]) -> list[Artifact]:
+    """Artifacts any of whose versions cites one of these retrieval references."""
     found: dict[uuid.UUID, Artifact] = {}
     for start in range(0, len(ref_ids), CHUNK):
         chunk = ref_ids[start : start + CHUNK]
@@ -187,8 +198,14 @@ async def flag_for_review(session: AsyncSession, ref_ids: list[str], reason: str
             .distinct()
         )
         found.update({a.id: a for a in rows})
+    return list(found.values())
+
+
+async def flag_for_review(session: AsyncSession, ref_ids: list[str], reason: str, *, project: str | None = None) -> int:
+    """Artifacts citing one of these extracts: a banner, no export until reviewed. Returns how many."""
+    found = await artifacts_citing(session, ref_ids)
     now = utcnow()
-    for artifact in found.values():
+    for artifact in found:
         if artifact.review_requested_at is None:
             artifact.review_requested_at, artifact.review_reason = now, reason
             await audit(

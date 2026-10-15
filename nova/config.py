@@ -204,6 +204,9 @@ class Settings(BaseSettings):
     # Clearance of a user with no linked ORBIT account (or none known): what they may read of derived content.
     default_clearance: int = Field(default=1, ge=0, le=3)
     context_reference_retention_days: int = 180
+    checkpoint_retention_days: int = Field(default=90, ge=0)  # LangGraph checkpoints of finished runs (0 = keep)
+    # What happens to Artifacts derived from a forgotten source: "mark" (flagged, readable) or "purge" (deleted)
+    forget_artifacts: Literal["mark", "purge"] = "mark"
     execution_event_retention_days: int = 90
     max_workflow_steps: int = 8
     max_tool_iterations: int = 1  # tool rounds per Skill step (the project context is retrieved beforehand)
