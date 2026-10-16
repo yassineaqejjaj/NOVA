@@ -51,9 +51,11 @@ async def create_replay(session: AsyncSession, principal: Principal, task_id: st
     task_input: dict[str, Any] = {
         k: v
         for k, v in (original.input or {}).items()
-        if k not in ("learning", "learning_policy_id", "pinned_context_ref_ids", "excluded_context_refs")
+        if k not in ("learning", "learning_policy_id", "pinned_context_ref_ids", "excluded_context_refs", "forgotten_at")
     }
     overrides: dict[str, Any] = {"context": options.context}
+    if options.context == "original" and (original.input or {}).get("forgotten_at"):
+        raise ReplayError("forgotten", "The context of this run was forgotten: it cannot be replayed with its original context.")
     if options.context == "original":
         every = (
             await session.execute(

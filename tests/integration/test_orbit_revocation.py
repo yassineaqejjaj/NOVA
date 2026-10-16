@@ -174,7 +174,7 @@ async def _audits(action: str) -> list[AuditEvent]:
 async def test_a_bad_or_missing_signature_is_a_401_and_changes_nothing(app):
     _, owner = await _client(app)
     ids = await _derived(owner)
-    body, headers = _event("document.forgotten", "document", ids["doc"])
+    body, headers = _event("document.acl_changed", "document", ids["doc"])
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as anonymous:
         tampered = await anonymous.post("/api/v1/webhooks/orbit", content=body + b" ", headers=headers)
         unsigned = await anonymous.post(
@@ -190,17 +190,17 @@ async def test_a_bad_or_missing_signature_is_a_401_and_changes_nothing(app):
 
 async def test_without_a_configured_secret_the_endpoint_refuses_everything(app, monkeypatch):
     monkeypatch.setattr(get_settings(), "orbit_webhook_secret", "")
-    assert (await _send(app, "document.forgotten", "document", "doc-x")).status_code == 503
+    assert (await _send(app, "document.acl_changed", "document", "doc-x")).status_code == 503
 
 
 async def test_a_replayed_delivery_is_idempotent(app):
     _, owner = await _client(app)
     ids = await _derived(owner)
     delivery = str(uuid.uuid4())
-    first = await _send(app, "document.forgotten", "document", ids["doc"], delivery=delivery)
+    first = await _send(app, "document.acl_changed", "document", ids["doc"], delivery=delivery)
     assert first.status_code == 200 and first.json()["status"] == "processed"
     revoked_at = (await _ref(ids["ref"])).revoked_at
-    second = await _send(app, "document.forgotten", "document", ids["doc"], delivery=delivery)
+    second = await _send(app, "document.acl_changed", "document", ids["doc"], delivery=delivery)
     assert second.status_code == 200 and second.json()["status"] == "duplicate"
     assert (await _ref(ids["ref"])).revoked_at == revoked_at
     async with db.session_scope() as session:
@@ -209,7 +209,7 @@ async def test_a_replayed_delivery_is_idempotent(app):
 
 async def test_a_stale_event_is_refused(app):
     old = (datetime.now(UTC) - timedelta(days=3)).isoformat()
-    response = await _send(app, "document.forgotten", "document", "doc-x", created_at=old)
+    response = await _send(app, "document.acl_changed", "document", "doc-x", created_at=old)
     assert response.status_code == 400 and response.json()["code"] == "stale_event"
 
 
@@ -225,19 +225,19 @@ async def test_events_that_do_not_revoke_anything_are_acknowledged_and_ignored(a
 # --- Effects ----------------------------------------------------------------------------------------------------
 
 
-async def test_a_forgotten_document_revokes_the_extract_flags_the_artifact_and_blocks_replay(app):
+async def test_a_restricted_document_revokes_the_extract_flags_the_artifact_and_blocks_replay(app):
     owner, owner_id = await _client(app)
     ids = await _derived(owner_id)
     other = await _derived(owner_id, document_id="auto")
 
-    response = await _send(app, "document.forgotten", "document", ids["doc"])
+    response = await _send(app, "document.acl_changed", "document", ids["doc"])
     assert response.status_code == 200 and response.json()["effects"] == {"references": 1, "artifacts": 1}
 
     ref = await _ref(ids["ref"])
-    assert ref.revoked_at is not None and ref.revoked_reason == "document.forgotten"
+    assert ref.revoked_at is not None and ref.revoked_reason == "document.acl_changed"
     assert (await _ref(other["ref"])).revoked_at is None  # another source is untouched
     artifact = await _artifact(ids["artifact"])
-    assert artifact.review_requested_at is not None and artifact.review_reason == "document.forgotten"
+    assert artifact.review_requested_at is not None and artifact.review_reason == "document.acl_changed"
     assert (await _artifact(other["artifact"])).review_requested_at is None
     assert [a.target_id for a in await _audits("orbit.revocation")][-1:] == [ids["doc"]]
     assert str(ids["artifact"]) in {a.target_id for a in await _audits("artifact.review_requested")}
@@ -264,7 +264,7 @@ async def test_a_replay_keeps_the_extracts_that_were_not_revoked(app):
                 ],
             )
         )
-    await _send(app, "document.forgotten", "document", ids["doc"])
+    await _send(app, "document.acl_changed", "document", ids["doc"])
     replay = await owner.post(f"/api/v1/executions/{ids['task']}/replay", json={"context": "original"})
     assert replay.status_code == 202
     async with db.session_scope() as session:
@@ -295,10 +295,10 @@ async def test_a_flagged_artifact_shows_a_banner_is_not_exportable_until_reviewe
     ids = await _derived(owner_id)
     base = f"/api/v1/artifacts/{ids['artifact']}"
     assert (await owner.get(f"{base}/export")).status_code == 200
-    await _send(app, "document.forgotten", "document", ids["doc"])
+    await _send(app, "document.acl_changed", "document", ids["doc"])
 
     shown = (await owner.get(base)).json()
-    assert shown["review"]["pending"] is True and shown["review"]["reason"] == "document.forgotten"
+    assert shown["review"]["pending"] is True and shown["review"]["reason"] == "document.acl_changed"
     listed = next(a for a in (await owner.get("/api/v1/artifacts")).json() if a["id"] == ids["artifact"])
     assert listed["review"]["pending"]
     for fmt in ("md", "json"):
@@ -321,7 +321,7 @@ async def test_only_an_editor_can_mark_an_artifact_as_reviewed(app):
     async with db.session_scope() as session:
         project_id = (await session.get(Artifact, uuid.UUID(ids["artifact"]))).project_id
         session.add(ProjectMember(project_id=project_id, user_id=uuid.UUID(viewer_id), role="viewer"))
-    await _send(app, "document.forgotten", "document", ids["doc"])
+    await _send(app, "document.acl_changed", "document", ids["doc"])
     assert (await viewer.post(f"/api/v1/artifacts/{ids['artifact']}/review")).status_code == 404
     assert (await _artifact(ids["artifact"])).review_requested_at is not None
 
@@ -413,7 +413,7 @@ async def test_an_administrator_can_replay_an_event(app):
         (await session.get(User, uuid.UUID(admin_id))).is_admin = True
     ids = await _derived(admin_id)
     delivery = str(uuid.uuid4())
-    await _send(app, "document.forgotten", "document", ids["doc"], delivery=delivery)
+    await _send(app, "document.acl_changed", "document", ids["doc"], delivery=delivery)
     async with db.session_scope() as session:
         event = (await session.scalars(select(OrbitEvent).where(OrbitEvent.delivery_id == delivery))).one()
         (await session.get(ContextRetrievalReference, uuid.UUID(ids["ref"]))).revoked_at = None  # as if the effect was lost

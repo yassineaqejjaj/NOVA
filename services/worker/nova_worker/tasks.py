@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from nova.services import maintenance, releases, sdlc, sdlc_forge, training
+from nova.services import forget, maintenance, releases, sdlc, sdlc_forge, training
 from nova.services.executions import RetryableExecutionError, run_task
 from nova_worker.app import celery_app, run
 
@@ -54,6 +54,12 @@ def refresh_evaluations() -> int:
 @celery_app.task(name="nova.retention")
 def retention() -> dict[str, int]:
     return run(maintenance.apply_retention())
+
+
+@celery_app.task(name="nova.deliver_forge_erasures")
+def deliver_forge_erasures() -> int:
+    """Send FORGE the deletion requests it has not acknowledged yet (runs captured from forgotten context)."""
+    return run(forget.deliver_forge_erasures())
 
 
 @celery_app.task(name="nova.watch_releases")

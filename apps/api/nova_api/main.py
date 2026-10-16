@@ -29,6 +29,7 @@ from nova_api.routers import (
     figma,
     forge_outbox,
     forge_protocol,
+    forget,
     me,
     missions,
     orbit_events,
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
         training,
         releases,
         orbit_events,
+        forget,
         forge_outbox,
     ):
         api.include_router(module.router)

@@ -479,6 +479,35 @@ class OrbitEvent(Base):
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class ForgetRequest(Base):
+    """One erasure of the context NOVA kept (by source, project or user): what was done, never the content."""
+
+    __tablename__ = "forget_requests"
+    id: Mapped[uuid.UUID] = _pk()
+    scope: Mapped[str] = mapped_column(String(10))  # source | project | user
+    target: Mapped[str] = mapped_column(String(120))  # document / memory item id, project slug or user id
+    origin: Mapped[str] = mapped_column(String(20), default="admin")  # admin | orbit_event
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    status: Mapped[str] = mapped_column(String(10), default="completed")  # completed | partial
+    effects: Mapped[dict] = mapped_column(JSONType, default=dict)
+    error: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = _created()
+
+
+class ForgeErasureRequest(Base):
+    """Ask FORGE to delete a run NOVA captured from context that was forgotten; kept until FORGE acknowledges."""
+
+    __tablename__ = "forge_erasure_requests"
+    id: Mapped[uuid.UUID] = _pk()
+    run_id: Mapped[str] = mapped_column(String(200), unique=True)
+    task_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    status: Mapped[str] = mapped_column(String(15), default="pending")  # pending | acknowledged
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = _created()
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class LLMCall(Base):
     """One call to the model during a run: what it cost and how long it took (never the prompt or the answer)."""
 
