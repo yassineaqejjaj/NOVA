@@ -61,6 +61,18 @@ class Settings(BaseSettings):
     # malformed ORION claim refuses the token, ``orion_workspace_id`` decides the workspace of the account it creates and
     # the effective clearance is ``min(local clearance, orion_clearance)``. Off: tokens are read as before.
     workspace_strict_claim: bool = False
+    # --- Delegation (ADR 001 §6, NOV-111) ------------------------------------------------------------------------
+    # "linked_session" (default): NOVA acts on ORBIT with the ORBIT session the user linked, falling back to the project
+    # agent key: nothing changes. "token_exchange": NOVA exchanges the user's own token (RFC 8693) for a short token to the
+    # audience `orbit` (never stored, never reused for another project) and never falls back to a key or a session.
+    delegation_mode: Literal["linked_session", "token_exchange"] = "linked_session"
+    delegation_token_url: str | None = None  # the IdP token endpoint; default: <oidc back-channel>/protocol/openid-connect/token
+    delegation_scope_orbit: str = (
+        "orion:context.read"  # the smallest scope that serves the call (allowed set: services.delegation)
+    )
+    delegation_service_client_id: str = "nova-service"  # no-user work (routines, FORGE protocol): client credentials
+    delegation_service_client_secret: str = ""
+    delegation_timeout_seconds: float = 10.0
     # The workspace of every row created before an IdP gives one, and of every request while OIDC claims are not read.
     default_workspace_id: uuid.UUID = Field(
         default=DEFAULT_WORKSPACE_ID, validation_alias=AliasChoices("ORION_DEFAULT_WORKSPACE_ID", "NOVA_DEFAULT_WORKSPACE_ID")
@@ -358,6 +370,8 @@ class Settings(BaseSettings):
                 problems.append("NOVA_PUBLIC_URL must be https")
             if self.auth_mode == "oidc" and len(self.oidc_client_secret) < 16:
                 problems.append("NOVA_OIDC_CLIENT_SECRET")
+            if self.delegation_mode == "token_exchange" and self.auth_mode != "oidc":
+                problems.append("NOVA_DELEGATION_MODE=token_exchange needs NOVA_AUTH_MODE=oidc")
             if "elevenlabs" in (self.voice_tts_provider, self.voice_stt_provider) and not self.elevenlabs_api_key:
                 problems.append("NOVA_ELEVENLABS_API_KEY (required by the ElevenLabs voice provider)")
             if self.voice_url and len(self.voice_token) < 24:

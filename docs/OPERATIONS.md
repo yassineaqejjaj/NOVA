@@ -73,6 +73,31 @@ vault with a second holder, use it to disable a compromised user or client, to r
 the whole realm by deleting realm `orion` in the admin console (realm `nova` is not touched) and unsetting `ORION_REALM_IMPORT`; restore
 from the Keycloak database backup if realm settings were changed by mistake.
 
+## Delegation by token exchange (`NOVA_DELEGATION_MODE`, NOV-111, ADR 001 §6)
+
+`linked_session` (default) is today's behaviour, unchanged: NOVA acts on ORBIT with the ORBIT session each user linked, and
+falls back to the project agent key (signalled on the links screen). `token_exchange` replaces it:
+
+* at OIDC sign-in NOVA keeps the user's own tokens, **encrypted** (`NOVA_SECRETS_KEY`) in `delegation_sessions` (migration 0021,
+  additive; empty in the default mode); sign-out and a refusal of the IdP delete them;
+* for each ORBIT call NOVA exchanges the user's token (RFC 8693) at the IdP token endpoint (`NOVA_DELEGATION_TOKEN_URL`, default
+  the OIDC back-channel) for a token to the audience `orbit`, scope `orion:context.read` only, with the target `orion_project_id`
+  (known once ORBIT reported it, else the exchange names no project). The token lives 5 minutes at most (a longer one from the IdP
+  is cached 5 minutes anyway), is **held in memory only** (per process: never stored, never logged, never served for another user,
+  project, audience or scope) and is refused unless it is for the one audience, for the same user, and readable under the claims contract;
+* ORBIT validates the token and applies **its own** authorizations; NOVA decides no right. A disabled user, a user who signed out or
+  whose session the IdP no longer honours, a refused audience or scope are refusals (`unauthorized` / `forbidden`): there is **no
+  fallback** to the linked session or the project agent key. A removed member (ORBIT webhook `member.removed`, NOV-81) loses the
+  cached tokens of that project at once in the process that receives it; other processes' tokens expire within 5 minutes;
+* with no user (routines, FORGE protocol) the explicit service account `nova-service` acts as itself
+  (`NOVA_DELEGATION_SERVICE_CLIENT_SECRET`, client credentials, one token per audience): never a user's identity.
+
+Needs the realm `orion` (NOV-103: `nova-web` allowed to exchange towards `orbit` / `forge`), ORBIT accepting the IdP's tokens
+(its OIDC ticket) and `NOVA_AUTH_MODE=oidc` pointed at that realm. Roll back by setting the variable back to `linked_session`
+(the stored sessions stay encrypted and unused; delete them with `DELETE FROM delegation_sessions`).
+Known limits: the exchanged token has no `act` claim until Keycloak's delegation preview feature is enabled (the IdP
+side of the "Delegation" follow-up), and carries the roles of `nova-web`, so ORBIT sees local roles only.
+
 ## ORBIT revocation events (webhook)
 
 After a change of rights in ORBIT, NOVA must stop using what it kept (extracts, derived Artifacts, replays, sessions).
@@ -122,6 +147,13 @@ migration runs and never change it afterwards.**
   applied under the workspace of its signed payload, else of the projects that reference its ORBIT project (all of them when
   several), else the default one; checkpoint threads, outbox keys and the composition cache carry the workspace (the default
   workspace keeps the historical keys, the `external_id` FORGE sees is unchanged).
+
+**ORION project id.** ORBIT (NOV-106) reports `orion_project_id` on `GET /projects`, in the context package and in snapshots.
+NOVA records it on the ORBIT `ProjectReference` and on the linked NOVA `Project` when it syncs ORBIT projects, when a
+retrieval is recorded and when a snapshot is read. The id NOVA minted before ORBIT said anything is a placeholder and gives
+way once; after that an id never changes: a different one from ORBIT, or one another project already holds, is not applied,
+is logged and audited (`project.orion_id_conflict`, once per report). Several NOVA projects linked to the same ORBIT project
+cannot all hold its id: the first one does, the others are reported as conflicts. The id is never part of an API response.
 
 `NOVA_WORKSPACE_STRICT_CLAIM` (default `false`, NOV-104 wiring): reads Keycloak access tokens and the SSO id token through
 the ORION claims contract (`nova/domain/orion_claims.py`; the signature is still checked by the existing JWKS validation).

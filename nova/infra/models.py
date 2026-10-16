@@ -112,6 +112,24 @@ class OrbitAccount(WorkspaceScoped, Base):
     revoked_reason: Mapped[str | None] = mapped_column(String(60))
 
 
+class DelegationSession(WorkspaceScoped, Base):
+    """What NOVA keeps of a user's own OIDC session to delegate by token exchange (NOV-111, ADR 001 §6).
+
+    Only the user's tokens, encrypted (like the ORBIT session of ``OrbitAccount``); the short tokens obtained by exchange are
+    never stored. ``links`` is a status line per audience for the links screen: no token, no body, no secret.
+    """
+
+    __tablename__ = "delegation_sessions"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    access_ciphertext: Mapped[str | None] = mapped_column(Text)
+    access_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    refresh_ciphertext: Mapped[str | None] = mapped_column(Text)
+    refresh_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    links: Mapped[dict] = mapped_column(JSONType, default=dict)
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _created()
+
+
 class OrbitSnapshotReference(WorkspaceScoped, Base):
     """The ORBIT snapshot a user wants NOVA's agents to use for a project. Reference only: never the content."""
 
