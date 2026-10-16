@@ -14,7 +14,7 @@ from nova.domain.context import ContextError
 from nova.domain.enums import ProjectRole
 from nova.domain.permissions import Principal
 from nova.infra.models import Artifact, Project, ProjectMember, ProjectReference, Task, User
-from nova.services import providers
+from nova.services import providers, workspaces
 from nova.services.access import AccessDenied, project_role
 from nova.services.audit import audit
 
@@ -94,6 +94,7 @@ async def sync_from_orbit(session: AsyncSession, principal: Principal) -> int:
         else:
             project_id = ref.project_id
         seen.add(project_id)
+        await workspaces.sync_orion_project_id_by_slug(session, info.slug, info.orion_project_id)  # ORBIT's id (NOV-106)
         role = ORBIT_ROLE.get(info.role or "viewer", ProjectRole.viewer).value
         member = await session.get(ProjectMember, (project_id, uid))
         if member is None:

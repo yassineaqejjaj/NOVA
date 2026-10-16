@@ -12,6 +12,7 @@ import hashlib
 import secrets
 import time
 import uuid
+from dataclasses import replace
 from typing import Annotated, Any
 from urllib.parse import urlencode
 
@@ -42,8 +43,17 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 # --- Session tokens ----------------------------------------------------------------------------------
 
 
-def issue_session(user_id: str, settings: Settings, *, ttl_seconds: int | None = None, method: str = "sso") -> str:
-    """``method``: how the user signed in (``sso`` through Keycloak's pages, ``pwd`` on NOVA's screens, ``dev``)."""
+def issue_session(
+    user_id: str,
+    settings: Settings,
+    *,
+    ttl_seconds: int | None = None,
+    method: str = "sso",
+    clearance_cap: int | None = None,
+) -> str:
+    """``method``: how the user signed in (``sso`` through Keycloak's pages, ``pwd`` on NOVA's screens, ``dev``).
+
+    ``clearance_cap`` (strict claims): the ``orion_clearance`` of the token that opened the session, kept as ``occ``."""
     now = int(time.time())
     return jwt.encode(
         {
@@ -52,6 +62,7 @@ def issue_session(user_id: str, settings: Settings, *, ttl_seconds: int | None =
             "exp": now + (ttl_seconds or settings.session_ttl_minutes * 60),
             "typ": "nova-session",
             "amr": method,
+            **({"occ": clearance_cap} if clearance_cap is not None else {}),
         },
         settings.session_secret,
         algorithm="HS256",
@@ -74,6 +85,20 @@ def _set_session(response: Response, token: str, settings: Settings, *, max_age:
 def _roles(claims: dict[str, Any]) -> list[str]:
     roles = list((claims.get("realm_access") or {}).get("roles") or [])
     return [r for r in roles if r.startswith("nova")]
+
+
+def _strict_claims(payload: dict[str, Any]) -> Any:
+    """Strict claims (``NOVA_WORKSPACE_STRICT_CLAIM``): the token read through the ORION contract, or None when it is off.
+
+    Raised before any account is touched: a token without workspace opens nothing (403), a malformed claim is a 401."""
+    if not workspaces.strict():
+        return None
+    try:
+        return workspaces.read_claims(payload)
+    except workspaces.TokenRefused as exc:
+        if exc.status == 403:
+            raise ApiError(403, "workspace_required", "This token names no workspace: it opens no workspace resource.") from exc
+        raise ApiError(401, "unauthorized", "Invalid access token.") from exc
 
 
 async def _scoped(session: AsyncSession, user: Any, token_workspace: Any = None) -> Principal:
@@ -103,7 +128,11 @@ async def current_principal(request: Request, session: SessionDep) -> Principal:
         user = await get_user(session, claims["sub"])
         if user is None or user.is_service:
             raise ApiError(401, "unauthorized", "Sign in again.")
-        return await _scoped(session, user)
+        principal = await _scoped(session, user)
+        cap = claims.get("occ")
+        if workspaces.strict() and isinstance(cap, int) and not isinstance(cap, bool):
+            principal = replace(principal, clearance=workspaces.capped_clearance(principal.clearance, cap))
+        return principal
     header = request.headers.get("authorization", "")
     if header.lower().startswith("bearer ") and settings.auth_mode == "oidc":
         try:
@@ -111,7 +140,8 @@ async def current_principal(request: Request, session: SessionDep) -> Principal:
         except (jwt.PyJWTError, httpx.HTTPError) as exc:
             raise ApiError(401, "unauthorized", "Invalid access token.") from exc
         roles = _roles(claims)
-        claimed = workspaces.claim_of(claims)
+        orion = _strict_claims(claims)
+        claimed = uuid.UUID(orion.workspace_id) if orion else workspaces.claim_of(claims)
         user = await upsert_user(
             session,
             subject=claims["sub"],
@@ -122,6 +152,8 @@ async def current_principal(request: Request, session: SessionDep) -> Principal:
             workspace_id=claimed,
         )
         principal = await _scoped(session, user, claimed)  # before the commit: a token of another workspace changes nothing
+        if orion is not None:
+            principal = replace(principal, clearance=workspaces.capped_clearance(principal.clearance, orion.clearance))
         await session.commit()
         return principal
     raise ApiError(401, "unauthorized", "Sign in to use NOVA.")
@@ -216,7 +248,8 @@ async def callback(request: Request, session: SessionDep, code: str = Query(), s
     except jwt.PyJWTError as exc:
         raise ApiError(401, "invalid_login", "The identity token is invalid.") from exc
     roles = _roles(claims)
-    claimed = workspaces.claim_of(claims)
+    orion = _strict_claims(claims)
+    claimed = uuid.UUID(orion.workspace_id) if orion else workspaces.claim_of(claims)
     user = await upsert_user(
         session,
         subject=claims["sub"],
@@ -236,7 +269,7 @@ async def callback(request: Request, session: SessionDep, code: str = Query(), s
     )
     await session.commit()
     response = RedirectResponse(flow["next"])
-    _set_session(response, issue_session(str(user.id), settings), settings)
+    _set_session(response, issue_session(str(user.id), settings, clearance_cap=orion.clearance if orion else None), settings)
     response.delete_cookie(OIDC_COOKIE, path="/")
     return response
 

@@ -7,15 +7,20 @@ and how a NOVA project is aligned with the ORION project ORBIT reports.
 
 from __future__ import annotations
 
+import logging
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nova.config import get_settings
+from nova.domain.orion_claims import Claims, ClaimsError, effective_clearance, parse_claims
 from nova.domain.workspace import as_uuid, outbox_key, thread_id
-from nova.infra.models import Project, ProjectReference, Workspace
+from nova.infra.models import AuditEvent, Project, ProjectReference, Workspace
 from nova.infra.scope import default_workspace_id, mode
+
+log = logging.getLogger(__name__)
 
 CLAIM = "orion_workspace_id"
 #: The ORION project namespace of the projects that existed before ORION ids did (migration 0020, ``uuid5(ns, project id)``).
@@ -26,9 +31,42 @@ class WorkspaceMismatch(Exception):
     """The token's workspace is not the one of the account it identifies."""
 
 
+def strict() -> bool:
+    """``NOVA_WORKSPACE_STRICT_CLAIM``: tokens are read through the ORION claims contract (nova/domain/orion_claims.py)."""
+    return get_settings().workspace_strict_claim
+
+
 def enabled() -> bool:
-    """Is the workspace of a request read from the account / the token (``shadow`` and ``enforce``)?"""
-    return mode() != "off"
+    """Is the workspace of a request read from the account / the token (``shadow``, ``enforce``, strict claims)?"""
+    return mode() != "off" or strict()
+
+
+class TokenRefused(Exception):
+    """A validated token that the ORION claims contract refuses; ``code`` is the contract's stable error code."""
+
+    def __init__(self, code: str, status: int = 401) -> None:
+        super().__init__(code)
+        self.code, self.status = code, status
+
+
+def read_claims(payload: dict[str, Any]) -> Claims:
+    """The ORION claims of a token whose signature, issuer, audience and times were already validated (strict only).
+
+    A malformed ORION claim refuses the token (a bad ``orion_clearance`` is never read as "no cap"); a token without
+    ``orion_workspace_id`` opens no workspace resource: every NOVA resource is one, so it is refused (403).
+    """
+    try:
+        claims = parse_claims(payload)
+    except ClaimsError as exc:
+        raise TokenRefused(exc.code) from exc
+    if claims.workspace_id is None:
+        raise TokenRefused("workspace_required", 403)
+    return claims
+
+
+def capped_clearance(local: int, cap: int | None) -> int:
+    """ADR §4: ``min(local clearance, orion_clearance)``; an absent claim never gives more than the local value."""
+    return effective_clearance(local, cap)
 
 
 def claim_of(claims: dict[str, Any]) -> uuid.UUID | None:
@@ -53,7 +91,7 @@ def check_token_workspace(account_workspace: uuid.UUID | None, token_workspace: 
     if token_workspace != (account_workspace or default_workspace_id()):
         from nova.infra.scope import record_shadow
 
-        if mode() == "enforce":
+        if mode() == "enforce" or strict():
             raise WorkspaceMismatch
         record_shadow("token", "users")
 
@@ -117,6 +155,66 @@ async def align_orion_project_id(
         project.orion_project_id = orion_project_id
         await session.flush()
     return changed
+
+
+async def sync_orion_project_id(
+    session: AsyncSession, project: Project, reference: ProjectReference, value: Any
+) -> Literal["aligned", "unchanged", "conflict", "ignored"]:
+    """``align_orion_project_id`` that never fails the caller: a value that disagrees with what ORBIT reported before (or
+    that another project holds) is logged and audited, and nothing is overwritten. ``ignored``: not a UUID."""
+    orion = as_uuid(value) if value else None
+    if orion is None:
+        return "ignored"
+    try:
+        changed = await align_orion_project_id(session, project, reference, orion)
+    except ValueError as exc:
+        from nova.services.audit import audit
+
+        log.warning("ORION project id conflict for project %s (ORBIT slug %s): %s", project.id, reference.external_id, exc)
+        summary = f"ORBIT reports ORION project id {orion} for {reference.external_id}: {exc}"
+        if await session.scalar(
+            select(AuditEvent.id).where(
+                AuditEvent.action == "project.orion_id_conflict",
+                AuditEvent.target_id == str(project.id),
+                AuditEvent.summary == summary,
+            )
+        ):
+            return "conflict"  # already on record: a retrieval repeats the same report every time
+        await audit(
+            session,
+            actor_id=None,
+            action="project.orion_id_conflict",
+            target_type="project",
+            target_id=str(project.id),
+            project_id=project.id,
+            summary=summary,
+            details={
+                "orbit_slug": reference.external_id,
+                "reported": str(orion),
+                "recorded": str(reference.orion_project_id) if reference.orion_project_id else None,
+                "project": str(project.orion_project_id) if project.orion_project_id else None,
+            },
+        )
+        return "conflict"
+    return "aligned" if changed else "unchanged"
+
+
+async def sync_orion_project_id_by_slug(session: AsyncSession, slug: str | None, value: Any) -> dict[str, int]:
+    """Align every NOVA project (of the running scope) linked to the ORBIT project ``slug`` with the id ORBIT reports."""
+    counts = {"aligned": 0, "unchanged": 0, "conflict": 0, "ignored": 0}
+    if not slug or not value:
+        return counts
+    await session.flush()
+    rows = (
+        await session.execute(
+            select(Project, ProjectReference)
+            .join(ProjectReference, ProjectReference.project_id == Project.id)
+            .where(ProjectReference.system == "orbit", ProjectReference.external_id == slug)
+        )
+    ).all()
+    for project, reference in rows:
+        counts[await sync_orion_project_id(session, project, reference, value)] += 1
+    return counts
 
 
 __all__ = ["as_uuid", "outbox_key", "thread_id"]

@@ -15,7 +15,7 @@ from nova.domain.context import ContextError, ContextQuery, SnapshotRef
 from nova.domain.enums import CLASSIFICATION_LABELS
 from nova.infra.db import get_session
 from nova.infra.models import ContextRetrievalReference, Project, ProjectReference
-from nova.services import orbit_snapshots, providers
+from nova.services import orbit_snapshots, providers, workspaces
 from nova.services.access import AccessDenied, project_role
 from nova.services.execution_store import SqlExecutionStore
 from nova_api.auth import CurrentPrincipal
@@ -136,6 +136,9 @@ async def get_snapshot(
     """One snapshot version read live from ORBIT (nothing is stored in NOVA); ``version`` omitted = latest."""
     slug = await _orbit_slug(session, principal.user_id, project_id)
     snap = await providers.context().get_snapshot(principal.user_id, slug, name, version)
+    synced = await workspaces.sync_orion_project_id_by_slug(session, slug, snap.orion_project_id)
+    if synced["aligned"] or synced["conflict"]:
+        await session.commit()  # ORBIT's ORION project id, recorded on the NOVA project linked to it (NOV-106)
     return {"orbit_slug": slug, "snapshot": snap.model_dump(mode="json")}
 
 

@@ -123,6 +123,22 @@ migration runs and never change it afterwards.**
   several), else the default one; checkpoint threads, outbox keys and the composition cache carry the workspace (the default
   workspace keeps the historical keys, the `external_id` FORGE sees is unchanged).
 
+**ORION project id.** ORBIT (NOV-106) reports `orion_project_id` on `GET /projects`, in the context package and in snapshots.
+NOVA records it on the ORBIT `ProjectReference` and on the linked NOVA `Project` when it syncs ORBIT projects, when a
+retrieval is recorded and when a snapshot is read. The id NOVA minted before ORBIT said anything is a placeholder and gives
+way once; after that an id never changes: a different one from ORBIT, or one another project already holds, is not applied,
+is logged and audited (`project.orion_id_conflict`, once per report). Several NOVA projects linked to the same ORBIT project
+cannot all hold its id: the first one does, the others are reported as conflicts. The id is never part of an API response.
+
+`NOVA_WORKSPACE_STRICT_CLAIM` (default `false`, NOV-104 wiring): reads Keycloak access tokens and the SSO id token through
+the ORION claims contract (`nova/domain/orion_claims.py`; the signature is still checked by the existing JWKS validation).
+When `true`: a token without `orion_workspace_id` opens nothing (403 `workspace_required`, no account is created); a
+malformed ORION claim (`orion_clearance` outside 0-3, bad UUID, bad `act`) is a 401; the claim decides the workspace of the
+account it creates and a token of another workspace than its account's is a 401 (whatever `NOVA_WORKSPACE_ENFORCEMENT`
+says); the clearance is `min(local clearance, orion_clearance)`, and a session opened by an SSO login keeps that cap
+(`occ` in the session cookie). Sessions of NOVA's own password screens carry no token: they stay in the account's workspace.
+Turn it on once the IdP's mapper emits the claim, after `shadow` has shown it present on real tokens.
+
 Roll back by setting `off` (no data change). Downgrading the migration is refused while rows belong to another workspace than
 the default one (`NOVA_ALLOW_WORKSPACE_MERGE=1` overrides it: the workspaces then merge). Platform records stay in the default
 workspace and are read by every workspace: the Skill catalog, the learning loop (policies, releases, training cycles), the FORGE

@@ -9,6 +9,7 @@ runs. Each hop is a wire contract with a versioned fixture and a test that needs
 |---|---|---|---|---|---|
 | ORBIT context package and snapshot (`schema_version`) | ORBIT → FORGE, NOVA | **1** (implicit) | before NOV-73 | `items[]` (`excerpt`, `classification`, ids, `citation`, `version`, `uri`…), snapshot items with `forgotten` | a payload **without** `schema_version` is read as 1 |
 | | | **2** (current) | NOV-73 | adds `schema_version`, `max_classification`, `items[].access_scope`, `SnapshotItem.classification` | FORGE and NOVA read 1 and 2 |
+| | | **2** + `orion_project_id` | ORBIT NOV-106 | adds the optional `orion_project_id` (UUID) on the package and the snapshot; additive, `schema_version` stays 2 | readers ignore it until their own ticket reads it; a payload without it stays valid |
 | FORGE Agent Protocol request (`protocol`) | FORGE → NOVA | **`forge-agent-protocol/v1`** | FAP v1 | `input`, `context.documents[]`, `constraints`, `agent`, `budget`, `nova_agent_id` | NOVA ignores unknown keys |
 | | | v1 + classification extension | NOV-68, NOV-69 | `context.documents[].classification`, `context.max_classification`, `context.orbit_context`, `documents[].citation/version/document_id` | a document without level is C3 |
 | FORGE Agent Protocol response | NOVA → FORGE | **`forge-agent-protocol/v1`** | FAP v1 | `output`, `output_json`, `events[]`, `usage`, `model`, `metadata`, `error` | FORGE ignores unknown keys |
