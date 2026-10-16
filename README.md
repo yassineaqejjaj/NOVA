@@ -171,6 +171,7 @@ tests/              unit, integration, support (test doubles)
 ## Documentation
 
 * [`docs/STATUS.md`](docs/STATUS.md): what is implemented, tested, on `main` and deployed, per ORION link and key capability.
+* [ADR 001 — federated identity (OIDC) and shared workspace/project](docs/adr/001-identite-federee.md) — framing and contracts only (in French), no authentication change
 * [Contracts and traversal tests](docs/CONTRACTS.md) — protocol compatibility matrix, shared fixtures ORBIT → FORGE → NOVA
 * [Integration analysis](docs/integration-analysis.md) — ORBIT & FORGE contracts, gaps, differences with the brief
 * [Architecture](docs/ARCHITECTURE.md) — execution model, Skills, Artifacts, data model, API, security
