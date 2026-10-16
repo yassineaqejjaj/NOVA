@@ -42,6 +42,34 @@ project's configured agent key (ORBIT's key id cannot be matched to NOVA's confi
 screen restores it when ORBIT still accepts the key; rotating the key also lifts it). Administrators list the received
 events (`GET /admin/orbit-events`) and replay one (`POST /admin/orbit-events/{id}/replay`).
 
+## Workspaces (`orion_workspace_id`, NOV-107)
+
+Every table that holds tenant data carries `workspace_id` (NOT NULL; migration 0020, additive and reversible), `workspaces`
+registers the ids, and a project carries an immutable `orion_project_id` (ADR 001 §5). Existing rows belong to the default
+workspace, `ORION_DEFAULT_WORKSPACE_ID` (else the fixed `00000000-0000-4000-8000-000000000001`): **set it before the
+migration runs and never change it afterwards.**
+
+`NOVA_WORKSPACE_ENFORCEMENT` (default `off`):
+
+* `off`: nothing is filtered, counted or read from a token; rows still get the workspace of their owner (default workspace);
+  no API response changes.
+* `shadow`: the workspace of a request is the one of its account (copied from the validated token's `orion_workspace_id`
+  when the account was created); nothing is refused, but every row read from another workspace, every write across
+  workspaces and every token of another workspace than its account's is counted (`nova_workspace_shadow_total{kind,table}`
+  and one warning per kind and table). Turn it on first and watch the counter stay at zero.
+* `enforce`: every ORM statement on a workspace table is filtered (administrators included: a platform administrator does not
+  read another workspace); a foreign object answers 404 like an unknown one; a write or a reference across workspaces, or a
+  token of another workspace than its account's (401), is refused; retention runs workspace by workspace; an ORBIT event is
+  applied under the workspace of its signed payload, else of the projects that reference its ORBIT project (all of them when
+  several), else the default one; checkpoint threads, outbox keys and the composition cache carry the workspace (the default
+  workspace keeps the historical keys, the `external_id` FORGE sees is unchanged).
+
+Roll back by setting `off` (no data change). Downgrading the migration is refused while rows belong to another workspace than
+the default one (`NOVA_ALLOW_WORKSPACE_MERGE=1` overrides it: the workspaces then merge). Platform records stay in the default
+workspace and are read by every workspace: the Skill catalog, the learning loop (policies, releases, training cycles), the FORGE
+agent versions cache, revoked agent keys, the FORGE link health. Tests: `tests/integration/test_workspace_isolation.py`,
+`tests/unit/test_workspace_inventory.py` (a table or route without a declared filter fails), `tests/migration/`.
+
 ## FORGE capture outbox
 
 A finished run's capture into FORGE is recorded first in the `forge_outbox` table (before the run completes, key

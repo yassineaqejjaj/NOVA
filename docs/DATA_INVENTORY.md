@@ -26,6 +26,9 @@ once; an administrator can erase by source, project or user (`POST /api/v1/admin
 `GET /api/v1/admin/forget`). ACL or classification changes only revoke the extracts (they are not re-served) and flag the
 Artifacts.
 
+**Workspaces.** Every copy above carries its `workspace_id`; with `NOVA_WORKSPACE_ENFORCEMENT=enforce` forgetting and retention operate
+workspace by workspace, and a run's checkpoint thread is `<workspace>:<task id>` outside the default workspace (`docs/OPERATIONS.md`).
+
 **Metric.** `nova_forget_purged_total{kind}` (OpenTelemetry) counts what was erased by kind; the retention job returns
 its counts (`context_references`, `execution_events`, `checkpoints`).
 
