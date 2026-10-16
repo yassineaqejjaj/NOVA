@@ -16,6 +16,18 @@ cycle →  │ policy vN (active)           │── agent version ─► │ n
          └──────────────────────────────┘                    └───────────────────────────────┘
 ```
 
+## Who learns what
+
+"FORGE learns" is a product shorthand. No model weights change anywhere:
+
+* **FORGE evaluates.** It scores executions (deterministic rules, judges, human feedback), compares a baseline and a
+  candidate in an experiment, and produces evidence: scores, feedback reports, recommendations, release comparisons.
+* **NOVA distils and deploys.** It turns that evidence into short, general **lessons**, a versioned *policy* injected
+  into the agent's instructions, and ships it through the proof gate, the canary, the approval and the rollback below.
+* **ORBIT keeps governed learnings.** Validated memory and decisions are retrieved by NOVA as context, with their
+  permissions, classification and citations; ORBIT does not evaluate NOVA and NOVA does not rewrite ORBIT's knowledge
+  (write-back is proposed and goes through the approval policy).
+
 ## What an agent learns
 
 | Level | Where it goes | Example |
@@ -61,6 +73,27 @@ resumed execution keeps its lessons and FORGE knows which policy it evaluated (`
 * `input.nova_skill` (passed through by FORGE) forces one Skill; it must belong to the agent.
 * `options.policy_id` (from the agent version's `adapter_config.nova_options`) applies that policy instead of the
   active one, for its agent only.
+* `context` keeps its classification (C0-C3): each `documents[]` entry may carry `classification`
+  (`citation`, `document_id` and `version` are optional too), `context.max_classification` is the maximum FORGE
+  prepared and `context.orbit_context` is ORBIT's assembled context text (a string, or `{text, max_classification}`),
+  which the run reads as one more source. A source keeps its level (raised to `max_classification` when that is
+  higher); **a document, fact or ORBIT text without a level is C3** (fail closed, never C1). The run, its Artifacts
+  and its records then inherit that level, tools that write to an external system are withheld at C3, and context
+  above `NOVA_POLICY_MAX_CLASSIFICATION` is refused (`403 CLASSIFICATION_REFUSED`). The training pack is not
+  classified yet, so its runs read as C3 (harmless: synthetic data, no external write).
+* NOVA runs its **current** runtime and never pretends otherwise. The response `metadata` distinguishes
+  `requested_version` (the label FORGE declared in `agent.version`), `executed_version` (fingerprint of what ran,
+  detailed in `executed`: NOVA version, runtime commit, Skill catalog digest, provider/model, `policy_id` and the
+  parameters of the run) and `accepted_overrides` (`options.policy_id`, `input.nova_skill`, `budget.*`).
+  A call whose `agent.version` is not the version NOVA registered for its current release (or, for a specialist, for
+  the policy of `options.policy_id`), whose `agent.model` differs from the runtime's, or that brings a foreign
+  `agent.system_prompt` or `agent.tools` is **refused**: `422`, error `type: "unsupported_override"` with the list
+  of `fields` and nothing is executed (decision: refuse rather than run "unpinned"). A FORGE agent version created
+  by hand therefore has to match NOVA's runtime, or NOVA registers its own (`NOVA_FORGE_CAPTURE_POLICY`).
+* `budget.max_tokens` and `budget.max_cost` are enforced before each model call, together with
+  `NOVA_RUN_TOKEN_BUDGET` / `NOVA_RUN_COST_BUDGET_USD` (the tighter wins); a cost cap needs prices
+  (`NOVA_LLM_PRICE_*`) to ever trigger. `NOVA_BUILD_COMMIT` (else the platform's commit) is reported as `runtime_commit`.
+* Any bearer token that is not the NOVA service token, whatever its characters, is a `401`.
 * NOVA's citation labels are rewritten for FORGE: `[S1]` → `[source: <FORGE document id>]`, the form FORGE's
   citation rules recognise (NOVA's own Artifacts are unchanged).
 
@@ -72,7 +105,7 @@ Settings (all `NOVA_*`, see `.env.example`):
 |---|---|---|
 | `FORGE_API_KEY` | — | FORGE key with role **editor** (creates agents, scenarios, runs, experiments) |
 | `FORGE_CREDENTIAL_ID` | — | id of FORGE's `nova` credential (secret = `NOVA_FORGE_INBOUND_TOKEN`) |
-| `FORGE_NOVA_ENDPOINT` | derived | NOVA API URL as reachable from FORGE's runner |
+| `FORGE_NOVA_ENDPOINT` | derived (local dev only) | NOVA API URL as reachable from FORGE's runner; the same URL is registered by production capture, training and SDLC ingestion. Required outside local development: the web URL is not the API |
 | `TRAINING_ENABLED` | `true` | |
 | `TRAINING_INTERVAL_DAYS` | `0` | `0` = cycles started by an administrator; `N` = automatic cycle per agent every N days |
 | `TRAINING_REPETITIONS` | `1` | runs per Skill and per arm |
@@ -95,6 +128,33 @@ sent to FORGE for training. Production captures (`NOVA_FORGE_CAPTURE_POLICY`) ke
 ORBIT context they used and are created **private** in FORGE when it is C2 (confidential) or C3 (secret).
 
 ---
+
+## Proof before activation: the policy gate
+
+The canary is a second line, not the first. Before a candidate meets any user, FORGE must have shown, **outside
+production**, that it beats the active policy (`domain/policy_gate.py`, `services/policy_gate.py`). A candidate is judged on:
+
+* a **minimal gain** on the composite score (`NOVA_POLICY_GATE_MIN_GAIN`, default 0.02 on a 0-1 scale);
+* **no regression** on the validation scenarios (the promoted regression scenarios of FORGE are guard scenarios);
+* a **minimal number of independent evaluations** per arm (`NOVA_POLICY_GATE_MIN_EVALUATIONS`, default 3);
+* **independence**: scenarios (or runs) the lessons were made from never count as validation. The training loop
+  validates on the Skills it did not learn from; the SDLC agent declares the FORGE runs behind its lessons.
+
+`NOVA_POLICY_GATE_MODE` sets what a shortfall does:
+
+| Mode | Candidate without sufficient proof |
+|---|---|
+| `warn` (default in pre-production) | the release goes on; the shortfall is kept in the release (`evidence.gate`) and audited (`release.gate_warning`) |
+| `enforce` | **not activated**: the release is held `awaiting_proof` with the reasons (Team → Training, Engineering → Continuous improvement); no user is served it. **Fail-closed**: FORGE unreachable, or no proof source, counts as no proof |
+| `off` | no check |
+
+A held candidate is asked again at every improvement pass of the SDLC agent and released (canary, then approval) as
+soon as the proof is sufficient; an administrator can also withdraw it (`POST /releases/{id}/rollback`) or apply the
+version by hand. Generalisation (approval `full`) still only follows a healthy canary.
+
+Status: the training loop's proof is real (its FORGE experiment). The SDLC agent has no replayable scenario yet:
+its proof source (`providers.policy_proof_source`) is meant to be served by FORGE's calibrated promotion gate and is
+**empty today**, so `enforce` holds every SDLC candidate until it is plugged in; keep `warn` until then.
 
 ## Releases: canary, approval, rollback
 

@@ -28,6 +28,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import Settings, get_settings
+from nova.domain import training_pack
 from nova.domain.agents import AGENTS, AgentProfile
 from nova.domain.learning import (
     MAX_SKILL_LESSONS,
@@ -38,12 +39,15 @@ from nova.domain.learning import (
     promotion_decision,
 )
 from nova.domain.llm import LLMMessage
+from nova.domain.llm_guardrail import CallScope
+from nova.domain.policy_gate import Proof
 from nova.domain.skills import SkillSpec
 from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import AgentPolicy, TrainingCycle
-from nova.integrations.forge import mapper
+from nova.integrations.forge import connection, mapper
 from nova.integrations.forge.client import ForgeClient, ForgeError
-from nova.services import learning, providers, releases
+from nova.integrations.forge.versions import register_agent_version
+from nova.services import learning, llm_guard, policy_gate, providers, releases
 from nova.services.audit import audit
 from nova.skills.registry import SkillRegistry, get_skill_registry
 
@@ -72,8 +76,10 @@ def missing_configuration(settings: Settings | None = None) -> list[str]:
         missing.append("NOVA_TRAINING_ENABLED")
     if not settings.forge_api_key:
         missing.append("NOVA_FORGE_API_KEY")
-    if not settings.forge_credential_id:
+    if not connection.forge_credential(settings):
         missing.append("NOVA_FORGE_CREDENTIAL_ID")
+    if connection.endpoint_problem(settings):
+        missing.append("NOVA_FORGE_NOVA_ENDPOINT")
     if not settings.llm_model:
         missing.append("NOVA_LLM_MODEL")
     return missing
@@ -85,10 +91,6 @@ def forge_client(settings: Settings | None = None) -> ForgeClient:
         return override
     settings = settings or get_settings()
     return ForgeClient(settings.forge_base_url, settings.forge_api_key, timeout=settings.forge_timeout_seconds)
-
-
-def nova_endpoint(settings: Settings) -> str:
-    return settings.forge_nova_endpoint or settings.public_url.replace(":3200", ":8200")
 
 
 def agent_skills(registry: SkillRegistry, profile: AgentProfile, limit: int = 0) -> list[SkillSpec]:
@@ -249,23 +251,16 @@ async def forge_version_id(client: ForgeClient, policy: AgentPolicy, settings: S
         catalog_digest=registry.catalog_digest(),
         nova_version=settings.version,
         model=settings.llm_model,
-        nova_base_url=nova_endpoint(settings),
-        credential_id=settings.forge_credential_id or None,
+        provider=settings.llm_provider,
+        nova_base_url=connection.forge_callback_endpoint(settings),
+        credential_id=connection.forge_credential(settings),
         timeout_seconds=settings.training_run_timeout_seconds,
     )
     key = mapper.version_key(body)
     if policy.forge_agent_version_id and policy.forge_version_key == key:
         return policy.forge_agent_version_id
     agent = await _forge_agent(client, profile)
-    try:
-        version = await client.create_agent_version(str(agent["id"]), body)
-    except ForgeError as exc:
-        if exc.status != 409:
-            raise
-        versions = await client.list_agent_versions(str(agent["id"]))
-        version = next((v for v in versions if v.get("version") == body["version"]), None)
-        if version is None:
-            raise
+    version = await register_agent_version(client, str(agent["id"]), body)
     policy.forge_agent_version_id = str(version["id"])
     policy.forge_version_key = key
     return policy.forge_agent_version_id
@@ -350,7 +345,11 @@ async def _condense(skill: SkillSpec, item: SkillFeedback, current: AgentLearnin
     if not raw and not item.weaknesses:
         return None
     try:
-        result = await providers.llm().structured_output(
+        # The training pack is synthetic and C1: still sent through the guard, like every other model call
+        model = llm_guard.guard(
+            providers.llm(), CallScope(training_pack.PACK_CLASSIFICATION), llm_guard.org_destination(get_settings())
+        )
+        result = await model.structured_output(
             condense_messages(skill, raw, item.weaknesses, current.skills.get(skill.id, [])), _Lessons
         )
     except Exception:  # the model is optional here: fall back to the deterministic lessons
@@ -460,6 +459,20 @@ async def _evaluate(session: AsyncSession, cycle: TrainingCycle, client: ForgeCl
     cycle.status = "experimenting"
 
 
+def _experiment_proof(cycle: TrainingCycle, comparison: dict[str, Any], settings: Settings) -> Proof:
+    """The finished experiment as a proof: the Skills the lessons were drawn from are not a validation set, the others are."""
+    scenario_of = {item["id"]: str(item["scenario_id"]) for item in cycle.skills}
+    learned_from = [scenario_of[s] for s in cycle.result.get("changed_skills", []) if s in scenario_of]
+    return Proof(
+        source="forge_experiment",
+        validation_scenarios=list(scenario_of.values()),
+        lesson_scenarios=learned_from,
+        runs_per_scenario=settings.training_repetitions,
+        gain=(comparison.get("composite") or {}).get("delta"),
+        regressions=[str(r.get("slug") or r.get("scenario_id")) for r in comparison.get("regressions") or []],
+    )
+
+
 async def _decide(session: AsyncSession, cycle: TrainingCycle, client: ForgeClient, settings: Settings) -> None:
     assert cycle.forge_experiment_id
     experiment = await client.get_experiment(cycle.forge_experiment_id)
@@ -500,7 +513,17 @@ async def _decide(session: AsyncSession, cycle: TrainingCycle, client: ForgeClie
         cycle.result = {**cycle.result, "awaiting_approval": True}
         await _finish(session, cycle, "validated")
         return
-    release = await releases.start(session, candidate, cycle, {**cycle.result.get("experiment", {}), "cycle_id": str(cycle.id)})
+    # Second line after FORGE's own recommendation: the thresholds of NOVA_POLICY_GATE_MODE on the same experiment
+    baseline = await session.get(AgentPolicy, cycle.baseline_policy_id) if cycle.baseline_policy_id else None
+    gate = await policy_gate.evaluate(
+        candidate,
+        baseline,
+        source=policy_gate.PrecomputedProof(_experiment_proof(cycle, comparison, settings)),
+        lesson_sources=[],
+    )
+    release = await releases.start(
+        session, candidate, cycle, {**cycle.result.get("experiment", {}), "cycle_id": str(cycle.id)}, gate=gate
+    )
     cycle.result = {**cycle.result, "release_id": str(release.id)}
     # Active at once (no canary, no approval): promoted. Otherwise the release is on its way: validated until it goes live.
     await _finish(session, cycle, "promoted" if release.status == "active" else "validated")

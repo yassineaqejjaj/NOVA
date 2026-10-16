@@ -6,14 +6,15 @@ export class VoicePlayer {
   private url: string | null = null;
   private abort: AbortController | null = null;
 
-  async speak(text: string, language: "fr" | "en"): Promise<void> {
+  /** ``classification`` (C0-C3) is that of what the text was derived from: the server refuses an external voice above C1. */
+  async speak(text: string, language: "fr" | "en", classification: number): Promise<void> {
     this.stop();
     this.abort = new AbortController();
     const response = await fetch("/api/v1/voice/speak", {
       method: "POST",
       headers: { "content-type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ text: text.slice(0, 2000), language }),
+      body: JSON.stringify({ text: text.slice(0, 2000), language, classification }),
       signal: this.abort.signal,
     });
     if (!response.ok) throw new Error(`speak ${response.status}`);

@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nova.agent.providers.budget import tightest
 from nova.artifacts.registry import get_artifact_registry
 from nova.artifacts.render import render_markdown
 from nova.config import get_settings
@@ -25,8 +26,9 @@ from nova.domain.artifacts import ArtifactContent
 from nova.domain.enums import AutonomyMode, ExecutionOrigin, TaskStatus
 from nova.infra.db import get_session, session_scope
 from nova.infra.models import AgentPolicy, Artifact, ArtifactVersion, ExecutionEvent, SkillExecution, Task
-from nova.integrations.forge import mapper
+from nova.integrations.forge import mapper, runtime
 from nova.integrations.forge.schemas import FapError, FapEvent, FapUsage, NovaRunRequest, NovaRunResponse
+from nova.services import providers
 from nova.services.executions import run_task
 from nova.services.users import service_user
 from nova.skills.registry import get_skill_registry
@@ -35,8 +37,8 @@ router = APIRouter(tags=["nova-agent-protocol"])
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 
-def _error(status: int, type_: str, message: str, retryable: bool = False) -> JSONResponse:
-    body = NovaRunResponse(error=FapError(type=type_, message=message, retryable=retryable))
+def _error(status: int, type_: str, message: str, retryable: bool = False, fields: list[str] | None = None) -> JSONResponse:
+    body = NovaRunResponse(error=FapError(type=type_, message=message, retryable=retryable, fields=fields))
     return JSONResponse(body.model_dump(mode="json"), status_code=status)
 
 
@@ -50,7 +52,9 @@ async def run(
 ) -> Any:
     settings = get_settings()
     token = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
-    if not token or not secrets.compare_digest(token, settings.forge_inbound_token):
+    if not token or not secrets.compare_digest(
+        token.encode(), settings.forge_inbound_token.encode()
+    ):  # bytes: any token is a 401
         return _error(401, "UNAUTHORIZED", "Jeton NOVA invalide")
     profile = mapper.profile_of(nova_agent_id)
     if nova_agent_id != mapper.NOVA_AGENT_ID and profile is None:
@@ -63,12 +67,55 @@ async def run(
     if skill_id and (not skills.has(skill_id) or (profile and skills.get(skill_id).agent != profile)):
         return _error(400, "EXECUTION_ERROR", f"Compétence inconnue pour cet agent : {skill_id}")
     policy_id = str(body.options.get("policy_id") or "") or None
+    policy = None
     if policy_id:
         policy = await session.get(AgentPolicy, _uuid(policy_id))
         if policy is None or (profile and policy.agent != profile.value):
             return _error(400, "EXECUTION_ERROR", f"Version apprise inconnue pour cet agent : {policy_id}")
+    current = runtime.current_runtime(settings, skills.catalog_digest(), providers.llm().model_name)
+    conflicts = runtime.override_conflicts(
+        body.agent,
+        current,
+        profile=profile,
+        standards=list(policy.standards) if policy else None,
+        policy_version=policy.version if policy else None,
+    )
+    if conflicts:  # NOVA runs its current runtime: it never pretends to have run another version, model or prompt
+        return _error(
+            422,
+            "unsupported_override",
+            "Surcharge non prise en charge, rien n'a été exécuté : "
+            + " ; ".join(f"{field} demandé « {asked} », NOVA exécute « {have} »" for field, asked, have in conflicts),
+            fields=[field for field, _, _ in conflicts],
+        )
+    provided = mapper.provided_context(body)
+    over = [i for i in provided if i.classification > settings.policy_max_classification]
+    if over:  # the same ceiling ORBIT applies to retrieved context (an unclassified source counts as C3)
+        return _error(
+            403,
+            "CLASSIFICATION_REFUSED",
+            f"Contexte au-dessus du plafond de classification NOVA (C{settings.policy_max_classification}) : "
+            + ", ".join(i.ref_id for i in over[:10]),
+        )
     if body.constraints:
         prompt += "\n\nConstraints:\n" + "\n".join(f"- {c}" for c in body.constraints)
+
+    # FORGE's caps and NOVA's own: the tighter applies (enforced before each model call, see services/executions.py)
+    run_budget = {
+        "max_tokens": int(tightest(settings.run_token_budget, body.budget.max_tokens)),
+        "max_cost": tightest(settings.run_cost_budget_usd, body.budget.max_cost),
+    }
+    max_steps = min(body.budget.max_steps or 8, 8)
+    accepted = [
+        *(["options.policy_id"] if policy_id else []),
+        *(["input.nova_skill"] if skill_id else []),
+        *(
+            f"budget.{k}"
+            for k in ("max_tokens", "max_cost", "max_steps", "timeout_seconds")
+            if getattr(body.budget, k) is not None
+        ),
+    ]
+    executed = runtime.executed_fingerprint(current, policy_id, {**run_budget, "max_steps": max_steps})
 
     user = await service_user(session)
     task_input = {
@@ -76,8 +123,11 @@ async def run(
         "autonomy": AutonomyMode.execute_automatically.value,
         "intent": prompt,
         "context_mode": "none",
-        "provided_context": [i.model_dump(mode="json") for i in mapper.provided_context(body)],
-        "preferences": {"nova_name": "NOVA", "max_workflow_steps": min(body.budget.max_steps or 8, 8)},
+        "provided_context": [i.model_dump(mode="json") for i in provided],
+        "preferences": {"nova_name": "NOVA", "max_workflow_steps": max_steps},
+        "run_budget": run_budget,
+        # Declared by FORGE vs executed by NOVA vs overrides accepted (returned in the response metadata)
+        "forge_run": {"requested_version": body.agent.version, "executed": executed, "accepted_overrides": accepted},
         "skill_refs": [skill_id] if skill_id else [],
         "agent_scope": profile.value if profile else None,
         "learning_policy_id": policy_id,
@@ -168,6 +218,7 @@ async def _response(task_id: str, status: TaskStatus, nova_agent_id: str = mappe
         usage = task.usage or {}
         skills = get_skill_registry()
         provided = list((task.input or {}).get("provided_context") or [])
+        forge_run = (task.input or {}).get("forge_run") or {}
         response = NovaRunResponse(
             output=forge_citations("\n\n".join(outputs) or answer, provided),
             output_json=output_json or None,
@@ -187,6 +238,10 @@ async def _response(task_id: str, status: TaskStatus, nova_agent_id: str = mappe
                 "skill_catalog": skills.catalog_digest(),
                 "artifact_types": [a.type for a in artifacts],
                 "nova_agent_id": nova_agent_id,
+                "requested_version": forge_run.get("requested_version"),
+                "executed_version": (forge_run.get("executed") or {}).get("version"),
+                "executed": forge_run.get("executed"),
+                "accepted_overrides": forge_run.get("accepted_overrides", []),
                 # Policies (learned lessons) applied to this run, per agent: what FORGE actually evaluated
                 "policies": {
                     agent: {"id": p.get("policy_id"), "version": p.get("version")}

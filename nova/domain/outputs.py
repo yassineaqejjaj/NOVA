@@ -182,6 +182,10 @@ class EvaluationReference(BaseModel):
     composite_score: float | None = None
     passed: bool | None = None
     url: str | None = None
+    note: str | None = None  # why nothing was captured (status "skipped")
+    # What ``composite_score`` measures: "observed" = execution health of the run the user got (rules on what happened);
+    # "reexecute" = FORGE's evaluation of a replay of the request (another execution, comparable across versions).
+    mode: Literal["observed", "reexecute"] | None = None
 
 
 class TaskStatusView(BaseModel):

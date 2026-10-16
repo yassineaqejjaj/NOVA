@@ -68,3 +68,108 @@ def test_the_request_text_is_sent_only_on_opt_in_and_then_redacted():
     assert "jane.doe" not in str(off) and "contract" not in str(off)
     on = production.observed_run_body(secret, agent_version_id="av", scenario_id="sc", include_intent=True)
     assert "contract" in on["input"]["prompt"] and "jane.doe@example.com" not in on["input"]["prompt"]  # PII masked
+
+
+# --- Release label: the model and its provider are part of what FORGE versions (NOV-71) ----------------------------------
+
+
+def test_two_models_get_two_distinct_release_labels_within_forges_limit():
+    from nova.integrations.forge import mapper
+
+    digest = "abcdef0123456789"
+    a, b = mapper.release_label("1.0", "model-a", digest), mapper.release_label("1.0", "model-b", digest)
+    assert a != b and a.startswith("1.0+abcdef01") and len(a) <= 40 and len(b) <= 40
+    assert a == mapper.release_label("1.0", "model-a", digest)  # stable: the same release keeps its label
+    assert mapper.release_label("1.0", "model-a", digest, provider="anthropic") != a  # same name, other provider
+
+
+def test_a_long_release_version_still_leaves_room_for_the_model_fingerprint():
+    from nova.integrations.forge import mapper
+
+    digest = "abcdef0123456789"
+    long_a = mapper.release_label("2026.10.13-rc.1+build.9999999999999999", "model-a", digest)
+    long_b = mapper.release_label("2026.10.13-rc.1+build.9999999999999999", "model-b", digest)
+    assert long_a != long_b and len(long_a) <= 40 and len(long_b) <= 40
+
+
+def test_the_version_announces_the_provider_that_is_configured_not_a_fixed_one():
+    from nova.integrations.forge import mapper
+
+    for provider in ("vllm", "anthropic", "openai_compatible"):
+        body = mapper.agent_version_body(
+            nova_version="1.0", model="m", catalog_digest="d" * 16, skills=[], nova_base_url="https://api.example",
+            credential_id=None, provider=provider,
+        )  # fmt: skip
+        assert body["model"] == {"provider": provider, "model": "m"}
+        assert body["version"] == mapper.release_label("1.0", "m", "d" * 16, provider=provider)
+
+
+def test_the_training_version_announces_the_configured_provider_and_changes_with_it():
+    from nova.domain.agents import AgentProfile
+    from nova.integrations.forge import mapper
+
+    def body(provider):
+        return mapper.training_version_body(
+            profile=AgentProfile.product, policy_id="p", policy_version=1, standards=[], lessons={}, skills=[],
+            catalog_digest="d" * 16, nova_version="1.0", model="m", nova_base_url="https://api.example",
+            credential_id=None, provider=provider,
+        )  # fmt: skip
+
+    assert body("anthropic")["model"]["provider"] == "anthropic"
+    assert body("anthropic")["version"] != body("vllm")["version"]
+
+
+def test_the_sdlc_labels_of_two_long_model_names_do_not_collapse():
+    from nova.integrations.forge import sdlc
+
+    def label(model):
+        return sdlc.agent_version_body(nova_version="0.1.0", model=model, endpoint="https://api.example")["version"]
+
+    one, two = (
+        label("organization/very-long-model-name-70b-instruct-a"),
+        label("organization/very-long-model-name-70b-instruct-b"),
+    )
+    assert one != two and len(one) <= 40 and len(two) <= 40
+
+
+# --- What FORGE declared against what NOVA runs (NOV-72) ----------------------------------------------------------------
+
+
+def _runtime(**over):
+    from nova.integrations.forge import runtime
+
+    base = dict(nova_version="1.0", runtime_commit="abc123", skill_catalog="d" * 16, provider="vllm", model="m")
+    return runtime.Runtime(**{**base, **over})
+
+
+def test_only_the_parts_of_the_agent_nova_cannot_run_as_declared_are_conflicts():
+    from nova.integrations.forge import runtime
+    from nova.integrations.forge.schemas import FapAgent
+
+    current = _runtime()
+    declared = FapAgent(version=runtime.current_label(current), model={"provider": "vllm", "model": "m"}, system_prompt="")
+    assert runtime.override_conflicts(declared, current, profile=None, standards=None, policy_version=None) == []
+    other = FapAgent(version="0.9+old", model={"provider": "vllm", "model": "other"}, system_prompt="x", tools=[{"name": "t"}])
+    fields = [c[0] for c in runtime.override_conflicts(other, current, profile=None, standards=None, policy_version=None)]
+    assert fields == ["agent.version", "agent.model", "agent.system_prompt", "agent.tools"]
+
+
+def test_the_executed_fingerprint_follows_the_runtime_the_policy_and_the_parameters():
+    from nova.integrations.forge import runtime
+
+    base = runtime.executed_fingerprint(_runtime(), None, {"max_steps": 8})
+    assert base == runtime.executed_fingerprint(_runtime(), None, {"max_steps": 8})  # stable
+    for changed in (
+        runtime.executed_fingerprint(_runtime(runtime_commit="def456"), None, {"max_steps": 8}),
+        runtime.executed_fingerprint(_runtime(skill_catalog="e" * 16), None, {"max_steps": 8}),
+        runtime.executed_fingerprint(_runtime(model="other"), None, {"max_steps": 8}),
+        runtime.executed_fingerprint(_runtime(), "policy-1", {"max_steps": 8}),
+        runtime.executed_fingerprint(_runtime(), None, {"max_steps": 4}),
+    ):
+        assert changed["version"] != base["version"]
+
+
+def test_the_tightest_cap_is_the_lowest_one_that_is_set():
+    from nova.agent.providers.budget import tightest
+
+    assert tightest(0, None) == 0 and tightest(5, None) == 5 and tightest(5, 2) == 2 and tightest(0, 3.5) == 3.5

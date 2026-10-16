@@ -30,6 +30,8 @@ export interface Run {
   branch: string;
   autonomy: "guided" | "autopilot";
   auto_merge: boolean;
+  /** Auto-merge may merge although the repository has no CI (a conscious choice of this run). */
+  allow_merge_without_ci: boolean;
   has_deploy_hook: boolean;
   status: RunStatus;
   stage: StageKey;
@@ -51,8 +53,20 @@ export interface Run {
   log?: { at: string; level: "info" | "error"; message: string }[];
   release?: { version: string; title: string; notes: string } | null;
   evaluation: RunEvaluation;
+  /** Tests written, executed (CI ran checks) and passed are three different facts; null for a review run. */
+  tests: TestsState | null;
   /** FORGE's evaluation of the finished run (null until it was ingested). */
   forge: ForgeState | null;
+}
+
+export interface TestsState {
+  written: number;
+  files: string[];
+  executed: boolean;
+  checks: number;
+  /** null while CI has not concluded. */
+  passed: boolean | null;
+  ci: "success" | "none" | null;
 }
 
 export interface RunEvaluation {
@@ -123,6 +137,8 @@ export interface PolicyVersion {
   runs: number;
   avg_score: number | null;
   passed_rate: number | null;
+  /** The release of this version; "awaiting_proof": held until FORGE proves it outside production (reason says why). */
+  release?: { id: string; status: string; canary_percent: number; reason: string } | null;
 }
 
 export interface PolicyOverview {
@@ -151,6 +167,8 @@ export interface LlmConfig {
   key_hint: string;
   verified_at: string | null;
   default_model: string;
+  /** Highest classification (C0-C3) NOVA lets this model see; below 3 for an external endpoint. */
+  max_classification: number;
 }
 
 export interface GithubStatus {
@@ -176,6 +194,7 @@ export interface RunInput {
   base_branch?: string | null;
   autonomy: "guided" | "autopilot";
   auto_merge: boolean;
+  allow_merge_without_ci?: boolean;
   deploy_hook?: string | null;
   issue_url?: string;
   pr_url?: string;

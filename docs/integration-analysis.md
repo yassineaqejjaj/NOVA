@@ -266,13 +266,24 @@ protocol router `apps/api/nova_api/routers/forge_protocol.py`.
    conventions + `nova.*` attributes (intent, skill id/version, workflow, ORBIT retrieval ids, artifact
    ids, feedback). They are exported to `OTEL_EXPORTER_OTLP_ENDPOINT` (any OTLP backend). Pointing it
    at FORGE `/v1/traces` attaches spans only for FORGE-initiated runs (see gap G-F1).
-4. **Production capture (existing APIs)**: per `FORGE_CAPTURE_POLICY` (`off | on_feedback | sampled | all`)
-   a production execution is turned into a FORGE **scenario** (`category="nova-production"`,
-   `visibility=public`, `classification` = max classification of the ORBIT context used, input = user
-   intent, context = the ORBIT excerpts served, constraints = Skill expectations) and a **run** against
-   the registered NOVA agent version. FORGE then calls NOVA back through (1) and evaluates.
-   The FORGE run id/score is stored in `integration_references` and shown in Work ("FORGE evaluation state").
-   Note: this is a *replay* evaluation of the same input/context, not of the exact production output.
+4. **Production capture** (`NOVA_FORGE_CAPTURE_POLICY`: `off | on_feedback | sampled | all`) has **two modes**, chosen by
+   `NOVA_FORGE_CAPTURE_MODE` (`reexecute`, the default, or `observed`). Both attach the result to the registered NOVA agent
+   version and store the FORGE run id/score in `integration_references` (shown in Work, "FORGE evaluation state").
+
+   | | `reexecute` (default) | `observed` |
+   |---|---|---|
+   | What FORGE gets | a **scenario** (`category="nova-production"`, input = user intent, context = the ORBIT excerpts served, constraints = Skill expectations) and a **run** against the NOVA agent version | an **observed run** (`POST /runs/observed`): outcome, Skills, tokens, run manifest (agent version, snapshot, policies, release), attached to one fixed scenario scored by deterministic rules on `output_json` |
+   | Who produces the output | FORGE calls NOVA back through (1) and **executes again**, under whichever version is active *then* | NOVA: it reports what **really happened** in production |
+   | What the score means | quality of the same input/context replayed: comparable across versions, says nothing about the release the user actually got | the delivery the user actually got: used to compare **releases on real traffic** (health watch, automatic rollback) |
+   | Limits | not the exact production output; a replay costs model calls | rule-based score only (completed, Skills completed, no error); the request text leaves NOVA only with `NOVA_FORGE_CAPTURE_INTENT=true` (redacted); the answer and the context are never sent |
+   | Visibility / classification | scenario `visibility` is **`private` as soon as the context holds C2 or C3 material** (`mapper.py`), `public` for C0/C1 context; `classification` = max classification of the ORBIT context used (at least 1) | one shared scenario, `visibility=public`, `classification=1`: no content in it |
+
+   A production execution above `NOVA_FORGE_MAX_CAPTURE_CLASSIFICATION` (default C1; a document without a level counts C3)
+   is **not captured** in `reexecute` mode (shown as "not captured" in Work) and reported as metadata only, without the
+   request text, in `observed` mode; the request is always redacted of personal data first.
+
+   The SDLC Autopilot's runs are always ingested as observed runs (`NOVA_FORGE_SDLC_INGEST`), never code or diffs.
+   Operating the observed mode: [`DEPLOYMENT.md`](DEPLOYMENT.md#enabling-the-release-watch-observed-capture--automatic-rollback).
 5. **Feedback**: "Useful / Not useful" on a captured execution → FORGE human evaluation on
    `ux.perceived_usefulness` (5 / 1, comment = "What should NOVA improve?"). Not-useful feedback with
    `on_feedback` policy triggers the capture.
@@ -289,7 +300,7 @@ protocol router `apps/api/nova_api/routers/forge_protocol.py`.
 | G-O4 | Map NOVA user ↔ ORBIT user (for `on_behalf_of`) | `GET /auth/me` (user), `GET /users` (admin only) | Lookup by email for agents | Store `orbit_user_id` captured from `/auth/me` when the account is linked | none |
 | G-O5 | "Why did you include this requirement?" provenance | `ContextItem` carries ids, title, uri, excerpt, classification; `GET /context/requests/{id}` (user only) | — | NOVA stores the cited items per Artifact item at generation time; re-reads the ORBIT request when a session exists | none |
 | G-O6 | Recommendations such as "Sprint planning is tomorrow" | No calendar/ceremony data in ORBIT | Calendar/sprint calendar source | Not faked: only change-feed, overview alerts and NOVA's own state drive recommendations. A calendar connector would belong in ORBIT | ORBIT (future connector) |
-| G-F1 | **NOVA emits production execution telemetry to FORGE** | OTLP ingestion attaches spans only to FORGE runs; orphans are dropped | Ingestion of *observed* (production) executions | **Now**: production capture = scenario + replay run via existing APIs (§2.7-4); OTel spans exported to any OTLP backend. **Done for SDLC runs** (FORGE PR `feat/observed-runs`, [`ENGINEERING.md`](ENGINEERING.md)): an `observed` run origin (`RunOrigin.production`) created from an external trace (`POST /api/v1/runs/observed` taking an agent version, an input, the produced output and FAP events), evaluated by the unchanged pipeline (it already reads trace + manifest) | FORGE (`domain/enums.py`, `services/runs.py`, `api/routers/runs.py`) |
+| G-F1 | **NOVA emits production execution telemetry to FORGE** | OTLP ingestion attaches spans only to FORGE runs; orphans are dropped | Ingestion of *observed* (production) executions | **Done** — two capture modes (§2.7-4): replay (scenario + run via existing APIs, the default) and **observed** production runs (`NOVA_FORGE_CAPTURE_MODE=observed`, `production.py`), plus SDLC runs; OTel spans are exported to any OTLP backend. FORGE side (FORGE PR `feat/observed-runs`, [`ENGINEERING.md`](ENGINEERING.md)): an `observed` run origin (`RunOrigin.production`) created from an external trace (`POST /api/v1/runs/observed` taking an agent version, an input, the produced output and FAP events), evaluated by the unchanged pipeline (it already reads trace + manifest) | FORGE (`domain/enums.py`, `services/runs.py`, `api/routers/runs.py`) |
 | G-F2 | Skill-level evaluation and comparison | Agent versions are content-hashed; `metadata` and `orchestration_config` are free-form | First-class "Skill" dimension in FORGE analytics | NOVA puts `{skill_id: version}` in agent-version `metadata` and run `tags` (`skill:<id>@<version>`); FORGE results can be filtered by tag. A first-class skill filter would be a FORGE analytics change | FORGE (analytics, optional) |
 | G-F3b | Agent-level training from FORGE feedback | FeedbackReport, experiments with paired statistics, `source_feedback_report_id` | — (no FORGE change needed) | **Done** ([`TRAINING.md`](TRAINING.md)): one FORGE agent per specialist (`nova-<agent>`), one service scenario per Skill, versioned policies of lessons promoted only through FORGE experiments; `[S#]` citations mapped to FORGE document ids in the protocol response | NOVA |
 | G-F3 | Link NOVA user feedback to evaluation | Human evaluations need role `evaluator+`; `ux.perceived_usefulness` criterion exists | — | NOVA's FORGE key has role `evaluator` (or `editor`); feedback mapped to that criterion on the captured run | none |
@@ -302,8 +313,8 @@ protocol router `apps/api/nova_api/routers/forge_protocol.py`.
   prefixes for their own settings. NOVA uses `NOVA_ORBIT_BASE_URL` / `NOVA_FORGE_BASE_URL` (all NOVA
   settings are `NOVA_*`-prefixed) to avoid clashing when the stacks share an `.env`.
 * The brief says "FORGE should receive the relevant trace information". FORGE today only evaluates
-  runs it orchestrates (G-F1); NOVA therefore uses replay capture and documents the extension instead
-  of inventing a parallel trace store.
+  runs it orchestrates (G-F1); NOVA therefore started with replay capture. FORGE's observed-run ingestion now
+  exists and NOVA uses it (`NOVA_FORGE_CAPTURE_MODE=observed`); replay stays the default until a deployment opts in.
 * The brief's Keycloak SSO cannot extend to ORBIT/FORGE yet (G-O1). NOVA itself uses Keycloak.
 * ORBIT and FORGE user-facing texts are **French**; NOVA displays ORBIT warnings/labels verbatim.
 * Port allocation: ORBIT 3000/8000, FORGE 3100/8100 → NOVA uses **web 3200, api 8200**, postgres 5435,

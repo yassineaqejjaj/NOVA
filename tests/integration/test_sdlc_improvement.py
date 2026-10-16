@@ -9,10 +9,11 @@ import pytest_asyncio
 from sqlalchemy import delete, select
 
 from nova.config import get_settings
+from nova.domain.policy_gate import Proof
 from nova.domain.sdlc_policy import SdlcLessons
 from nova.infra import db
 from nova.infra.models import AgentPolicy, AuditEvent, IntegrationReference, Release, SdlcRun, User
-from nova.services import learning, providers, sdlc_forge, sdlc_improvement
+from nova.services import learning, providers, releases, sdlc_forge, sdlc_improvement
 from nova_api.main import create_app
 from tests.conftest import scalar
 from tests.support.fake_github import FakeForge, FakeGitHub, SdlcLLM
@@ -337,3 +338,143 @@ async def test_a_manual_activation_and_a_rollback_are_recorded_as_releases(app, 
     back = await admin.post(f"{API}/sdlc/policy/rollback")
     assert back.status_code == 200
     assert (await _sdlc_release()).status == "rolled_back"
+
+
+# --- Proof outside production before a learned policy is activated (NOVA_POLICY_GATE_MODE) ---------------------------
+
+
+class FakeProof:
+    """The FORGE promotion gate seen from NOVA: a proof for the candidate, nothing, or an outage."""
+
+    def __init__(self, proof: Proof | None = None, error: Exception | None = None) -> None:
+        self.proof_value, self.error, self.asked = proof, error, []
+
+    async def proof(self, candidate, baseline, lesson_sources):
+        self.asked.append((candidate.version, list(lesson_sources)))
+        if self.error:
+            raise self.error
+        return self.proof_value
+
+
+SUFFICIENT = Proof(
+    source="fake_forge",
+    validation_scenarios=["guard-a", "guard-b", "guard-c"],
+    lesson_scenarios=["scenario-the-lessons-came-from"],
+    gain=0.06,
+)
+
+
+async def _policy_state() -> tuple[Release, AgentPolicy]:
+    release = await _sdlc_release()
+    async with db.session_scope() as session:
+        policy = await session.get(AgentPolicy, release.policy_id)
+        session.expunge(policy)
+    return release, policy
+
+
+async def test_enforce_holds_a_candidate_without_proof_and_says_why(app, world, monkeypatch):
+    _, forge, model = world
+    monkeypatch.setattr(get_settings(), "policy_gate_mode", "enforce")
+    client = await login(app)
+    await _learn(client, forge, model)
+
+    release, policy = await _policy_state()
+    assert release.status == "awaiting_proof" and policy.status == "candidate"
+    assert "proof" in release.reason.lower() or "preuve" in release.reason
+    assert release.evidence["gate"]["verdict"] == "unavailable" and release.evidence["gate"]["mode"] == "enforce"
+    overview = (await client.get(f"{API}/sdlc/policy")).json()
+    assert overview["active"]["version"] == 0  # nothing reached anyone, not even a canary
+    held = overview["history"][0]
+    assert held["version"] == 1 and held["release"]["status"] == "awaiting_proof" and held["release"]["reason"]
+    async with db.session_scope() as session:
+        assert await sdlc_improvement.active_snapshot(session, user_id="anyone") is None  # no run is served the lessons
+
+
+async def test_enforce_fails_closed_when_forge_is_unreachable(app, world, monkeypatch):
+    _, forge, model = world
+    monkeypatch.setattr(get_settings(), "policy_gate_mode", "enforce")
+    providers.override("policy_proof_source", FakeProof(error=ConnectionError("FORGE unreachable")))
+    client = await login(app)
+    await _learn(client, forge, model)
+
+    release, policy = await _policy_state()
+    assert release.status == "awaiting_proof" and policy.status == "candidate"
+    assert release.evidence["gate"]["verdict"] == "unavailable" and "injoignable" in release.evidence["gate"]["reasons"][0]
+
+
+async def test_enforce_launches_the_canary_once_the_proof_is_sufficient(app, world, monkeypatch):
+    _, forge, model = world
+    settings = get_settings()
+    monkeypatch.setattr(settings, "policy_gate_mode", "enforce")
+    monkeypatch.setattr(settings, "release_canary_percent", 100)
+    source = FakeProof(SUFFICIENT)
+    providers.override("policy_proof_source", source)
+    client = await login(app)
+    first = await _learn(client, forge, model)
+
+    release, _ = await _policy_state()
+    assert release.status == "canary" and release.evidence["gate"]["verdict"] == "passed"  # generalisation still needs the canary
+    assert source.asked == [(1, [forge_id(first)])]  # the runs the lessons come from are declared to the gate
+    assert (await client.get(f"{API}/sdlc/policy")).json()["active"]["version"] == 0
+
+
+async def test_a_validation_set_made_of_the_lesson_scenarios_proves_nothing(app, world, monkeypatch):
+    _, forge, model = world
+    monkeypatch.setattr(get_settings(), "policy_gate_mode", "enforce")
+    providers.override(
+        "policy_proof_source", FakeProof(SUFFICIENT.model_copy(update={"lesson_scenarios": SUFFICIENT.validation_scenarios}))
+    )
+    client = await login(app)
+    await _learn(client, forge, model)
+    release, _ = await _policy_state()
+    assert release.status == "awaiting_proof" and "indépendant" in release.evidence["gate"]["reasons"][0]
+
+
+async def test_a_held_candidate_is_released_when_the_proof_arrives(app, world, monkeypatch):
+    _, forge, model = world
+    settings = get_settings()
+    monkeypatch.setattr(settings, "policy_gate_mode", "enforce")
+    client = await login(app)
+    await _learn(client, forge, model)
+    assert (await _sdlc_release()).status == "awaiting_proof"
+
+    assert (await sdlc_improvement.improve())["status"] == "idle"  # still no proof: stays held
+    assert (await _sdlc_release()).status == "awaiting_proof"
+    providers.override("policy_proof_source", FakeProof(SUFFICIENT))
+    await sdlc_improvement.improve()
+    release, policy = await _policy_state()
+    assert release.status == "active" and policy.status == "active"  # (no canary configured in this fixture)
+    assert release.evidence["gate"]["verdict"] == "passed"
+    assert (await client.get(f"{API}/sdlc/policy")).json()["active"]["version"] == 1
+
+
+async def test_warn_records_the_missing_proof_but_deploys(app, world):
+    _, forge, model = world
+    assert get_settings().policy_gate_mode == "warn"  # the pre-production default
+    client = await login(app)
+    await _learn(client, forge, model)
+    release, policy = await _policy_state()
+    assert release.status == "active" and policy.status == "active"
+    assert release.evidence["gate"]["mode"] == "warn" and release.evidence["gate"]["verdict"] == "unavailable"
+    assert await scalar(select(AuditEvent).where(AuditEvent.action == "release.gate_warning")) is not None
+
+
+async def test_off_skips_the_gate(app, world, monkeypatch):
+    _, forge, model = world
+    monkeypatch.setattr(get_settings(), "policy_gate_mode", "off")
+    client = await login(app)
+    await _learn(client, forge, model)
+    release, _ = await _policy_state()
+    assert release.status == "active" and release.evidence["gate"]["verdict"] == "skipped"
+
+
+async def test_an_administrator_can_withdraw_a_candidate_held_for_proof(app, world, monkeypatch):
+    _, forge, model = world
+    monkeypatch.setattr(get_settings(), "policy_gate_mode", "enforce")
+    client = await login(app)
+    await _learn(client, forge, model)
+    held, _ = await _policy_state()
+    async with db.session_scope() as session:
+        await releases.rollback(session, held.id, None, "not convinced")
+    release, policy = await _policy_state()
+    assert release.status == "rolled_back" and policy.status == "rejected"

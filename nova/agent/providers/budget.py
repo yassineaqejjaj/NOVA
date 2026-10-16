@@ -21,6 +21,11 @@ class BudgetExceeded(LLMError):
 Check = Callable[[], Awaitable[None]]
 
 
+def tightest(*caps: float | None) -> float:
+    """The lowest cap that is set (``None`` or 0 = no limit); 0 when none is set."""
+    return min((c for c in caps if c), default=0)
+
+
 class BudgetedProvider:
     def __init__(self, inner: LLMProvider, check: Check) -> None:
         self._inner, self._check = inner, check

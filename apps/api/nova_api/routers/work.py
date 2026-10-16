@@ -15,13 +15,15 @@ from nova.artifacts.registry import get_artifact_registry
 from nova.config import get_settings
 from nova.domain.agents import AgentProfile
 from nova.domain.enums import AutonomyMode, SkillCategory
+from nova.domain.permissions import Principal
 from nova.infra.db import get_session
 from nova.infra.models import Artifact, IntegrationReference, Task, Workflow
 from nova.services import activity as activity_service
 from nova.services import briefing as briefing_service
 from nova.services import projects as project_service
+from nova.services import scores as scores_service
 from nova.services import today as today_service
-from nova.services.access import AccessDenied, project_role, require_task
+from nova.services.access import AccessDenied, project_role, require_task, within_clearance
 from nova.services.feedback import FeedbackIn, RegressionError, promote_to_regression, submit_feedback
 from nova.skills.registry import get_skill_registry
 from nova_api.auth import CurrentPrincipal
@@ -38,7 +40,7 @@ TAB_STATUSES = {
 }
 
 
-async def _task_view(session: AsyncSession, task: Task, *, detail: bool = False) -> dict[str, Any]:
+async def _task_view(session: AsyncSession, task: Task, principal: Principal, *, detail: bool = False) -> dict[str, Any]:
     skills = get_skill_registry()
     steps = [
         {
@@ -94,13 +96,17 @@ async def _task_view(session: AsyncSession, task: Task, *, detail: bool = False)
         "steps": steps,
     }
     if detail:
-        artifacts = (await session.scalars(select(Artifact).where(Artifact.task_id == task.id))).all()
+        artifacts = (
+            await session.scalars(select(Artifact).where(Artifact.task_id == task.id, within_clearance(principal)))
+        ).all()
         view.update(
             waiting_for=task.waiting_for,
             usage=task.usage,
             model=task.model,
             autonomy=task.autonomy,
             artifacts=[{"id": str(a.id), "title": a.title, "type": a.type, "version": a.current_version} for a in artifacts],
+            # Three separate indicators (never one number): the FORGE score of an observed run is the first one only
+            scores=await scores_service.task_scores(session, task, principal),
         )
     return view
 
@@ -119,12 +125,12 @@ async def list_tasks(
     if project_id:
         query = query.where(Task.project_id == uuid.UUID(project_id))
     rows = (await session.scalars(query.order_by(Task.created_at.desc()).limit(limit))).all()
-    return [await _task_view(session, t) for t in rows]
+    return [await _task_view(session, t, principal) for t in rows]
 
 
 @router.get("/tasks/{task_id}")
 async def get_task(task_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
-    return await _task_view(session, await require_task(session, task_id, principal), detail=True)
+    return await _task_view(session, await require_task(session, task_id, principal), principal, detail=True)
 
 
 # --- Projects ----------------------------------------------------------------------------------------

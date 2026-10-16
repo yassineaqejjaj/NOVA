@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.artifacts.registry import get_artifact_registry
 from nova.domain.context import ContextError
-from nova.domain.permissions import Principal
+from nova.domain.permissions import Principal, may_read_classification
 from nova.i18n import MESSAGES, Lang, resolve_lang, tr
 from nova.infra.models import (
     Artifact,
@@ -28,6 +28,7 @@ from nova.infra.models import (
     UserPreferences,
 )
 from nova.services import providers
+from nova.services.access import within_clearance
 from nova.skills.registry import get_skill_registry
 
 
@@ -102,7 +103,11 @@ async def activity(
     versions_q = (
         select(ArtifactVersion, Artifact)
         .join(Artifact, Artifact.id == ArtifactVersion.artifact_id)
-        .where(or_(Artifact.owner_id == uid, Artifact.project_id.in_(members)), ArtifactVersion.state != "rejected")
+        .where(
+            or_(Artifact.owner_id == uid, Artifact.project_id.in_(members)),
+            ArtifactVersion.state != "rejected",
+            within_clearance(principal),
+        )
     )
     if project_id:
         versions_q = versions_q.where(Artifact.project_id == uuid.UUID(project_id))
@@ -134,12 +139,14 @@ async def activity(
             )
 
     if not (artifact_id or status or skill_id):
-        refs_q = select(ContextRetrievalReference).where(ContextRetrievalReference.user_id == uid)
+        refs_q = select(ContextRetrievalReference).where(
+            ContextRetrievalReference.user_id == uid, ContextRetrievalReference.revoked_at.is_(None)
+        )
         if since:
             refs_q = refs_q.where(ContextRetrievalReference.created_at >= since)
         for ref in (await session.scalars(refs_q.order_by(ContextRetrievalReference.created_at.desc()).limit(limit))).all():
-            if project_id and ref.task_id is None:
-                continue
+            if (project_id and ref.task_id is None) or not may_read_classification(principal, ref.max_classification):
+                continue  # titles of sources above the clearance are not listed
             titles = [str(i.get("title")) for i in (ref.items or []) if isinstance(i, dict) and i.get("title")]
             count = len(ref.items)
             shown = tr(lang, "and_more", shown=", ".join(titles[:2]), n=count - 2) if count > 2 else ", ".join(titles[:2])
@@ -207,10 +214,19 @@ async def activity(
             decisions_q = decisions_q.where(AuditEvent.created_at >= since)
         if until:
             decisions_q = decisions_q.where(AuditEvent.created_at <= until)
-        decisions = [
-            _decision(row, lang)
-            for row in (await session.scalars(decisions_q.order_by(AuditEvent.created_at.desc()).limit(limit))).all()
-        ]
+        rows = (await session.scalars(decisions_q.order_by(AuditEvent.created_at.desc()).limit(limit))).all()
+        artifact_targets = [uuid.UUID(r.target_id) for r in rows if r.target_type == "artifact" and r.target_id]
+        hidden = (  # the audit summary carries the Artifact's title
+            {
+                str(i)
+                for i in await session.scalars(
+                    select(Artifact.id).where(Artifact.id.in_(artifact_targets), ~within_clearance(principal))
+                )
+            }
+            if artifact_targets
+            else set()
+        )
+        decisions = [_decision(row, lang) for row in rows if not (row.target_type == "artifact" and row.target_id in hidden)]
         task_ids = {uuid.UUID(d["task_id"]) for d in decisions if d["task_id"]}
         decided = (
             {t.id: t for t in (await session.scalars(select(Task).where(Task.id.in_(task_ids), Task.user_id == uid))).all()}
@@ -270,7 +286,11 @@ async def search(
     artifacts = (
         await session.scalars(
             select(Artifact)
-            .where(or_(Artifact.owner_id == uid, Artifact.project_id.in_(members)), Artifact.title.ilike(like))
+            .where(
+                or_(Artifact.owner_id == uid, Artifact.project_id.in_(members)),
+                Artifact.title.ilike(like),
+                within_clearance(principal),
+            )
             .order_by(Artifact.updated_at.desc())
             .limit(8)
         )

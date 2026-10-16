@@ -35,6 +35,7 @@ function Gate({ run }: { run: Run }) {
           <Textarea id="gate-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
       ) : null}
+      {!plan && run.tests?.ci === "none" ? <p className="mt-2 text-[13px] text-warning" data-testid="no-ci">{t("noCiHint")}</p> : null}
       {err(act.approve.error)}
       <div className="mt-4 flex flex-wrap gap-2">
         <Button variant="primary" size="sm" onClick={() => act.approve.mutate(notes)} disabled={act.approve.isPending} data-testid="approve">
@@ -49,6 +50,23 @@ function Gate({ run }: { run: Run }) {
         <Button variant="ghost" size="sm" onClick={() => act.cancel.mutate()} disabled={act.cancel.isPending}>{t("cancelRun")}</Button>
       </div>
     </Card>
+  );
+}
+
+function TestsCard({ run }: { run: Run }) {
+  const t = useT(M);
+  const tests = run.tests;
+  if (!tests || (tests.written === 0 && !tests.executed)) return null;
+  const passed = tests.passed === null ? t("testsPending") : tests.passed ? t("testsYes") : t("testsNo");
+  return (
+    <section className="mb-6" data-testid="tests-state">
+      <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-subtle">{t("testsTitle")}</h2>
+      <dl className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-[12px] border border-border px-3 py-2"><dt className="text-[12px] text-subtle">{t("testsWritten")}</dt><dd className="text-[13.5px] font-medium" data-testid="tests-written">{t("testsWrittenValue", { n: tests.written })}</dd></div>
+        <div className="rounded-[12px] border border-border px-3 py-2"><dt className="text-[12px] text-subtle">{t("testsExecuted")}</dt><dd className="text-[13.5px] font-medium" data-testid="tests-executed">{tests.executed ? t("testsExecutedYes", { n: tests.checks }) : t("testsExecutedNo")}</dd></div>
+        <div className="rounded-[12px] border border-border px-3 py-2"><dt className="text-[12px] text-subtle">{t("testsPassed")}</dt><dd className="text-[13.5px] font-medium" data-testid="tests-passed">{passed}</dd></div>
+      </dl>
+    </section>
   );
 }
 
@@ -132,6 +150,7 @@ export default function RunPage() {
       ) : null}
 
       <Gate run={run} />
+      <TestsCard run={run} />
       <ReleaseCard run={run} />
 
       <ol className="space-y-2" data-testid="stages">

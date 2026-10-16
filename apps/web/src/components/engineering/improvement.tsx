@@ -77,13 +77,14 @@ export function Improvement() {
                 <li key={p.id} className="rounded-[10px] bg-surface-2/50 px-3 py-2 text-[13px]" data-version={p.version}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{t("learnVersion", { v: p.version })}</span>
-                    <Badge tone={TONE[p.status]}>{p.status === "candidate" ? t("learnCandidate") : p.status === "rejected" ? t("learnRejected") : t("learnRetired")}</Badge>
+                    <Badge tone={TONE[p.status]}>{p.release?.status === "awaiting_proof" ? t("learnAwaitingProof") : p.status === "candidate" ? t("learnCandidate") : p.status === "rejected" ? t("learnRejected") : t("learnRetired")}</Badge>
                     <span className="text-muted">{p.runs > 0 ? t("learnRuns", { n: p.runs, score: num(p.avg_score) }) : t("learnNoRuns")}</span>
                     {me?.is_admin && (p.status === "candidate" || p.status === "retired") ? (
                       <Button size="sm" variant="ghost" className="ml-auto" onClick={() => actions.activate.mutate(p.id)} disabled={actions.activate.isPending}>{t("learnApply")}</Button>
                     ) : null}
                   </div>
                   <p className="mt-1 text-[12px] text-subtle">{p.summary}</p>
+                  {p.release?.status === "awaiting_proof" ? <p className="mt-1 text-[12px] text-warning" data-testid="awaiting-proof">{p.release.reason}</p> : null}
                 </li>
               ))}
             </ul>

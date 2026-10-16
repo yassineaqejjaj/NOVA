@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import ExecutionPaused
-from nova.agent.providers.budget import BudgetedProvider, BudgetExceeded
+from nova.agent.providers.budget import BudgetedProvider, BudgetExceeded, tightest
 from nova.agent.providers.factory import build_llm_provider
 from nova.agent.providers.fallback import FallbackProvider, fallback_breakers
 from nova.agent.providers.recording import RecordingProvider
@@ -24,6 +24,7 @@ from nova.domain.blocks import error_block
 from nova.domain.context import ContextError
 from nova.domain.enums import EventType, ExecutionOrigin, NovaPhase, TaskStatus
 from nova.domain.llm import LLMError
+from nova.domain.llm_guardrail import CallScope
 from nova.domain.manifest import manifest_from_state
 from nova.domain.pricing import Pricing
 from nova.domain.release import TRAFFIC_ORIGINS
@@ -31,10 +32,10 @@ from nova.domain.state import NovaState
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import get_publisher
 from nova.infra.models import ContextRetrievalReference, Task, WorkflowExecution
-from nova.services import compositions, learning, llm_calls, providers, skill_scores
+from nova.services import compositions, learning, llm_calls, llm_config, llm_guard, providers, skill_scores
 from nova.services.access import effective_permissions
 from nova.services.execution_store import SqlExecutionStore, emit_event
-from nova.services.users import get_user, principal_for
+from nova.services.users import get_user, resolve_principal
 from nova.skills.registry import get_skill_registry
 
 log = logging.getLogger(__name__)
@@ -58,12 +59,16 @@ async def build_deps(
     origin: str,
     task_id: str | None = None,
     model_override: str | None = None,
+    run_budget: dict[str, Any] | None = None,
 ) -> AgentDeps:
-    """The ports of one execution. With a ``task_id`` every model call is recorded (tokens, cost, latency)."""
+    """The ports of one execution. With a ``task_id`` every model call is recorded (tokens, cost, latency).
+
+    ``run_budget`` (``max_tokens``, ``max_cost``) is a cap the caller asks for (FORGE): the tighter of it and NOVA's own applies.
+    """
     async with session_scope() as session:
         user = await get_user(session, principal_user_id)
         assert user is not None
-        principal = principal_for(user)
+        principal = await resolve_principal(session, user)
         permissions = await effective_permissions(session, principal, project_id)
     async with session_scope() as session:
         scores = await skill_scores.latest(session)
@@ -73,6 +78,13 @@ async def build_deps(
     pricing = Pricing(settings.llm_price_input_per_mtok, settings.llm_price_output_per_mtok, settings.llm_price_table)
 
     uses_org_model = llm is org_llm  # false for a user's own key (bring your own model): their data stays where they chose
+    # What this run has read (context, extracts, Artifacts) caps where its model calls may go (domain/llm_guardrail.py)
+    scope = CallScope()
+    destination = (
+        llm_guard.org_destination(settings)
+        if uses_org_model or model_override
+        else (await llm_config.destination_for_user(principal_user_id)) or llm_guard.org_destination(settings)
+    )
 
     def recorded(provider: Any) -> Any:  # every attempt is recorded, including the failed ones that trigger a fallback
         return RecordingProvider(provider, llm_calls.recorder_for(task_id), pricing) if task_id else provider
@@ -95,10 +107,20 @@ async def build_deps(
                 skill_llms[skill_id] = recorded(build_llm_provider(settings.model_copy(update={"llm_model": model})))
             else:
                 log.warning("Model %s routed to Skill %s is not an allowed model: ignored", model, skill_id)
-    if task_id and (settings.run_cost_budget_usd or settings.run_token_budget or settings.user_daily_cost_budget_usd):
-        check = llm_calls.budget_check(task_id, principal_user_id, settings)
+    limits = {
+        "run_cost_budget_usd": tightest(settings.run_cost_budget_usd, (run_budget or {}).get("max_cost")),
+        "run_token_budget": int(tightest(settings.run_token_budget, (run_budget or {}).get("max_tokens"))),
+    }
+    if task_id and (any(limits.values()) or settings.user_daily_cost_budget_usd):
+        check = llm_calls.budget_check(task_id, principal_user_id, settings.model_copy(update=limits))
         llm = BudgetedProvider(llm, check)
         skill_llms = {k: BudgetedProvider(v, check) for k, v in skill_llms.items()}
+    # Outermost: a refused call is neither budgeted nor recorded, and nothing is sent (explicit error, audit event)
+    llm = llm_guard.guard(llm, scope, destination, settings=settings, task_id=task_id, user_id=principal_user_id)
+    skill_llms = {
+        k: llm_guard.guard(v, scope, destination, settings=settings, task_id=task_id, user_id=principal_user_id)
+        for k, v in skill_llms.items()
+    }
     return AgentDeps(
         settings=settings,
         llm=llm,
@@ -109,10 +131,11 @@ async def build_deps(
         skills=get_skill_registry(),
         artifacts=get_artifact_registry(),
         tools=get_tool_registry(),
-        store=SqlExecutionStore(principal),
+        store=SqlExecutionStore(principal, scope=scope),
         design=providers.design(),
         evaluation=None if origin == ExecutionOrigin.forge_protocol else providers.evaluation(),
         permissions=permissions,
+        scope=scope,
     )
 
 
@@ -200,7 +223,14 @@ async def _run_segment(
         message_id = str(task.message_id) if task.message_id else None
         await emit_event(session, get_publisher(), tid, EventType.task, {"status": "running"})
 
-    deps = await build_deps(user_id, project_id, origin, task_id, model_override=initial_input.get("model_override"))
+    deps = await build_deps(
+        user_id,
+        project_id,
+        origin,
+        task_id,
+        model_override=initial_input.get("model_override"),
+        run_budget=initial_input.get("run_budget"),
+    )
     parent = extract(traceparent) if traceparent else otel_context.get_current()
     settings = get_settings()
     try:

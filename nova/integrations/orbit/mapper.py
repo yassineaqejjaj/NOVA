@@ -188,3 +188,17 @@ def snapshot(raw: dict[str, Any]) -> ContextSnapshot:
         created_by_label=s.created_by_label,
         created_at=s.created_at,
     )
+
+
+def agent_self(raw: dict[str, Any]) -> dict[str, Any]:
+    """What ``GET /agents/self`` says of a key, read tolerantly: unknown fields are dropped, no secret is kept."""
+    nested = raw.get("project")
+    project = raw.get("project_slug") or (nested.get("slug") if isinstance(nested, dict) else nested)
+    clearance = next((raw[k] for k in ("clearance", "max_classification", "max_clearance") if isinstance(raw.get(k), int)), None)
+    scopes = raw.get("scopes") or raw.get("permissions") or []
+    return {
+        "name": str(raw.get("name") or raw.get("label") or "")[:120],
+        "clearance": clearance,
+        "scopes": [str(s)[:60] for s in scopes][:20] if isinstance(scopes, list) else [],
+        **({"orbit_project": str(project)[:120]} if project else {}),
+    }

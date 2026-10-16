@@ -45,6 +45,17 @@ const M = defineMessages({
     tokensValue: "{input} in · {output} out",
     traceId: "Trace ID",
     forgeEvaluation: "FORGE evaluation",
+    forgeObserved: "FORGE · execution health of this run",
+    forgeReexecute: "FORGE · score of a replay of the request",
+    forgeObservedHint: "Observed: FORGE scored what really happened in this run (completed, Skills delivered, no error). It does not say the deliverable is good.",
+    forgeReexecuteHint: "Re-executed: FORGE replayed the request and scored that other execution, so scores stay comparable across versions. It is not this run.",
+    executionHealth: "Execution health",
+    executionHealthHint: "Did the run complete, did every Skill deliver, were there errors. 100 does not mean the deliverable is useful.",
+    deliverableQuality: "Deliverable quality",
+    deliverableQualityHint: "Content present, validation passed, citations kept, your rating. Only signals NOVA has are used.",
+    businessGain: "Business gain",
+    businessGainHint: "Deliverable accepted or refused, and how much people corrected it.",
+    notMeasured: "Not measured yet",
     evalQueued: "queued",
     passed: " · passed",
     notPassed: " · not passed",
@@ -90,6 +101,17 @@ const M = defineMessages({
     tokensValue: "{input} en entrée · {output} en sortie",
     traceId: "ID de trace",
     forgeEvaluation: "Évaluation FORGE",
+    forgeObserved: "FORGE · santé d’exécution de ce run",
+    forgeReexecute: "FORGE · score d’un rejeu de la demande",
+    forgeObservedHint: "Observé : FORGE a noté ce qui s’est réellement passé dans ce run (terminé, Skills livrées, aucune erreur). Cela ne dit pas que le livrable est bon.",
+    forgeReexecuteHint: "Réexécuté : FORGE a rejoué la demande et noté cette autre exécution, pour que les scores restent comparables entre versions. Ce n’est pas ce run.",
+    executionHealth: "Santé d’exécution",
+    executionHealthHint: "Le run est-il allé au bout, chaque Skill a-t-elle livré, y a-t-il eu des erreurs. 100 ne veut pas dire que le livrable est utile.",
+    deliverableQuality: "Qualité du livrable",
+    deliverableQualityHint: "Contenu présent, validation réussie, citations conservées, votre avis. Seuls les signaux dont NOVA dispose sont utilisés.",
+    businessGain: "Gain métier",
+    businessGainHint: "Livrable accepté ou refusé, et part corrigée par des personnes.",
+    notMeasured: "Pas encore mesuré",
     evalQueued: "en file d’attente",
     passed: " · réussie",
     notPassed: " · non réussie",
@@ -216,10 +238,14 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
           <Meta label={t("tokens")} value={task.usage?.input_tokens != null ? t("tokensValue", { input: task.usage.input_tokens, output: task.usage.output_tokens ?? 0 }) : "—"} />
           <Meta label={t("traceId")} value={task.trace_id ?? "—"} mono />
           <Meta
-            label={t("forgeEvaluation")}
+            label={
+              <span title={task.evaluation?.mode === "observed" ? t("forgeObservedHint") : task.evaluation ? t("forgeReexecuteHint") : undefined}>
+                {task.evaluation?.mode === "observed" ? t("forgeObserved") : task.evaluation?.mode === "reexecute" || task.evaluation ? t("forgeReexecute") : t("forgeEvaluation")}
+              </span>
+            }
             value={
               task.evaluation ? (
-                <a href={task.evaluation.url ?? "#"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
+                <a href={task.evaluation.url ?? "#"} title={task.evaluation.note ?? undefined} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
                   <FlaskConical className="size-3" />
                   {task.evaluation.composite_score != null ? `${Math.round(task.evaluation.composite_score)} / 100` : task.evaluation.status ? evaluationStatusLabel(task.evaluation.status, lang) : t("evalQueued")}
                   {task.evaluation.passed != null ? (task.evaluation.passed ? t("passed") : t("notPassed")) : ""}
@@ -227,6 +253,19 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
               ) : t("notEvaluated")
             }
           />
+          {task.scores ? (
+            <>
+              <Meta label={<span title={t("executionHealthHint")}>{t("executionHealth")}</span>} value={`${task.scores.execution_health} / 100`} />
+              <Meta
+                label={<span title={t("deliverableQualityHint")}>{t("deliverableQuality")}</span>}
+                value={task.scores.deliverable_quality.score != null ? `${Math.round(task.scores.deliverable_quality.score)} / 100` : t("notMeasured")}
+              />
+              <Meta
+                label={<span title={t("businessGainHint")}>{t("businessGain")}</span>}
+                value={task.scores.business_gain.score != null ? `${Math.round(task.scores.business_gain.score)} / 100` : t("notMeasured")}
+              />
+            </>
+          ) : null}
         </section>
         {task.error ? <p className="rounded-[10px] bg-danger/[0.06] px-3 py-2 text-muted">{label(task.error)}</p> : null}
       </div>
@@ -240,7 +279,7 @@ function WorkDetail({ id, onClose }: { id: string; onClose: () => void }) {
   );
 }
 
-function Meta({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
+function Meta({ label, value, mono }: { label: React.ReactNode; value: React.ReactNode; mono?: boolean }) {
   return (
     <div className="min-w-0">
       <div className="text-[11.5px] text-subtle">{label}</div>

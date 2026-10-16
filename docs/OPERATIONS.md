@@ -8,8 +8,53 @@
 * `NOVA_COOKIE_SECURE=true` behind HTTPS; Keycloak realm `nova` with client `nova-web` (confidential, PKCE S256,
   redirect `https://<host>/api/v1/auth/callback`, audience mapper) — see `infrastructure/keycloak/nova-realm.json`.
 * Organization policy: `NOVA_POLICY_ALLOW_AUTO_EXTERNAL_WRITES` (default `false`: writes to ORBIT always need
-  approval), `NOVA_POLICY_MAX_CLASSIFICATION` (cap on the classification NOVA requests from ORBIT).
-* Retention: `NOVA_CONTEXT_REFERENCE_RETENTION_DAYS`, `NOVA_EXECUTION_EVENT_RETENTION_DAYS` (daily job).
+  approval), `NOVA_POLICY_MAX_CLASSIFICATION` (cap on the classification NOVA requests from ORBIT),
+  `NOVA_LLM_MAX_CLASSIFICATION` (default `1`), `NOVA_LLM_LOCAL`, `NOVA_LLM_LOCAL_HOSTS`, `NOVA_LLM_REDACT_PII`
+  (outbound guardrail: what may be sent to an external model, see ARCHITECTURE §11), `NOVA_DEFAULT_CLEARANCE` (default `1`: clearance of a user with no linked ORBIT account, see ARCHITECTURE §11).
+* Retention: `NOVA_CONTEXT_REFERENCE_RETENTION_DAYS`, `NOVA_EXECUTION_EVENT_RETENTION_DAYS`, `NOVA_CHECKPOINT_RETENTION_DAYS` (daily
+  job); forgetting a source, project or user and the other copies: `docs/DATA_INVENTORY.md`, `NOVA_FORGET_ARTIFACTS`.
+
+## ORBIT revocation events (webhook)
+
+After a change of rights in ORBIT, NOVA must stop using what it kept (extracts, derived Artifacts, replays, sessions).
+ORBIT announces it with its signed webhooks (ORBIT NOV-80); NOVA receives them at `POST /api/v1/webhooks/orbit`.
+
+**Configure ORBIT**: in the ORBIT project, add a webhook to `https://<nova-host>/api/v1/webhooks/orbit`, subscribed to
+`document.forgotten`, `memory.forgotten`, `document.acl_changed`, `memory.acl_changed`,
+`document.classification_changed`, `member.removed` and `agent.revoked` (an empty selection also works: other types are
+acknowledged and ignored). Put the webhook's signing secret in `NOVA_ORBIT_WEBHOOK_SECRET` on `api` (also `worker`,
+`beat` for consistency). Without it the endpoint answers 503 and nothing is accepted. Create one webhook per ORBIT
+project (the payload names the project slug).
+
+**Contract** (ORBIT's `webhook_payload`, JSON): `id`, `type`, `project {id, slug}`, `target_type`
+(`document | memory | user | agent`), `target_id`, `created_at`, `effective_at`, `restricted`, `old_classification`,
+`new_classification`; headers `X-Orbit-Event`, `X-Orbit-Delivery` (idempotence key) and
+`X-Orbit-Signature: sha256=<HMAC-SHA256(secret, raw body)>`. NOVA answers 401 on a bad or missing signature, 400 on a
+malformed or stale event (`NOVA_ORBIT_WEBHOOK_MAX_AGE_SECONDS`, default 24 h), `200 {"status": "duplicate"}` for a
+delivery already received. `member.removed` carries the ORBIT user id in `target_id`; `agent.revoked` the key id.
+
+**Effects** (all audited, idempotent): the retrieval references holding the source are marked revoked (never served
+again: pinned context, replay with the original context, citations); the Artifacts citing them are flagged "to review"
+(banner, no export or publication until an editor reviews them, `POST /artifacts/{id}/review`); `member.removed` drops
+that user's ORBIT session, resets their clearance to `NOVA_DEFAULT_CLEARANCE` and revokes what they were served in that
+project (status "revoked" on the links screen until they link ORBIT again); `agent.revoked` stops NOVA using the
+project's configured agent key (ORBIT's key id cannot be matched to NOVA's configuration, so the check on the links
+screen restores it when ORBIT still accepts the key; rotating the key also lifts it). Administrators list the received
+events (`GET /admin/orbit-events`) and replay one (`POST /admin/orbit-events/{id}/replay`).
+
+## FORGE capture outbox
+
+A finished run's capture into FORGE is recorded first in the `forge_outbox` table (before the run completes, key
+`nova-task:<task id>`), then sent right away. If FORGE is down the row stays `pending` and the worker task
+`nova.process_forge_outbox` (every minute, queue `maintenance`) retries it with an exponential backoff (30 s, 1 min … 1 h)
+up to `NOVA_FORGE_OUTBOX_MAX_ATTEMPTS` (default 10), then marks it `failed` (the failure queue; a refusal by FORGE other
+than 408/425/429 fails at once). `skipped` = nothing was sent (classification guard, FORGE not configured). A run already
+linked to a FORGE run is never sent twice; the answer is never stored in the outbox, and a row is emptied once settled.
+Unhelpful feedback that cannot reach FORGE waits the same way and is delivered after the capture, with no user action.
+State: `GET /api/v1/admin/forge-outbox` (counts per status, age of the oldest waiting row) and
+`GET /api/v1/admin/forge-outbox/metrics` (Prometheus text format: `nova_forge_outbox_rows{status}` and
+`nova_forge_outbox_oldest_waiting_seconds`; administrator credentials required, no `prometheus_client` dependency).
+Alert on `failed > 0` or an oldest waiting age above a few minutes.
 
 ## Scaling
 
@@ -53,7 +98,8 @@ cloudflared tunnel --no-autoupdate --url http://127.0.0.1:11500      # prints ht
 Then set on `api`, `worker` and `beat`: `NOVA_LLM_PROVIDER=openai_compatible`,
 `NOVA_LLM_BASE_URL=https://<random>.trycloudflare.com/v1`, `NOVA_LLM_MODEL=<model id from GET /v1/models>`,
 `NOVA_LLM_API_KEY=<key>`, `NOVA_LLM_TIMEOUT_SECONDS=900`. The quick-tunnel URL changes on every restart and
-the laptop must stay awake: use a GPU vLLM server for real production.
+the laptop must stay awake: use a GPU vLLM server for real production. A tunnel URL is an *external* host to NOVA:
+set `NOVA_LLM_LOCAL=true` only if the model really runs inside your perimeter, otherwise C2/C3 work is refused.
 
 ### Permanent install on the Mac (launchd)
 

@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nova.config import get_settings
 from nova.domain.context import SnapshotRef
 from nova.domain.enums import AutonomyMode, ExecutionOrigin, TaskStatus
-from nova.domain.permissions import Principal
+from nova.domain.permissions import Principal, may_read_classification
 from nova.infra.models import ContextRetrievalReference, Task
 from nova.services.access import require_task
 
@@ -51,13 +51,33 @@ async def create_replay(session: AsyncSession, principal: Principal, task_id: st
     task_input: dict[str, Any] = {
         k: v
         for k, v in (original.input or {}).items()
-        if k not in ("learning", "learning_policy_id", "pinned_context_ref_ids", "excluded_context_refs")
+        if k not in ("learning", "learning_policy_id", "pinned_context_ref_ids", "excluded_context_refs", "forgotten_at")
     }
-    overrides: dict[str, str] = {"context": options.context}
+    overrides: dict[str, Any] = {"context": options.context}
+    if options.context == "original" and (original.input or {}).get("forgotten_at"):
+        raise ReplayError("forgotten", "The context of this run was forgotten: it cannot be replayed with its original context.")
     if options.context == "original":
-        refs = (
-            await session.scalars(select(ContextRetrievalReference.id).where(ContextRetrievalReference.task_id == original.id))
+        every = (
+            await session.execute(
+                select(ContextRetrievalReference.id, ContextRetrievalReference.items, ContextRetrievalReference.revoked_at).where(
+                    ContextRetrievalReference.task_id == original.id
+                )
+            )
         ).all()
+        # An extract ORBIT forgot or restricted since is never re-injected (NOV-81): the replay goes without it
+        stored = [(ref_id, items) for ref_id, items, revoked_at in every if revoked_at is None]
+        if len(stored) < len(every):
+            if not stored:
+                raise ReplayError("revoked", "Every source of this run was forgotten or restricted in ORBIT since.")
+            overrides["revoked_sources"] = len(every) - len(stored)
+        # The stored extracts are re-served without asking ORBIT again: the user's *current* clearance must cover them
+        # (fail-closed; a replay with ``live`` context re-queries ORBIT with the rights of today).
+        if any(not may_read_classification(principal, int(i.get("classification", 3))) for _, items in stored for i in items):
+            raise ReplayError(
+                "clearance",
+                "This run used sources above your current clearance: replay it with live context instead.",
+            )
+        refs = [ref_id for ref_id, _ in stored]
         task_input["context_mode"] = "explicit"  # no new retrieval: re-use exactly what ORBIT served before
         task_input["pinned_context_ref_ids"] = [str(r) for r in refs]
     elif options.context == "live":

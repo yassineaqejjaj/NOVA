@@ -152,8 +152,24 @@ async def resolve_comment(artifact_id: str, comment_id: str, principal: CurrentP
 async def export(
     artifact_id: str, principal: CurrentPrincipal, session: SessionDep, format: Literal["md", "json"] = "md"
 ) -> Response:
-    body, media_type, filename = await service.export(session, principal, artifact_id, format)
+    try:
+        body, media_type, filename = await service.export(session, principal, artifact_id, format)
+    except service.NeedsReview as exc:
+        raise ApiError(
+            409,
+            "needs_review",
+            "A source of this Artifact was forgotten or restricted in ORBIT: review the Artifact before exporting it.",
+            [{"label": "Mark as reviewed", "action": "review"}],
+        ) from exc
     return Response(body, media_type=media_type, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+@router.post("/{artifact_id}/review")
+async def review(artifact_id: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """An editor confirms an Artifact flagged "to review" (ORBIT forgot or restricted one of its sources)."""
+    await service.review(session, principal, artifact_id)
+    await session.commit()
+    return {"status": "reviewed"}
 
 
 @router.get("/{artifact_id}/provenance")

@@ -83,7 +83,10 @@ FORGE has no command to create an API key: an admin creates it once.
 2. FORGE → Settings → Credentials: create a credential of kind **nova**, base URL
    `https://api-production-dfe1.up.railway.app`, secret = `NOVA_FORGE_INBOUND_TOKEN`
    (`railway variable list -s api --kv | grep FORGE_INBOUND`).
-3. NOVA registers itself as agent `nova` on its first capture (`NOVA_FORGE_CAPTURE_POLICY`).
+3. NOVA registers itself as agent `nova` on its first capture (`NOVA_FORGE_CAPTURE_POLICY`), with the API URL
+   `NOVA_FORGE_NOVA_ENDPOINT` and the credential `NOVA_FORGE_CREDENTIAL_ID` (both are also used by training and SDLC
+   ingestion). Capture by re-execution refuses to register a version, and logs why, while one of them is missing; a
+   version registered earlier without them is replaced by a new one.
 4. Training loop ([`TRAINING.md`](TRAINING.md)): give the key role **editor**, set `NOVA_FORGE_CREDENTIAL_ID` to the
    id of the credential of step 2 and `NOVA_FORGE_NOVA_ENDPOINT` to NOVA's API URL (as reachable by FORGE) on
    `api`, `worker` and `beat`. Cycles are then started by an administrator from Team → Training with FORGE (or every `NOVA_TRAINING_INTERVAL_DAYS` days when set).
@@ -107,7 +110,11 @@ Current production setup: **Claude Haiku 4.5 through the Claude API** (`NOVA_LLM
 forced tool call. A request takes seconds (Gemma 4 on LM Studio through the laptop tunnel took minutes; that setup
 remains documented in `docs/OPERATIONS.md` but its launchd services are unloaded).
 
-With the Claude API, the ORBIT context of each request is sent to Anthropic. `NOVA_POLICY_MAX_CLASSIFICATION`
+With the Claude API, the ORBIT context of each request is sent to Anthropic. NOVA enforces it on every call:
+`NOVA_LLM_MAX_CLASSIFICATION` (default `1`) is the highest classification sent to an external model; a run holding
+C2/C3 material is refused with a clear error and an `llm.blocked` audit event, and nothing is sent. In production the
+API refuses to start with a ceiling above C1 on an external model unless `NOVA_LLM_LOCAL=true` (model inside the
+perimeter) or `NOVA_LLM_ALLOW_CLASSIFIED_EXTERNAL=true` (explicit override). `NOVA_POLICY_MAX_CLASSIFICATION`
 (0–3) caps what ORBIT returns to NOVA: set it to `1` to keep Confidential (C2) and Secret (C3) context out of
 external model calls. For demos without either, `docs/OPERATIONS.md` (“Demo LLM from a laptop”) describes exposing a
 laptop's Ollama through an authenticated tunnel.
@@ -169,6 +176,26 @@ administrator approval, rollback armed but with no observed data to act on). To 
 The request text is **not** sent by default (`NOVA_FORGE_CAPTURE_INTENT=false`): FORGE only learns which Skills ran. Leave
 it that way unless the organization decides requests may leave NOVA, since a request can hold confidential (C2) or
 secret (C3) material. The answer and the context are never sent.
+
+Classification guard (`NOVA_FORGE_MAX_CAPTURE_CLASSIFICATION`, default `1`): capture by re-execution sends the request (personal
+data masked) and context excerpts so FORGE can replay them; a run whose context holds a document above C1 (or without a
+level) is **not captured**: its evaluation shows `skipped` with the reason, and nothing is sent. Observed capture of such a
+run sends outcomes only, and withholds the request text even when `NOVA_FORGE_CAPTURE_INTENT=true`. Regression tests from
+an unhelpful rating keep their own fixed ceiling (C1).
+
+What the FORGE score means depends on the capture mode, and NOVA says so (Work → task detail):
+
+* `observed` (production reality): the score is the **execution health** of the run the user actually got: it completed, every
+  Skill delivered, no error. A run that finished but produced something empty or wrong still scores 100.
+* `reexecute` (the default, kept): FORGE replays the request under the version active at that moment and scores **that other
+  execution**. Scores stay comparable across versions (a regression test), but it is not the user's run. It remains the default
+  because it needs no change on the FORGE side, sends no outcome data and its scores do not depend on live traffic; use
+  `observed` to monitor real releases (below).
+
+Two other indicators are computed by NOVA from what it stores, never merged into the FORGE score: **deliverable quality**
+(content present, validation passed, citations kept, the user's rating) and **business gain** (deliverable accepted or refused,
+share corrected by people). A signal NOVA does not have is left out, not counted as good or bad. No LLM judge grades the
+output; if one is ever added it may only read declassified output (the capture classification guard above).
 
 ### 1. In FORGE (once, by an administrator)
 

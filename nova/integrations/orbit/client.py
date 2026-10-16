@@ -70,6 +70,10 @@ class OrbitClient:
             raise ContextError("invalid", "ORBIT did not return a session")
         return response.json(), token
 
+    async def agent_self(self, auth: OrbitAuth) -> dict[str, Any]:
+        """``GET /agents/self``: what ORBIT knows of the agent key (identity, project, clearance, scopes)."""
+        return (await self._request("GET", "/agents/self", auth)).json()
+
     async def me(self, auth: OrbitAuth) -> dict[str, Any]:
         return (await self._request("GET", "/auth/me", auth)).json()
 

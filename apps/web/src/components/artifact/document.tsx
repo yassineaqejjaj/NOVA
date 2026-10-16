@@ -31,6 +31,7 @@ import { sectionTitle, typeName } from "@/lib/i18n/catalog";
 import { localizeCheck, M, VERSION_STATES } from "./document.messages";
 import { EditorToolbar } from "./editor-toolbar";
 import { FreshnessBanner } from "./freshness-banner";
+import { ReviewBanner } from "./review-banner";
 import { ArtifactSection } from "./section";
 import { VersionHistory } from "./version-history";
 
@@ -186,6 +187,7 @@ export function ArtifactDocument({ artifactId }: { artifactId: string }) {
         </div>
       </header>
 
+      <ReviewBanner artifactId={artifactId} review={artifact.review} canEdit={artifact.can_edit} />
       {!viewingOld && !artifact.proposed_version ? <FreshnessBanner artifactId={artifactId} canEdit={artifact.can_edit} sectionName={sectionName} /> : null}
 
       <AnimatePresence>

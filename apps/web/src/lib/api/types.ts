@@ -55,7 +55,51 @@ export interface OrbitIdentity {
   display_name?: string | null;
   clearance?: number | null;
   expires_at?: string | null;
+  /** The credential ORBIT calls really use: the user's session, or the project's agent key. */
   mode: "session" | "agent_key" | "none";
+  session_expired?: boolean;
+  /** The session is gone and the project agent key acts instead (another identity, a lower clearance). */
+  fallback?: boolean;
+  agent_projects?: string[];
+  last_success_at?: string | null;
+  last_error_at?: string | null;
+  last_error?: string | null;
+}
+
+/** State of an ORBIT agent key (`GET /agents/self`); `available: false` when ORBIT does not tell. Never the key. */
+export interface OrbitAgentKey {
+  project: string;
+  available: boolean;
+  valid: boolean | null;
+  reason: "unsupported" | "forbidden" | "unreachable" | "key_rejected" | "revoked" | null;
+  name?: string;
+  clearance?: number | null;
+  scopes?: string[];
+  orbit_project?: string;
+}
+
+export interface ForgeLink {
+  status: "ok" | "degraded" | "not_configured";
+  configured: boolean;
+  endpoint: string;
+  api_key_present: boolean;
+  inbound_credential_set: boolean;
+  /** Where FORGE calls NOVA back, and what is wrong with that connection (setting names only). */
+  callback_endpoint: string;
+  problems: string[];
+  capture_policy: string;
+  capture_mode: string;
+  last_success_at: string | null;
+  last_error_at: string | null;
+  last_error: string | null;
+  /** Pending captures (outbox); null while NOVA has no capture outbox. */
+  capture_queue: number | null;
+}
+
+/** `GET /me/links`: the health of the ORBIT and FORGE links; `forge` is for administrators only. */
+export interface Links {
+  orbit: OrbitIdentity & { status: "ok" | "degraded" | "fallback" | "expired" | "revoked" | "agent_key" | "unlinked"; revoked_reason?: string | null; agent_keys: OrbitAgentKey[] };
+  forge: ForgeLink | null;
 }
 
 export interface Block<T = Record<string, unknown>> { key: string; type: BlockType; position: number; data: T }
@@ -234,7 +278,22 @@ export interface EvaluationRef {
   composite_score?: number | null;
   passed?: boolean | null;
   url?: string | null;
+  note?: string | null;
+  /** What `composite_score` measures: execution health of the real run (observed) or a replay's score (reexecute). */
+  mode?: "observed" | "reexecute" | null;
   pending_feedback?: unknown[];
+}
+
+export interface ScoreView {
+  score: number | null;
+  checks: { key: string; weight: number; value: number; detail: string }[];
+}
+
+/** Three separate indicators of a settled run: never merged into one number. */
+export interface TaskScores {
+  execution_health: number;
+  deliverable_quality: ScoreView;
+  business_gain: ScoreView;
 }
 
 export interface WorkItem {
@@ -257,6 +316,7 @@ export interface WorkItem {
   artifact_ids: string[];
   steps?: TaskStep[];
   artifacts?: { id: string; title: string; type: string; version: number }[];
+  scores?: TaskScores | null;
   model?: string | null;
   usage?: { input_tokens?: number; output_tokens?: number; model_calls?: number };
   waiting_for?: WaitingFor | null;
@@ -351,6 +411,8 @@ export interface ArtifactSummary {
   owner_id: string;
   conversation_id: string | null;
   task_id: string | null;
+  /** "To review" after ORBIT forgot or restricted a source it cites (no export until reviewed). */
+  review?: { pending: boolean; reason: string | null; since: string | null };
   created_at: string;
   updated_at: string;
 }

@@ -13,8 +13,10 @@ from nova.domain.artifacts import ArtifactContent
 from nova.domain.blocks import Block, ProgressLine
 from nova.domain.context import ContextBundle, ContextItem, SnapshotRef
 from nova.domain.enums import BlockType, EventType, NovaPhase, ProjectRole, StepStatus, role_at_least
-from nova.domain.outputs import EvaluationReference, ExecutionPlan, TokenUsage, ToolRequest, ToolResult
-from nova.domain.permissions import Principal
+from nova.domain.evaluation import EvaluationSink, ExecutionRecord
+from nova.domain.llm_guardrail import CallScope
+from nova.domain.outputs import ExecutionPlan, TokenUsage, ToolRequest, ToolResult
+from nova.domain.permissions import Principal, may_read_classification
 from nova.domain.skills import SkillSpec
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import Publisher, get_publisher
@@ -23,7 +25,6 @@ from nova.infra.models import (
     ArtifactVersion,
     ContextRetrievalReference,
     ExecutionEvent,
-    IntegrationReference,
     MessageBlock,
     ProjectMember,
     SkillExecution,
@@ -34,7 +35,8 @@ from nova.infra.models import (
     WorkflowExecution,
 )
 from nova.infra.redaction import redact_obj
-from nova.services.access import AccessDenied, artifact_role
+from nova.services import forge_outbox
+from nova.services.access import AccessDenied, artifact_role, within_clearance
 
 
 def _uuid(value: str | uuid.UUID | None) -> uuid.UUID | None:
@@ -53,9 +55,11 @@ async def emit_event(
 
 
 class SqlExecutionStore:
-    def __init__(self, principal: Principal, publisher: Publisher | None = None) -> None:
+    def __init__(self, principal: Principal, publisher: Publisher | None = None, scope: CallScope | None = None) -> None:
         self.principal = principal
         self.publisher = publisher or get_publisher()
+        # Everything this store hands to the agents raises the run's level: the outbound guardrail reads it
+        self.scope = scope or CallScope()
 
     # --- Streaming & progress ------------------------------------------------------------------
 
@@ -256,22 +260,33 @@ class SqlExecutionStore:
             rows = (
                 await session.scalars(
                     select(ContextRetrievalReference).where(
-                        ContextRetrievalReference.id.in_(ids), ContextRetrievalReference.user_id == _uuid(user_id)
+                        ContextRetrievalReference.id.in_(ids),
+                        ContextRetrievalReference.user_id == _uuid(user_id),
+                        ContextRetrievalReference.revoked_at.is_(None),  # ORBIT forgot or restricted a source of it
                     )
                 )
             ).all()
-            return [
+            # Stored extracts are never re-served above the user's *current* clearance (it may have dropped since).
+            served = [
                 StoredContextReference(
                     id=str(r.id),
                     retrieval_id=r.retrieval_id,
                     project_slug=r.project_slug,
-                    items=[ContextItem.model_validate(i) for i in r.items],
+                    items=[
+                        item
+                        for i in r.items
+                        if may_read_classification(self.principal, (item := ContextItem.model_validate(i)).classification)
+                    ],
                     created_at=r.created_at.isoformat(),
                     snapshot_name=r.snapshot_name,
                     snapshot_version=r.snapshot_version,
                 )
                 for r in rows
             ]
+            for reference in served:
+                for item in reference.items:
+                    self.scope.raise_to(item.classification, "context")
+            return served
 
     # --- Skills & tools ------------------------------------------------------------------------
 
@@ -361,6 +376,7 @@ class SqlExecutionStore:
             content=ArtifactContent.model_validate(version.content),
             classification=artifact.classification,
             project_id=str(artifact.project_id) if artifact.project_id else None,
+            needs_review=artifact.review_requested_at is not None,
             skill_execution_ids=[str(e) for e in executions],
         )
 
@@ -372,6 +388,7 @@ class SqlExecutionStore:
             artifact = await session.get(Artifact, aid)
             if artifact is None or (await artifact_role(session, artifact, self.principal)) is None:
                 return None
+            self.scope.raise_to(artifact.classification, "artifact")
             return await self._snapshot(session, artifact)
 
     async def list_artifact_outlines(
@@ -381,7 +398,9 @@ class SqlExecutionStore:
             uid = _uuid(user_id)
             member_projects = select(ProjectMember.project_id).where(ProjectMember.user_id == uid)
             query = select(Artifact).where(
-                or_(Artifact.owner_id == uid, Artifact.project_id.in_(member_projects)), Artifact.status != "archived"
+                or_(Artifact.owner_id == uid, Artifact.project_id.in_(member_projects)),
+                Artifact.status != "archived",
+                within_clearance(self.principal),
             )
             if ids:
                 query = query.where(Artifact.id.in_([i for i in (_uuid(x) for x in ids) if i]))
@@ -390,6 +409,7 @@ class SqlExecutionStore:
             rows = (await session.scalars(query.order_by(Artifact.updated_at.desc()).limit(limit))).all()
             outlines = []
             for artifact in rows:
+                self.scope.raise_to(artifact.classification, "artifact")
                 snap = await self._snapshot(session, artifact)
                 outlines.append(
                     ArtifactOutline(
@@ -502,27 +522,8 @@ class SqlExecutionStore:
                 .values(state="rejected")
             )
 
-    async def save_evaluation_reference(self, task_id: str, reference: EvaluationReference) -> None:
-        async with session_scope() as session:
-            row = await session.scalar(
-                select(IntegrationReference).where(
-                    IntegrationReference.system == "forge",
-                    IntegrationReference.kind == "evaluation",
-                    IntegrationReference.nova_type == "task",
-                    IntegrationReference.nova_id == task_id,
-                )
-            )
-            data = reference.model_dump(mode="json")
-            if row is None:
-                session.add(
-                    IntegrationReference(
-                        system="forge",
-                        kind="evaluation",
-                        nova_type="task",
-                        nova_id=task_id,
-                        external_id=reference.run_id or reference.scenario_id or "",
-                        data=data,
-                    )
-                )
-            else:
-                row.external_id, row.data = reference.run_id or row.external_id, data
+    async def queue_capture(self, record: ExecutionRecord) -> str:
+        return await forge_outbox.enqueue_capture(record)
+
+    async def deliver_capture(self, outbox_id: str, sink: EvaluationSink | None) -> str | None:
+        return await forge_outbox.deliver(outbox_id, sink)

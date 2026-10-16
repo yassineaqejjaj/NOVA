@@ -6,6 +6,8 @@ from typing import Any
 
 import httpx
 
+from nova.integrations import link_health
+
 API = "/api/v1"
 
 
@@ -30,7 +32,13 @@ class ForgeClient:
         try:
             response = await self._client.request(method, f"{API}{path}", **kwargs)
         except httpx.HTTPError as exc:
+            await link_health.record_forge(error="unreachable")
             raise ForgeError(0, f"FORGE unreachable ({exc.__class__.__name__})") from exc
+        status = response.status_code
+        if status >= 500 or status in (401, 403):  # down, or the credential is refused; any other answer proves the link
+            await link_health.record_forge(error=f"HTTP {status}")
+        else:
+            await link_health.record_forge()
         if response.status_code >= 400:
             try:
                 detail = str(response.json().get("detail") or "")
@@ -58,6 +66,10 @@ class ForgeClient:
 
     async def create_runs(self, body: dict[str, Any]) -> list[dict[str, Any]]:
         return await self._request("POST", "/runs", json=body)
+
+    async def delete_run(self, run_id: str) -> None:
+        """Erasure request for a run NOVA captured from context that ORBIT forgot (acknowledged by a 2xx)."""
+        await self._request("DELETE", f"/runs/{run_id}")
 
     async def run_scores(self, run_id: str) -> dict[str, Any]:
         """Per-criterion scores and composite of an evaluated run."""

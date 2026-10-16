@@ -15,6 +15,7 @@ from nova.domain.agents import AgentProfile
 from nova.domain.blocks import Block, ProgressLine
 from nova.domain.enums import BlockType, NovaPhase
 from nova.domain.llm import LLMError
+from nova.domain.llm_guardrail import ClassificationBlocked
 from nova.domain.state import ExecutionError, NovaState
 
 tracer = trace.get_tracer("nova.agent")
@@ -58,8 +59,13 @@ def node(name: str) -> Callable[[NodeFn], NodeFn]:
                 ):
                     # Stop before this node: the last checkpoint is kept and the run resumes from here.
                     raise ExecutionPaused(state.task_id)
+                # What the run holds (retrieved context, FORGE-provided context) caps where its calls may go
+                runtime.context.scope.raise_to(state_level(state), "context")
                 try:
                     return await fn(state, runtime)
+                except ClassificationBlocked as exc:
+                    span.set_attribute("error.type", "classification_blocked")
+                    return _failed(state, name, "classification_blocked", str(exc))
                 except LLMError as exc:
                     if exc.retryable:
                         raise
@@ -71,6 +77,11 @@ def node(name: str) -> Callable[[NodeFn], NodeFn]:
         return wrapper
 
     return decorator
+
+
+def state_level(state: NovaState) -> int:
+    """Highest classification of the context the run holds (0 when it holds none)."""
+    return max((i.classification for i in [*state.context_items, *state.provided_context]), default=0)
 
 
 def _failed(state: NovaState, node_name: str, code: str, message: str) -> dict[str, Any]:

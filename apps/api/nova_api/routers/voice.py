@@ -17,6 +17,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from nova.config import Settings, get_settings
+from nova.domain.llm_guardrail import allows, record_skip
 from nova_api.auth import CurrentPrincipal
 from nova_api.errors import ApiError
 
@@ -134,12 +135,17 @@ async def transcribe(
 class SpeakIn(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
     language: Literal["fr", "en"] = "fr"
+    # Classification (C0-C3) of what the text was derived from. Required: the server decides where it may be read out.
+    classification: int = Field(ge=0, le=3)
 
 
 @router.post("/speak")
 async def speak(body: SpeakIn, principal: CurrentPrincipal) -> Response:
     settings = get_settings()
-    if settings.voice_tts_provider == "elevenlabs":
+    # ElevenLabs is an external service: text derived from content above the ceiling never goes there (same rule as
+    # the models, domain/llm_guardrail.py). The self-hosted voice stays inside the perimeter; without it: refused.
+    external_allowed = allows(body.classification, max_classification=settings.llm_max_classification, local=False)
+    if settings.voice_tts_provider == "elevenlabs" and external_allowed:
         try:
             response = await _elevenlabs(
                 settings,
@@ -149,8 +155,17 @@ async def speak(body: SpeakIn, principal: CurrentPrincipal) -> Response:
             return Response(response.content, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
         except VoiceUnavailable as exc:
             log.warning("ElevenLabs speech failed, falling back: %s", exc)
+    elif settings.voice_tts_provider == "elevenlabs":
+        record_skip()
+        log.warning("Speech refused for ElevenLabs: C%d text, ceiling C%d", body.classification, settings.llm_max_classification)
     try:
-        response = await _selfhosted(settings, "/speak", json=body.model_dump())
+        response = await _selfhosted(settings, "/speak", json=body.model_dump(exclude={"classification"}))
     except VoiceUnavailable as exc:
+        if not external_allowed:
+            raise ApiError(
+                403,
+                "classification_blocked",
+                "This text comes from classified content: it is not read out by an external voice. Read it on screen.",
+            ) from exc
         raise _unavailable() from exc
     return Response(response.content, media_type="audio/wav", headers={"Cache-Control": "no-store"})

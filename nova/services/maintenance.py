@@ -13,7 +13,7 @@ from nova.domain.evaluation import FeedbackRecord
 from nova.domain.outputs import EvaluationReference
 from nova.infra.db import session_scope, utcnow
 from nova.infra.models import ContextRetrievalReference, ExecutionEvent, IntegrationReference, Task
-from nova.services import providers
+from nova.services import forge_outbox, forget, providers
 from nova.services.dispatch import dispatch
 
 log = logging.getLogger(__name__)
@@ -84,6 +84,11 @@ async def requeue_stale_tasks(older_than: timedelta = timedelta(minutes=2)) -> i
     return len(work)
 
 
+async def process_forge_outbox() -> int:
+    """Catch-up pass: captures FORGE could not take (it was down, a worker died) are attempted again when they are due."""
+    return await forge_outbox.process_due(providers.evaluation())
+
+
 async def refresh_evaluations() -> int:
     """Pull FORGE run status/scores for recent captures and deliver feedback that was waiting for the run."""
     sink = providers.evaluation()
@@ -102,7 +107,7 @@ async def refresh_evaluations() -> int:
         ).all()
         for row in rows:
             reference = EvaluationReference.model_validate(row.data)
-            if reference.status in ("completed", "failed", "cancelled") and not row.data.get("pending_feedback"):
+            if reference.status in ("completed", "failed", "cancelled", "skipped") and not row.data.get("pending_feedback"):
                 continue
             try:
                 reference = await sink.refresh(reference)
@@ -118,6 +123,39 @@ async def refresh_evaluations() -> int:
     return refreshed
 
 
+async def purge_old_checkpoints(limit: int = 200) -> int:
+    """Delete the LangGraph checkpoint of finished runs older than ``NOVA_CHECKPOINT_RETENTION_DAYS``.
+
+    A checkpoint carries the whole context of a run (items, step outputs): past the retention it can no longer be
+    resumed, retried or re-read (feedback regression). Each run is marked so it is not purged twice.
+    """
+    days = get_settings().checkpoint_retention_days
+    if not days:
+        return 0
+    cutoff = utcnow() - timedelta(days=days)
+    purged = 0
+    async with session_scope() as session:
+        rows = (
+            await session.scalars(
+                select(Task)
+                .where(Task.status.in_(("completed", "failed", "cancelled")), Task.finished_at < cutoff)
+                .order_by(Task.finished_at)
+                .limit(limit * 4)
+            )
+        ).all()
+        todo = [t for t in rows if not (t.input or {}).get("checkpoint_purged_at")][:limit]
+        if todo:
+            from nova.agent.runtime import open_checkpointer
+
+            async with open_checkpointer(get_settings().database_url) as saver:
+                for task in todo:
+                    await saver.adelete_thread(str(task.id))
+                    task.input = {**(task.input or {}), "checkpoint_purged_at": utcnow().isoformat()}
+                    purged += 1
+    forget.count_purged("checkpoints", purged)
+    return purged
+
+
 async def apply_retention() -> dict[str, int]:
     settings = get_settings()
     async with session_scope() as session:
@@ -131,4 +169,11 @@ async def apply_retention() -> dict[str, int]:
                 ExecutionEvent.created_at < utcnow() - timedelta(days=settings.execution_event_retention_days)
             )
         )
-    return {"context_references": refs.rowcount or 0, "execution_events": events.rowcount or 0}
+    checkpoints = await purge_old_checkpoints()
+    forget.count_purged("context_references", refs.rowcount or 0)
+    forget.count_purged("execution_events", events.rowcount or 0)
+    return {
+        "context_references": refs.rowcount or 0,
+        "execution_events": events.rowcount or 0,
+        "checkpoints": checkpoints,
+    }

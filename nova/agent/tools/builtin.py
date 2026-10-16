@@ -139,6 +139,8 @@ def _require_project(ctx: ToolContext) -> str:
 async def search_orbit(ctx: ToolContext, args: SearchIn) -> SearchOut:
     slug = _require_project(ctx)
     hits = await ctx.deps.context.search(ctx.state.user_id, slug, args.query, args.limit)
+    if hits:  # ORBIT gives no level for a search hit: unknown is read as C3 by the outbound guardrail
+        ctx.deps.scope.raise_to(None, "orbit-search")
     return SearchOut(
         results=[SearchHitOut(title=h.title, snippet=h.snippet[:400], source_kind=h.source_kind, ref_id=h.ref_id) for h in hits]
     )
@@ -157,6 +159,7 @@ async def retrieve_orbit_context(ctx: ToolContext, args: RetrieveIn) -> Retrieve
             session_id=ctx.state.conversation_id,
         ),
     )
+    ctx.deps.scope.raise_to(bundle.max_classification, "context")
     return RetrieveOut(retrieval_id=bundle.retrieval_id, items=bundle.items, warnings=bundle.warnings, snapshot=bundle.snapshot)
 
 
@@ -184,6 +187,7 @@ async def get_orbit_snapshot(ctx: ToolContext, args: GetSnapshotIn) -> GetSnapsh
         snap = await ctx.deps.context.get_snapshot(ctx.state.user_id, slug, args.name, args.version)
     except ContextError as exc:
         raise _snapshot_denied(exc) from exc
+    ctx.deps.scope.raise_to(None, "orbit-snapshot")  # a snapshot carries no level: unknown is read as C3
     return GetSnapshotOut(
         name=snap.name,
         version=snap.version,
@@ -234,6 +238,8 @@ async def publish_artifact_to_orbit(ctx: ToolContext, args: PublishArtifactIn) -
     snapshot = await ctx.deps.store.get_artifact(args.artifact_id, ctx.state.user_id)
     if snapshot is None:
         raise ToolDenied("Artifact not found or not accessible")
+    if snapshot.needs_review:
+        raise ToolDenied("A source of this Artifact was forgotten or restricted in ORBIT: review it before publishing it")
     markdown = render_markdown(snapshot.content, ctx.deps.artifacts.get(snapshot.type))
     external_id = await ctx.deps.context.publish_document(
         ctx.state.user_id,

@@ -146,12 +146,12 @@ export function VoiceSession({
   }, []);
 
   const speak = useCallback(
-    async (text: string, gen: number) => {
+    async (text: string, gen: number, classification = 0) => {
       if (!text || gen !== generation.current) return;
       setPhase("speaking");
       setOrb("speaking");
       try {
-        await player.current.speak(text, speechLang.current);
+        await player.current.speak(text, speechLang.current, classification);
       } catch {
         /* playback refused or service down: the caption stays on screen */
       }
@@ -208,7 +208,7 @@ export function VoiceSession({
           label: (label) => systemLabel(label, lang, names),
         });
         if (spoken.text) say("nova", spoken.text, spoken.confidential);
-        await speak(spoken.text, gen);
+        await speak(spoken.text, gen, spoken.classification);
         setOrb("completed");
       }
       if (gen === generation.current) {

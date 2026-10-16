@@ -7,7 +7,7 @@ import pytest
 from nova.agent.providers.catalog import validate_base_url
 from nova.agent.providers.openai import OpenAIProvider
 from nova.domain.llm import LLMError, LLMMessage
-from nova.domain.sdlc import ChangeSet, FileChange, UnsafeChange, slugify, validate_changeset
+from nova.domain.sdlc import ChangeSet, FileChange, UnsafeChange, ci_tests_status, merge_blocker, slugify, validate_changeset
 from nova.integrations.github.client import parse_github_ref, parse_repo
 
 TREE = {"src/a.ts", "README.md", "src/big.ts"}
@@ -176,3 +176,33 @@ def test_merging_lessons_dedupes_bounds_and_respects_rollbacks():
         policy, "implement"
     )
     assert "Keep it small." not in lessons_block(policy, "review") and lessons_block(None, "spec") == ""
+
+
+def test_auto_merge_blockers():
+    def blocker(**kw):
+        return merge_blocker(**{"blocking": 0, "ci": "success", "require_ci": True, "allow_without_ci": False, **kw})
+
+    assert blocker() is None
+    assert "blocking findings" in blocker(blocking=1)
+    assert "never executed" in blocker(ci="none")
+    assert blocker(ci="none", allow_without_ci=True) is None
+    assert blocker(ci="none", require_ci=False) is None  # the old behaviour, by configuration
+    assert blocker(ci=None, allow_without_ci=True) == "CI is not green"  # unknown is never "no CI"
+    assert blocker(ci="none", allow_without_ci=True, blocking=2) is not None
+
+
+def test_tests_written_executed_and_passed_are_three_facts():
+    written = {"tests": [{"path": "t/a.test.ts", "action": "create"}]}
+    assert ci_tests_status(written, ci_failed=False) == {
+        "written": 1,
+        "files": ["t/a.test.ts"],
+        "executed": False,
+        "checks": 0,
+        "passed": None,
+        "ci": None,
+    }
+    assert ci_tests_status({**written, "ci": "none"}, ci_failed=False)["passed"] is False  # nothing ran, nothing passed
+    green = ci_tests_status({**written, "ci": "success", "ci_seen": True, "ci_checks": 4}, ci_failed=False)
+    assert green["executed"] and green["passed"] is True and green["checks"] == 4
+    red = ci_tests_status({**written, "ci_seen": True}, ci_failed=True)
+    assert red["executed"] and red["passed"] is False

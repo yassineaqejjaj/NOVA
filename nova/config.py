@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
     version: str = "0.1.0"
+    build_commit: str = ""  # commit of the running build (NOVA_BUILD_COMMIT; else the platform's, reported to FORGE)
     public_url: str = "http://localhost:3200"
 
     # --- Infrastructure -------------------------------------------------------------------------
@@ -96,7 +97,18 @@ class Settings(BaseSettings):
     llm_price_output_per_mtok: float = Field(default=0.0, ge=0)
     llm_price_table: dict[str, tuple[float, float]] = Field(default_factory=dict)  # model -> (input, output)
 
+    # Outbound guardrail (domain/llm_guardrail.py): content above this level is never sent to an external model.
+    # A destination declared local (the whole organization endpoint, or hosts on the list) is not capped.
+    llm_max_classification: int = Field(default=1, ge=0, le=3)
+    llm_local: bool = False  # the organization's own model runs inside the perimeter (vLLM, Ollama…)
+    llm_local_hosts: str = ""  # comma-separated hosts treated as internal (also for users' own endpoints)
+    llm_redact_pii: bool = True  # mask secrets, e-mails, IBANs and phone numbers in prompts sent to an external model
+    llm_allow_classified_external: bool = False  # production: explicit override to allow a ceiling above C1 on an external model
+
     # --- ORBIT --------------------------------------------------------------------------------
+    # Revocation events (POST /api/v1/webhooks/orbit): HMAC secret of the ORBIT webhook; empty = endpoint disabled (503)
+    orbit_webhook_secret: str = ""
+    orbit_webhook_max_age_seconds: int = Field(default=86400, ge=0)  # older events are refused (0 = no limit)
     orbit_base_url: str = "http://localhost:8000"
     orbit_public_url: str = "http://localhost:3000"
     orbit_agent_keys: str = ""  # "slug:orb_key,slug2:orb_key2" (service mode, see integration-analysis G-O2)
@@ -124,11 +136,19 @@ class Settings(BaseSettings):
     # Observed capture reports outcomes, never text. The user's request (redacted of personal data) is only sent when
     # this is on: it may hold confidential (C2) or secret (C3) material, so it is off unless the organization opts in.
     forge_capture_intent: bool = False
+    # Highest classification (0-3) of the context of a run that may be captured: above it, capture by re-execution is
+    # skipped (its state says so) and observed capture withholds the request text. C2 and C3 never leave by default.
+    # Capture outbox (services/forge_outbox.py): attempts (exponential backoff, 30 s … 1 h) before a capture is marked failed
+    forge_outbox_max_attempts: int = Field(default=10, ge=1, le=100)
+    forge_max_capture_classification: int = Field(default=1, ge=0, le=3)
     forge_timeout_seconds: float = 20.0
     # FORGE `nova` credential (Settings → Credentials) whose secret is NOVA_FORGE_INBOUND_TOKEN: FORGE uses it to
     # authenticate when it calls NOVA back. Agent versions registered by NOVA reference it.
     # SDLC Autopilot runs are ingested by FORGE as observed runs (metrics and stage summaries, never code or diffs)
     forge_sdlc_ingest: bool = True
+    # Auto-merge of an SDLC run needs a green CI: a repository without CI (or a run that was never checked) is not "clean".
+    # false restores the old behaviour (no CI accepted), a run can still opt in with allow_merge_without_ci.
+    sdlc_require_ci: bool = True
     # Self-improvement of the SDLC agent: runs FORGE scores below the threshold produce lessons, deployed as a new policy
     sdlc_improvement: bool = True
     sdlc_improvement_auto_deploy: bool = True  # false: the candidate waits for an administrator
@@ -148,6 +168,11 @@ class Settings(BaseSettings):
     # Time FORGE gives one training run (a multi-step Skill on a small model needs more than FORGE's 120 s default)
     training_run_timeout_seconds: int = Field(default=600, ge=60, le=3600)
     training_auto_promote: bool = True  # promote a candidate policy when FORGE validates it
+    # Proof FORGE must give, outside production, before a learned policy meets users (docs/TRAINING.md): "enforce" holds
+    # a candidate without proof (also when FORGE is unreachable), "warn" records it and goes on, "off" skips the check.
+    policy_gate_mode: Literal["enforce", "warn", "off"] = "warn"
+    policy_gate_min_gain: float = Field(default=0.02, ge=0, le=1)  # composite score (0-1) the candidate must gain
+    policy_gate_min_evaluations: int = Field(default=3, ge=1, le=1000)  # independent scored runs per arm
     # Releases (docs/TRAINING.md): a validated candidate goes through a canary before reaching everyone.
     release_canary_percent: int = Field(default=10, ge=0, le=100)  # share of users; 0 = no canary
     release_canary_min_runs: int = Field(default=20, ge=1, le=10000)  # canary executions before a verdict
@@ -178,7 +203,12 @@ class Settings(BaseSettings):
     # --- Policy -------------------------------------------------------------------------------
     policy_allow_auto_external_writes: bool = False
     policy_max_classification: int = Field(default=3, ge=0, le=3)
+    # Clearance of a user with no linked ORBIT account (or none known): what they may read of derived content.
+    default_clearance: int = Field(default=1, ge=0, le=3)
     context_reference_retention_days: int = 180
+    checkpoint_retention_days: int = Field(default=90, ge=0)  # LangGraph checkpoints of finished runs (0 = keep)
+    # What happens to Artifacts derived from a forgotten source: "mark" (flagged, readable) or "purge" (deleted)
+    forget_artifacts: Literal["mark", "purge"] = "mark"
     execution_event_retention_days: int = 90
     max_workflow_steps: int = 8
     max_tool_iterations: int = 1  # tool rounds per Skill step (the project context is retrieved beforehand)
@@ -247,6 +277,22 @@ class Settings(BaseSettings):
     def oidc_backchannel(self) -> str:
         return (self.oidc_internal_url or self.oidc_issuer).rstrip("/")
 
+    def local_hosts(self) -> frozenset[str]:
+        """Hosts inside the perimeter: the loopback addresses and ``NOVA_LLM_LOCAL_HOSTS``."""
+        return frozenset(
+            {"localhost", "127.0.0.1", "::1"} | {h.strip().lower() for h in self.llm_local_hosts.split(",") if h.strip()}
+        )
+
+    def is_local_host(self, base_url: str) -> bool:
+        return (urlsplit(base_url).hostname or "").lower() in self.local_hosts()
+
+    @property
+    def llm_is_local(self) -> bool:
+        """Is the organization's model inside the perimeter (declared, or a self-hosted endpoint on an internal host)?"""
+        if self.llm_local:
+            return True
+        return self.llm_provider != "anthropic" and self.is_local_host(self.llm_base_url)
+
     def orbit_agent_key_map(self) -> dict[str, str]:
         result: dict[str, str] = {}
         for pair in self.orbit_agent_keys.split(","):
@@ -279,6 +325,11 @@ class Settings(BaseSettings):
                 problems.append("NOVA_VOICE_TOKEN (required with NOVA_VOICE_URL)")
             if self.llm_provider == "anthropic" and not self.llm_api_key:
                 problems.append("NOVA_LLM_API_KEY (required by NOVA_LLM_PROVIDER=anthropic)")
+            if self.llm_max_classification > 1 and not self.llm_is_local and not self.llm_allow_classified_external:
+                problems.append(
+                    "NOVA_LLM_MAX_CLASSIFICATION above 1 with an external model "
+                    "(declare it local with NOVA_LLM_LOCAL, or set NOVA_LLM_ALLOW_CLASSIFIED_EXTERNAL=true)"
+                )
             if problems:
                 raise ValueError("Development values are not allowed in production: " + ", ".join(problems))
         return self

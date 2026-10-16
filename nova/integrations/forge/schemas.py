@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 FAP_VERSION = "forge-agent-protocol/v1"
 
@@ -30,16 +30,53 @@ class FapInput(_In):
         return users[-1] if users else ""
 
 
+def classification_level(value: Any) -> int | None:
+    """A C0-C3 level as FORGE sends it (``2``, ``"2"``, ``"C2"``); ``None`` when absent or unreadable (never trusted)."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, str):
+        value = value.strip().upper().removeprefix("C")
+        value = int(value) if value.isdigit() else None
+    return min(value, 3) if isinstance(value, int) and value >= 0 else None
+
+
 class FapDocument(_In):
     id: str | None = None
     title: str = ""
     content: str = ""
     source: str | None = None
+    classification: int | None = None  # C0-C3 of the source document; ``None`` = unknown (read as C3)
+    citation: str | None = None  # the label ORBIT gave it; NOVA cites by position (S<n>), so it is informational
+    document_id: str | None = None  # ORBIT document id
+    version: int | None = None
+
+    @field_validator("classification", mode="before")
+    @classmethod
+    def _level(cls, value: Any) -> int | None:
+        return classification_level(value)
 
 
 class FapContext(_In):
     documents: list[FapDocument] = Field(default_factory=list)
     facts: list[str] = Field(default_factory=list)
+    max_classification: int | None = None  # highest level of what FORGE prepared (ORBIT's own maximum)
+    orbit_context: str | dict[str, Any] | None = None  # ORBIT's assembled context text (or ``{text, max_classification}``)
+
+    @field_validator("max_classification", mode="before")
+    @classmethod
+    def _level(cls, value: Any) -> int | None:
+        return classification_level(value)
+
+    def declared_max_classification(self) -> int | None:
+        """The ceiling FORGE declared, at the top level or inside the ORBIT context object."""
+        nested = self.orbit_context.get("max_classification") if isinstance(self.orbit_context, dict) else None
+        levels = [v for v in (self.max_classification, classification_level(nested)) if v is not None]
+        return max(levels) if levels else None
+
+    def orbit_text(self) -> str:
+        if isinstance(self.orbit_context, dict):
+            return str(self.orbit_context.get("text") or self.orbit_context.get("content") or "").strip()
+        return (self.orbit_context or "").strip()
 
 
 class FapAgent(_In):
@@ -47,6 +84,9 @@ class FapAgent(_In):
     slug: str | None = None
     version: str | None = None
     parameters: dict[str, Any] = Field(default_factory=dict)
+    model: dict[str, Any] | None = None
+    system_prompt: str | None = None
+    tools: list[Any] = Field(default_factory=list)
 
 
 class FapBudget(_In):
@@ -98,6 +138,7 @@ class FapError(BaseModel):
     type: str
     message: str
     retryable: bool = False
+    fields: list[str] | None = None  # unsupported_override: the parts of the request NOVA cannot honour
 
 
 class NovaRunResponse(BaseModel):

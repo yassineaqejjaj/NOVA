@@ -34,7 +34,7 @@ from nova.services import providers
 from nova.services.access import AccessDenied, project_role
 from nova.services.audit import audit
 from nova.services.conversations import ComposerInput, create_conversation, submit
-from nova.services.users import principal_for
+from nova.services.users import resolve_principal
 from nova.skills.registry import get_skill_registry
 from nova.skills.router import SkillRouter
 
@@ -273,7 +273,7 @@ async def _launch(session: AsyncSession, goal: Goal, m: dict[str, Any]) -> str:
         text += f" {goal.outcome}"
     _, _, task = await submit(
         session,
-        principal_for(user),
+        await resolve_principal(session, user),
         conversation,
         ComposerInput(
             text=text,
