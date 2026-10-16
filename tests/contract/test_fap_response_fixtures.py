@@ -108,7 +108,7 @@ async def answers(app: Any, monkeypatch: pytest.MonkeyPatch) -> dict[str, dict[s
 
 
 def render(data: dict[str, Any]) -> str:
-    return json.dumps(data, indent=1, ensure_ascii=False) + "\n"
+    return json.dumps(data, indent=1, ensure_ascii=False, sort_keys=True) + "\n"  # sorted: JSONB reorders keys
 
 
 def build_manifest(files: dict[str, str]) -> str:
