@@ -19,8 +19,9 @@ _last_success_write = 0.0
 
 
 def reset() -> None:
+    """Forget the throttle (tests). Not 0.0: ``time.monotonic()`` can be below 60 s on a freshly booted machine (CI)."""
     global _last_success_write
-    _last_success_write = 0.0
+    _last_success_write = float("-inf")
 
 
 async def _row(session: Any) -> IntegrationReference | None:
