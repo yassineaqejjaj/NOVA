@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     # would have hidden is counted (nova_workspace_shadow_total, log), nothing is refused; "enforce": every query is
     # filtered by the workspace of the request and a foreign object answers 404 like an unknown one.
     workspace_enforcement: Literal["off", "shadow", "enforce"] = "off"
+    # Strict claims (ADR 001 §3-§4, NOV-104): a validated token without ``orion_workspace_id`` opens no workspace resource, a
+    # malformed ORION claim refuses the token, ``orion_workspace_id`` decides the workspace of the account it creates and
+    # the effective clearance is ``min(local clearance, orion_clearance)``. Off: tokens are read as before.
+    workspace_strict_claim: bool = False
     # The workspace of every row created before an IdP gives one, and of every request while OIDC claims are not read.
     default_workspace_id: uuid.UUID = Field(
         default=DEFAULT_WORKSPACE_ID, validation_alias=AliasChoices("ORION_DEFAULT_WORKSPACE_ID", "NOVA_DEFAULT_WORKSPACE_ID")

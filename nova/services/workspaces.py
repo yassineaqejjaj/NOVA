@@ -14,6 +14,8 @@ from typing import Any, Literal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nova.config import get_settings
+from nova.domain.orion_claims import Claims, ClaimsError, effective_clearance, parse_claims
 from nova.domain.workspace import as_uuid, outbox_key, thread_id
 from nova.infra.models import AuditEvent, Project, ProjectReference, Workspace
 from nova.infra.scope import default_workspace_id, mode
@@ -29,9 +31,42 @@ class WorkspaceMismatch(Exception):
     """The token's workspace is not the one of the account it identifies."""
 
 
+def strict() -> bool:
+    """``NOVA_WORKSPACE_STRICT_CLAIM``: tokens are read through the ORION claims contract (nova/domain/orion_claims.py)."""
+    return get_settings().workspace_strict_claim
+
+
 def enabled() -> bool:
-    """Is the workspace of a request read from the account / the token (``shadow`` and ``enforce``)?"""
-    return mode() != "off"
+    """Is the workspace of a request read from the account / the token (``shadow``, ``enforce``, strict claims)?"""
+    return mode() != "off" or strict()
+
+
+class TokenRefused(Exception):
+    """A validated token that the ORION claims contract refuses; ``code`` is the contract's stable error code."""
+
+    def __init__(self, code: str, status: int = 401) -> None:
+        super().__init__(code)
+        self.code, self.status = code, status
+
+
+def read_claims(payload: dict[str, Any]) -> Claims:
+    """The ORION claims of a token whose signature, issuer, audience and times were already validated (strict only).
+
+    A malformed ORION claim refuses the token (a bad ``orion_clearance`` is never read as "no cap"); a token without
+    ``orion_workspace_id`` opens no workspace resource: every NOVA resource is one, so it is refused (403).
+    """
+    try:
+        claims = parse_claims(payload)
+    except ClaimsError as exc:
+        raise TokenRefused(exc.code) from exc
+    if claims.workspace_id is None:
+        raise TokenRefused("workspace_required", 403)
+    return claims
+
+
+def capped_clearance(local: int, cap: int | None) -> int:
+    """ADR §4: ``min(local clearance, orion_clearance)``; an absent claim never gives more than the local value."""
+    return effective_clearance(local, cap)
 
 
 def claim_of(claims: dict[str, Any]) -> uuid.UUID | None:
@@ -56,7 +91,7 @@ def check_token_workspace(account_workspace: uuid.UUID | None, token_workspace: 
     if token_workspace != (account_workspace or default_workspace_id()):
         from nova.infra.scope import record_shadow
 
-        if mode() == "enforce":
+        if mode() == "enforce" or strict():
             raise WorkspaceMismatch
         record_shadow("token", "users")
 
