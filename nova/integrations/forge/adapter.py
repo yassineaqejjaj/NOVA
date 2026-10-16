@@ -15,7 +15,7 @@ from sqlalchemy import select
 from nova.config import Settings
 from nova.domain.evaluation import ExecutionRecord, FeedbackRecord, RegressionCase
 from nova.domain.outputs import EvaluationReference
-from nova.infra.db import session_scope
+from nova.infra.db import platform_session_scope
 from nova.infra.models import IntegrationReference
 from nova.integrations.forge import connection, guard, mapper, production
 from nova.integrations.forge.client import ForgeClient, ForgeError
@@ -101,7 +101,7 @@ class ForgeEvaluationSink:
 
     @staticmethod
     async def _cached(kind: str, nova_type: str, nova_id: str) -> str | None:
-        async with session_scope() as session:
+        async with platform_session_scope() as session:
             row = await session.scalar(
                 select(IntegrationReference).where(
                     IntegrationReference.system == "forge",
@@ -114,7 +114,7 @@ class ForgeEvaluationSink:
 
     @staticmethod
     async def _remember(kind: str, nova_type: str, nova_id: str, external_id: str) -> None:
-        async with session_scope() as session:
+        async with platform_session_scope() as session:
             session.add(
                 IntegrationReference(
                     system="forge", kind=kind, nova_type=nova_type, nova_id=nova_id, external_id=external_id, data={}

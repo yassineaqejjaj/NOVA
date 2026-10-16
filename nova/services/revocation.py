@@ -25,6 +25,7 @@ from sqlalchemy import Text, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import get_settings
+from nova.infra import scope
 from nova.infra.db import aware, utcnow
 from nova.infra.models import (
     Artifact,
@@ -33,7 +34,11 @@ from nova.infra.models import (
     IntegrationReference,
     OrbitAccount,
     OrbitEvent,
+    Project,
+    ProjectReference,
+    User,
 )
+from nova.services import workspaces
 from nova.services.audit import audit
 
 #: Events that make a source unreadable for what NOVA kept: the extracts holding it are revoked.
@@ -75,6 +80,8 @@ class OrbitEventIn(BaseModel):
     project: OrbitProject = Field(default_factory=OrbitProject)
     target_type: str = Field(default="", max_length=20)
     target_id: str = Field(default="", max_length=80)
+    # The workspace ORBIT says the event is about (ADR 001 §3; signed with the rest of the payload). Absent today.
+    orion_workspace_id: str | None = Field(default=None, max_length=64)
     created_at: datetime | None = None
     effective_at: datetime | None = None
     old_classification: int | None = None
@@ -106,9 +113,11 @@ async def receive(session: AsyncSession, event: OrbitEventIn, delivery_id: str) 
     max_age = get_settings().orbit_webhook_max_age_seconds
     if max_age and event.created_at and (utcnow() - aware(event.created_at)).total_seconds() > max_age:
         raise RevocationError("stale_event", "The event is too old to be accepted.")
-    existing = await session.scalar(select(OrbitEvent.id).where(OrbitEvent.delivery_id == delivery_id))
+    with scope.platform_scope():  # a delivery id is unique whatever the workspace
+        existing = await session.scalar(select(OrbitEvent.id).where(OrbitEvent.delivery_id == delivery_id))
     if existing is not None:
         return "duplicate", {}
+    targets = await event_workspaces(session, event)
     row = OrbitEvent(
         delivery_id=delivery_id,
         type=event.type,
@@ -116,11 +125,46 @@ async def receive(session: AsyncSession, event: OrbitEventIn, delivery_id: str) 
         target_type=event.target_type,
         target_id=event.target_id,
         payload=event.model_dump(mode="json"),
+        workspace_id=targets[0] if targets else None,
     )
     session.add(row)
     await session.flush()
-    effects = await apply(session, row)
+    if not targets:  # off: one pass, nothing scoped (what has always happened)
+        return "processed", await apply(session, row)
+    effects: dict[str, int] = {}
+    for workspace in targets:  # a slug known in several workspaces revokes in each, each under its own scope
+        with scope.workspace_scope(workspace):
+            for key, value in (await apply(session, row)).items():
+                effects[key] = effects.get(key, 0) + value
+    row.effects = effects
     return "processed", effects
+
+
+async def event_workspaces(session: AsyncSession, event: OrbitEventIn) -> list[uuid.UUID]:
+    """The workspaces an event applies to; empty with ``off`` (nothing is scoped).
+
+    The signed payload's ``orion_workspace_id`` when ORBIT sends one; else the workspaces whose NOVA projects reference
+    this ORBIT project; else the default workspace. Never a header or a query parameter.
+    """
+    if not workspaces.enabled():
+        return []
+    if event.orion_workspace_id:
+        claimed = workspaces.as_uuid(event.orion_workspace_id)
+        if claimed is None:
+            raise RevocationError("invalid_event", "The event names an invalid workspace.")
+        return [claimed]
+    if event.project.slug:
+        with scope.platform_scope():
+            found = await session.scalars(
+                select(Project.workspace_id)
+                .join(ProjectReference, ProjectReference.project_id == Project.id)
+                .where(ProjectReference.system == "orbit", ProjectReference.external_id == event.project.slug)
+                .distinct()
+            )
+            known = sorted(found.all())
+        if known:
+            return known
+    return [scope.default_workspace_id()]
 
 
 async def apply(session: AsyncSession, row: OrbitEvent, *, replayed: bool = False) -> dict[str, int]:
@@ -250,7 +294,11 @@ async def mark_reviewed(session: AsyncSession, artifact: Artifact, actor_id: str
 
 
 async def _remove_member(session: AsyncSession, row: OrbitEvent) -> dict[str, int]:
-    accounts = (await session.scalars(select(OrbitAccount).where(OrbitAccount.orbit_user_id == row.target_id))).all()
+    accounts = (
+        await session.scalars(
+            select(OrbitAccount).join(User, User.id == OrbitAccount.user_id).where(OrbitAccount.orbit_user_id == row.target_id)
+        )
+    ).all()  # joined to the user: only the accounts of the workspace this event runs in
     now, sessions = utcnow(), 0
     refs: list[ContextRetrievalReference] = []
     for account in accounts:
@@ -289,17 +337,20 @@ async def _revoke_agent_key(session: AsyncSession, row: OrbitEvent) -> dict[str,
     key = get_settings().orbit_agent_key_map().get(slug or "")
     if not slug or not key:
         return {"agent_keys": 0}  # no key configured for this project: nothing NOVA uses was revoked
-    record = await _key_record(session, slug)
     data = {"fingerprint": _fingerprint(key), "revoked_at": utcnow().isoformat(), "event": row.delivery_id}
+    # The configured key is one for the whole installation: its revocation is a platform record, not a workspace's
+    record = await _key_record(session, slug)
     if record is None:
         session.add(
-            IntegrationReference(
-                system="orbit",
-                kind="agent_revoked",
-                nova_type="project",
-                nova_id=slug,
-                external_id=row.target_id[:200],
-                data=data,
+            scope.platform_record(
+                IntegrationReference(
+                    system="orbit",
+                    kind="agent_revoked",
+                    nova_type="project",
+                    nova_id=slug,
+                    external_id=row.target_id[:200],
+                    data=data,
+                )
             )
         )
     else:
@@ -317,14 +368,15 @@ async def _revoke_agent_key(session: AsyncSession, row: OrbitEvent) -> dict[str,
 
 
 async def _key_record(session: AsyncSession, slug: str) -> IntegrationReference | None:
-    return await session.scalar(
-        select(IntegrationReference).where(
-            IntegrationReference.system == "orbit",
-            IntegrationReference.kind == "agent_revoked",
-            IntegrationReference.nova_type == "project",
-            IntegrationReference.nova_id == slug,
+    with scope.platform_scope():  # platform record: visible from every workspace
+        return await session.scalar(
+            select(IntegrationReference).where(
+                IntegrationReference.system == "orbit",
+                IntegrationReference.kind == "agent_revoked",
+                IntegrationReference.nova_type == "project",
+                IntegrationReference.nova_id == slug,
+            )
         )
-    )
 
 
 async def agent_key_revoked(session: AsyncSession, slug: str, key: str) -> bool:

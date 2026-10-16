@@ -11,10 +11,12 @@ from nova.config import get_settings
 from nova.domain.enums import TaskStatus
 from nova.domain.evaluation import FeedbackRecord
 from nova.domain.outputs import EvaluationReference
+from nova.infra import scope
 from nova.infra.db import session_scope, utcnow
 from nova.infra.models import ContextRetrievalReference, ExecutionEvent, IntegrationReference, Task
 from nova.services import forge_outbox, forget, providers
 from nova.services.dispatch import dispatch
+from nova.services.workspaces import thread_id, workspace_ids
 
 log = logging.getLogger(__name__)
 
@@ -149,7 +151,7 @@ async def purge_old_checkpoints(limit: int = 200) -> int:
 
             async with open_checkpointer(get_settings().database_url) as saver:
                 for task in todo:
-                    await saver.adelete_thread(str(task.id))
+                    await saver.adelete_thread(thread_id(task.id, task.workspace_id))
                     task.input = {**(task.input or {}), "checkpoint_purged_at": utcnow().isoformat()}
                     purged += 1
     forget.count_purged("checkpoints", purged)
@@ -157,6 +159,24 @@ async def purge_old_checkpoints(limit: int = 200) -> int:
 
 
 async def apply_retention() -> dict[str, int]:
+    """Retention. With ``NOVA_WORKSPACE_ENFORCEMENT=enforce`` it runs workspace by workspace (each under its own scope,
+    so a job can never delete across workspaces); otherwise in one pass, as before."""
+    if scope.mode() != "enforce":
+        return await _retain()
+    total: dict[str, int] = {}
+    with scope.platform_scope():  # which workspaces exist is not a question about one of them
+        async with session_scope() as session:
+            known = set(await workspace_ids(session))
+            for model in (Task, ContextRetrievalReference, ExecutionEvent):  # rows of an unregistered workspace still age out
+                known |= set((await session.scalars(select(model.workspace_id).distinct())).all())
+    for workspace in sorted(known):
+        with scope.workspace_scope(workspace):
+            for key, value in (await _retain()).items():
+                total[key] = total.get(key, 0) + value
+    return total or {"context_references": 0, "execution_events": 0, "checkpoints": 0}
+
+
+async def _retain() -> dict[str, int]:
     settings = get_settings()
     async with session_scope() as session:
         refs = await session.execute(

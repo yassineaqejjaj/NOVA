@@ -86,6 +86,17 @@ async def session_scope() -> AsyncIterator[AsyncSession]:
             raise
 
 
+@asynccontextmanager
+async def platform_session_scope() -> AsyncIterator[AsyncSession]:
+    """A session for platform records that belong to no workspace in particular (FORGE versions cache, revoked agent
+    keys): never filtered by the workspace of the caller, created in the default workspace (NOV-107)."""
+    from nova.infra.scope import platform_scope
+
+    with platform_scope():
+        async with session_scope() as session:
+            yield session
+
+
 async def get_session() -> AsyncIterator[AsyncSession]:
     async with sessionmaker()() as session:
         yield session

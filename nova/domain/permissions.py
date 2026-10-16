@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Literal
 
+from nova.config import get_settings
 from nova.domain.enums import AutonomyMode, ProjectRole, role_at_least
 
 
@@ -41,6 +42,10 @@ PROJECT_ROLE_PERMISSIONS: dict[ProjectRole, frozenset[Permission]] = {
 DEFAULT_CLEARANCE = 1
 
 
+def _default_workspace() -> str:
+    return str(get_settings().default_workspace_id)
+
+
 @dataclass(frozen=True, slots=True)
 class Principal:
     """Authenticated NOVA user."""
@@ -52,6 +57,8 @@ class Principal:
     is_admin: bool = False
     is_service: bool = False  # FORGE protocol / scheduler
     clearance: int = DEFAULT_CLEARANCE  # highest classification (C0-C3) the user may read: ORBIT's, else the default
+    # ``orion_workspace_id`` of the request (ADR 001 §9): the account's workspace, the default one while the filter is off
+    workspace_id: str = field(default_factory=_default_workspace)
 
 
 def may_read_classification(principal: Principal, classification: int) -> bool:

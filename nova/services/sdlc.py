@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
@@ -45,8 +46,9 @@ from nova.domain.sdlc_preview import preview_comment
 from nova.infra.crypto import decrypt, encrypt
 from nova.infra.db import aware, session_scope, utcnow
 from nova.infra.models import SdlcRun
+from nova.infra.scope import workspace_scope
 from nova.integrations.github.client import GitHubClient, GitHubError, parse_github_ref, parse_repo
-from nova.services import github_accounts, providers
+from nova.services import github_accounts, providers, workspaces
 from nova.services import sdlc_prompts as prompts
 from nova.services.audit import audit
 
@@ -839,6 +841,12 @@ async def advance(run_id: str) -> float | None:
     run = await _claim(run_id)
     if run is None:
         return None
+    # The stages read and write on behalf of the run's workspace (NOVA_WORKSPACE_ENFORCEMENT), also in a worker
+    with workspace_scope(run.workspace_id) if workspaces.enabled() else nullcontext():
+        return await _advance(run, run_id)
+
+
+async def _advance(run: SdlcRun, run_id: str) -> float | None:
     stage = _pending_stage(run)
     user_id = str(run.user_id)
     if stage is None:

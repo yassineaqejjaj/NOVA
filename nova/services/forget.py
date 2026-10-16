@@ -46,6 +46,7 @@ from nova.infra.models import (
 from nova.integrations.forge.client import ForgeError
 from nova.services import providers, revocation
 from nova.services.audit import audit
+from nova.services.workspaces import thread_id
 
 log = logging.getLogger(__name__)
 _PURGED = metrics.get_meter("nova.forget").create_counter(
@@ -106,6 +107,8 @@ async def _erase(
 ) -> dict[str, int]:
     settings = get_settings()
     task_ids = {r.task_id for r in refs if r.task_id} | (extra_tasks or set())
+    task_rows = (await session.scalars(select(Task).where(Task.id.in_(task_ids)))).all() if task_ids else []
+    threads = {t.id: thread_id(t.id, t.workspace_id) for t in task_rows}  # the checkpoint thread carries the workspace
     ref_ids = [str(r.id) for r in refs]
     effects = dict.fromkeys(
         ("references", "tasks", "checkpoints", "blocks", "artifacts", "artifacts_purged", "forge_requests"), 0
@@ -146,7 +149,7 @@ async def _erase(
     effects["references"] = len(refs)
 
     # 3. The runs that held them: blocks, events, tool outputs, inputs; FORGE requests; flag
-    for task in (await session.scalars(select(Task).where(Task.id.in_(task_ids)))).all() if task_ids else []:
+    for task in task_rows:
         task.input = {
             **scrub({k: v for k, v in (task.input or {}).items() if k != "pinned_context_ref_ids"}, drop),
             "forgotten_at": now.isoformat(),
@@ -182,7 +185,7 @@ async def _erase(
         try:
             async with open_checkpointer(settings.database_url) as saver:
                 for task_id in task_ids:
-                    await saver.adelete_thread(str(task_id))
+                    await saver.adelete_thread(threads.get(task_id, str(task_id)))
                     effects["checkpoints"] += 1
         except Exception as exc:  # the request is recorded as partial: it must be repeated, never reported as done
             log.exception("Checkpoint deletion failed while forgetting %s", target)
