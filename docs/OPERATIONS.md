@@ -64,6 +64,13 @@ migration runs and never change it afterwards.**
   several), else the default one; checkpoint threads, outbox keys and the composition cache carry the workspace (the default
   workspace keeps the historical keys, the `external_id` FORGE sees is unchanged).
 
+**ORION project id.** ORBIT (NOV-106) reports `orion_project_id` on `GET /projects`, in the context package and in snapshots.
+NOVA records it on the ORBIT `ProjectReference` and on the linked NOVA `Project` when it syncs ORBIT projects, when a
+retrieval is recorded and when a snapshot is read. The id NOVA minted before ORBIT said anything is a placeholder and gives
+way once; after that an id never changes: a different one from ORBIT, or one another project already holds, is not applied,
+is logged and audited (`project.orion_id_conflict`, once per report). Several NOVA projects linked to the same ORBIT project
+cannot all hold its id: the first one does, the others are reported as conflicts. The id is never part of an API response.
+
 Roll back by setting `off` (no data change). Downgrading the migration is refused while rows belong to another workspace than
 the default one (`NOVA_ALLOW_WORKSPACE_MERGE=1` overrides it: the workspaces then merge). Platform records stay in the default
 workspace and are read by every workspace: the Skill catalog, the learning loop (policies, releases, training cycles), the FORGE
