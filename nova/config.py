@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import uuid
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -15,10 +16,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEV_SESSION_SECRET = "nova-dev-session-secret-change-me-0123456789abcdef"
 DEV_SECRETS_KEY = "nova-dev-secrets-key-change-me-0123456789abcdef"
 DEV_FORGE_INBOUND_TOKEN = "nova-dev-forge-inbound-token"
+#: The workspace every row belongs to until an identity provider says otherwise (NOV-107). Fixed before the migration
+#: runs and never changed afterwards: ``ORION_DEFAULT_WORKSPACE_ID`` overrides it for an installation.
+DEFAULT_WORKSPACE_ID = uuid.UUID("00000000-0000-4000-8000-000000000001")
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="NOVA_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="NOVA_", env_file=".env", extra="ignore", populate_by_name=True)
 
     env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
@@ -47,6 +51,16 @@ class Settings(BaseSettings):
     session_ttl_minutes: int = 720
     remember_me_days: int = 30  # "Keep me signed in"
     cookie_secure: bool = False
+
+    # --- Workspaces (docs/adr/001-identite-federee.md §5 and §9, NOV-107) -----------------------------------------
+    # "off": nothing changes (rows carry a workspace, no request is filtered); "shadow": the filter is computed and what it
+    # would have hidden is counted (nova_workspace_shadow_total, log), nothing is refused; "enforce": every query is
+    # filtered by the workspace of the request and a foreign object answers 404 like an unknown one.
+    workspace_enforcement: Literal["off", "shadow", "enforce"] = "off"
+    # The workspace of every row created before an IdP gives one, and of every request while OIDC claims are not read.
+    default_workspace_id: uuid.UUID = Field(
+        default=DEFAULT_WORKSPACE_ID, validation_alias=AliasChoices("ORION_DEFAULT_WORKSPACE_ID", "NOVA_DEFAULT_WORKSPACE_ID")
+    )
 
     # --- Accounts: sign-up with a company address, verified by an e-mailed code -------------------
     signup_domains: str = "devoteam.com"  # comma-separated; "*" = any address; empty disables sign-up

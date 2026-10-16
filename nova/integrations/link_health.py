@@ -11,7 +11,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from nova.infra.db import session_scope, utcnow
+from nova.infra.db import platform_session_scope, utcnow
 from nova.infra.models import IntegrationReference
 
 SUCCESS_WRITE_EVERY = 60.0  # seconds: a busy link does not write on every call
@@ -40,7 +40,7 @@ async def record_forge(*, error: str | None = None) -> None:
     if error is None and now - _last_success_write < SUCCESS_WRITE_EVERY:
         return
     try:
-        async with session_scope() as session:
+        async with platform_session_scope() as session:
             row = await _row(session)
             if row is None:
                 row = IntegrationReference(
@@ -59,7 +59,7 @@ async def record_forge(*, error: str | None = None) -> None:
 
 
 async def forge_state() -> dict[str, Any]:
-    async with session_scope() as session:
+    async with platform_session_scope() as session:
         row = await _row(session)
     data = row.data if row else {}
     return {key: data.get(key) for key in ("last_success_at", "last_error_at", "last_error")}

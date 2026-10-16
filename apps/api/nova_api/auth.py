@@ -11,6 +11,7 @@ import base64
 import hashlib
 import secrets
 import time
+import uuid
 from typing import Annotated, Any
 from urllib.parse import urlencode
 
@@ -23,8 +24,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from nova.config import Settings, get_settings
 from nova.domain.permissions import Principal
+from nova.infra import scope
 from nova.infra.db import get_session
-from nova.services import accounts
+from nova.services import accounts, workspaces
 from nova.services.audit import audit
 from nova.services.identity import IdentityError, validate_oidc_token
 from nova.services.mailer import last_code
@@ -74,6 +76,22 @@ def _roles(claims: dict[str, Any]) -> list[str]:
     return [r for r in roles if r.startswith("nova")]
 
 
+async def _scoped(session: AsyncSession, user: Any, token_workspace: Any = None) -> Principal:
+    """The principal of ``user``, and the workspace of everything this request does from now on (ADR 001 §9).
+
+    The workspace is the account's own, which came from a validated token when the account was created: never a
+    parameter, an header or a body. A token that names another workspace than its account's does not open the account.
+    """
+    try:
+        workspaces.check_token_workspace(user.__dict__.get("workspace_id"), token_workspace)
+    except workspaces.WorkspaceMismatch as exc:
+        raise ApiError(401, "unauthorized", "Invalid access token.") from exc
+    principal = await resolve_principal(session, user)
+    if workspaces.enabled():
+        scope.bind(uuid.UUID(principal.workspace_id))
+    return principal
+
+
 async def current_principal(request: Request, session: SessionDep) -> Principal:
     settings = get_settings()
     token = request.cookies.get(SESSION_COOKIE)
@@ -85,7 +103,7 @@ async def current_principal(request: Request, session: SessionDep) -> Principal:
         user = await get_user(session, claims["sub"])
         if user is None or user.is_service:
             raise ApiError(401, "unauthorized", "Sign in again.")
-        return await resolve_principal(session, user)
+        return await _scoped(session, user)
     header = request.headers.get("authorization", "")
     if header.lower().startswith("bearer ") and settings.auth_mode == "oidc":
         try:
@@ -93,6 +111,7 @@ async def current_principal(request: Request, session: SessionDep) -> Principal:
         except (jwt.PyJWTError, httpx.HTTPError) as exc:
             raise ApiError(401, "unauthorized", "Invalid access token.") from exc
         roles = _roles(claims)
+        claimed = workspaces.claim_of(claims)
         user = await upsert_user(
             session,
             subject=claims["sub"],
@@ -100,9 +119,11 @@ async def current_principal(request: Request, session: SessionDep) -> Principal:
             display_name=claims.get("name", ""),
             realm_roles=roles,
             is_admin=settings.oidc_admin_role in roles,
+            workspace_id=claimed,
         )
+        principal = await _scoped(session, user, claimed)  # before the commit: a token of another workspace changes nothing
         await session.commit()
-        return await resolve_principal(session, user)
+        return principal
     raise ApiError(401, "unauthorized", "Sign in to use NOVA.")
 
 
@@ -195,6 +216,7 @@ async def callback(request: Request, session: SessionDep, code: str = Query(), s
     except jwt.PyJWTError as exc:
         raise ApiError(401, "invalid_login", "The identity token is invalid.") from exc
     roles = _roles(claims)
+    claimed = workspaces.claim_of(claims)
     user = await upsert_user(
         session,
         subject=claims["sub"],
@@ -203,7 +225,12 @@ async def callback(request: Request, session: SessionDep, code: str = Query(), s
         realm_roles=roles,
         is_admin=settings.oidc_admin_role in roles,
         email_verified=claims.get("email_verified") is True,
+        workspace_id=claimed,
     )
+    try:
+        workspaces.check_token_workspace(user.__dict__.get("workspace_id"), claimed)
+    except workspaces.WorkspaceMismatch as exc:
+        raise ApiError(401, "invalid_login", "This account belongs to another workspace.") from exc
     await audit(
         session, actor_id=user.id, action="auth.login", target_type="user", target_id=str(user.id), summary="Signed in (SSO)"
     )

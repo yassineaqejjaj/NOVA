@@ -12,7 +12,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from nova.infra.db import session_scope
+from nova.infra.db import platform_session_scope
 from nova.infra.models import IntegrationReference
 from nova.integrations.forge import mapper
 from nova.integrations.forge.client import ForgeClient, ForgeError
@@ -82,7 +82,7 @@ def _reference(nova_type: str, key: str):
 
 async def cached_version_id(nova_type: str, key: str, link: str) -> str | None:
     """The FORGE version remembered for ``key``, only when it was registered for this connection (``link``)."""
-    async with session_scope() as session:
+    async with platform_session_scope() as session:
         row = await session.scalar(_reference(nova_type, key))
         return row.external_id if row and row.data.get("connection") == link else None
 
@@ -90,7 +90,7 @@ async def cached_version_id(nova_type: str, key: str, link: str) -> str | None:
 async def remember_version(nova_type: str, key: str, link: str, version_id: str, data: dict[str, Any]) -> None:
     """Remember (or replace) the FORGE version of ``key``: a new connection supersedes the version cached before."""
     data = {**data, "connection": link}
-    async with session_scope() as session:
+    async with platform_session_scope() as session:
         row = await session.scalar(_reference(nova_type, key))
         if row is None:
             session.add(

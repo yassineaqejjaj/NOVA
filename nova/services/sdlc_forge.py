@@ -15,7 +15,7 @@ from typing import Any
 from sqlalchemy import select
 
 from nova.config import get_settings
-from nova.infra.db import aware, session_scope, utcnow
+from nova.infra.db import aware, platform_session_scope, session_scope, utcnow
 from nova.infra.models import IntegrationReference, SdlcRun
 from nova.integrations.forge import connection
 from nova.integrations.forge import sdlc as mapping
@@ -31,7 +31,7 @@ INGESTABLE = ("completed", "failed")
 
 
 async def _cached(kind: str, nova_type: str, nova_id: str) -> str | None:
-    async with session_scope() as session:
+    async with platform_session_scope() as session:
         row = await session.scalar(
             select(IntegrationReference).where(
                 IntegrationReference.system == "forge",
@@ -44,7 +44,7 @@ async def _cached(kind: str, nova_type: str, nova_id: str) -> str | None:
 
 
 async def _remember(kind: str, nova_type: str, nova_id: str, external_id: str, data: dict[str, Any] | None = None) -> None:
-    async with session_scope() as session:
+    async with platform_session_scope() as session:
         session.add(
             IntegrationReference(
                 system="forge", kind=kind, nova_type=nova_type, nova_id=nova_id, external_id=external_id, data=data or {}

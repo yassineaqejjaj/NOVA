@@ -12,6 +12,7 @@ from nova.config import get_settings
 from nova.domain.permissions import Principal
 from nova.infra.db import utcnow
 from nova.infra.models import OrbitAccount, User, UserPreferences
+from nova.services import workspaces
 
 SERVICE_SUBJECT = "service:forge-evaluation"
 
@@ -30,6 +31,7 @@ def principal_for(user: User, clearance: int | None = None) -> Principal:
         is_admin=user.is_admin,
         is_service=user.is_service,
         clearance=level,
+        workspace_id=str(workspaces.workspace_of_request(user.__dict__.get("workspace_id"))),
     )
 
 
@@ -52,7 +54,10 @@ async def upsert_user(
     is_admin: bool,
     is_service: bool = False,
     email_verified: bool = False,
+    workspace_id: uuid.UUID | None = None,
 ) -> User:
+    """Find or create the account of ``subject``. ``workspace_id`` (a validated token's ``orion_workspace_id``) is the
+    workspace of an account *created* here; an existing account keeps its own (a workspace never changes)."""
     user = await session.scalar(select(User).where(User.subject == subject))
     if user is None and email:
         # A seeded account (or, with an SSO-verified email, a local dev account) is adopted by its owner's first
@@ -73,6 +78,9 @@ async def upsert_user(
             is_admin=is_admin,
             is_service=is_service,
         )
+        if workspace_id is not None and workspaces.enabled():
+            await workspaces.ensure_workspace(session, workspace_id)
+            user.workspace_id = workspace_id
         session.add(user)
         await session.flush()
         session.add(UserPreferences(user_id=user.id))
