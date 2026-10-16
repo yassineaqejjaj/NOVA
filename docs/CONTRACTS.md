@@ -68,6 +68,68 @@ Verify equality with the sources (exit code 1 on drift): `sync_contract_fixtures
 `CONTRACT_SOURCE_ORBIT=<ORBIT>/contracts/orbit`, `CONTRACT_SOURCE_FORGE=<FORGE>/contracts/fap_request`,
 `CONTRACT_SOURCE_NOVA=<NOVA>/contracts/fap_response` (those tests are skipped when the variable is unset).
 
+## Claims contract (NOV-104, ADR 001 §3-§4)
+
+The access token of the federated identity (realm `orion`, RS256, JWKS) is a wire contract too, and it is tested **before**
+any service implements OIDC, with no IdP: signed fixtures plus one self-contained validation module. Nothing here is
+wired into a login path; with the defaults the behaviour of every service is unchanged.
+
+| Claim | Contract | Read as |
+|---|---|---|
+| `iss`, `aud` | exact `iss` of the realm; `aud` ∋ the reader (`nova-web`, `orbit`, `forge`: one token per audience) | refused otherwise |
+| `sub`, `exp`, `iat` | mandatory | refused when missing or not a string / number |
+| `nbf` | checked **when present** (Keycloak does not emit it by default: deviation from the ADR table, deliberately the safe side) | `not_yet_valid` |
+| `email`, `email_verified` | account matching only if `email_verified` is `true` | `email_matchable` |
+| `orion_workspace_id` | UUID; **absent: the token opens no workspace resource** (and `orion_project_id` is dropped) | `space_access` |
+| `orion_project_id` | UUID; the active project, membership stays local | `project_id` |
+| `orion_clearance` | integer 0-3, a ceiling; **present but malformed (`"3"`, `7`, `true`): token refused**, never read as "no cap" | `effective_clearance = min(local, claim)`; absent: the local value |
+| `realm_access.roles` | `<service>-<role>`; only the prefix of the reading service counts, lookalikes (`novaadmin`) grant nothing | see below |
+| `act` | `{sub, client_id}`; a delegated token lives at most 900 s | `delegated_by` |
+| `scope`, `amr` | string (space separated) or list | `scopes`, `mfa` (`amr` ∋ `mfa`) |
+| any other claim | ignored | |
+
+Decision per service (what `tests/contract/test_claims_contract.py` executes on every fixture):
+
+| Output | NOVA (`nova-web`) | ORBIT (`orbit`) | FORGE (`forge`) |
+|---|---|---|---|
+| `platform_admin` | realm role `nova-admin` | realm role `orbit-admin` | capped role is `admin` |
+| `role` | local project role, unchanged (no realm role grants one) | local project role, unchanged | local global role **capped** by the highest `forge-*` realm role, never raised; no local account: none; no `forge-*` role: the local role |
+| `effective_clearance` | `min(local, orion_clearance)`; `local` = linked ORBIT clearance or `DEFAULT_CLEARANCE` | `min(User.clearance, claim)` | `min(local, claim)` |
+| `space_access` | `orion_workspace_id` present | idem | idem |
+
+Decision on an ambiguity (the most prudent reading): the ADR says a FORGE `forge-admin` realm role maps to `admin` and
+also that the effective role is the local one capped by the realm role. The module applies the cap, so `forge-admin` in
+the realm does not make a local `maintainer` an `admin`; the provisioning of a first role (no local account) is a decision
+of the FORGE OIDC ticket (ADR §8: linking needs the user's confirmation).
+
+### Files
+
+| What | Source (NOVA) | Copy in ORBIT / FORGE |
+|---|---|---|
+| validation module (standard library only, one file) | `nova/domain/orion_claims.py` | same bytes, any path (`MODULE_PATH` in the test) |
+| signed fixtures, public JWKS, context (issuer, clock), manifest | `contracts/claims/` (`case_*.json`, `jwks.json`, `context.json`, `manifest.json`) | `contracts/claims/` byte for byte |
+| generator | `scripts/generate_claims_fixtures.py` | not copied |
+| portable test | `tests/contract/test_claims_contract.py` | copied; set `SERVICES` to the repository's service and the three paths |
+
+`manifest.json` records the sha256 of every fixture **and of the module** (`module.sha256`) and the list of contract claims.
+No key is committed: the generator creates a throw-away RSA key at each run, signs, keeps the public key only, and replays
+its own hand-written table through the module before finishing (`--check` replays what is committed). A regeneration
+changes every token: it is a contract decision, followed by refreshing both copies:
+
+```bash
+cd NOVA && uv run python scripts/generate_claims_fixtures.py        # then: uv run pytest tests/contract
+cp NOVA/nova/domain/orion_claims.py <ORBIT or FORGE>/<module path>
+rm -rf <ORBIT or FORGE>/contracts/claims && cp -R NOVA/contracts/claims <ORBIT or FORGE>/contracts/claims
+cp NOVA/tests/contract/test_claims_contract.py <ORBIT or FORGE>/tests/contract/   # then edit SERVICES / paths once
+```
+
+| You change… | …without refreshing | Fails |
+|---|---|---|
+| a claim removed or renamed in a fixture (or in the token an IdP issues) | the table | the signature (`bad_signature`) and the manifest hash; the decision changes (`test_claims_source.py` mutates each claim) |
+| the module | the manifest and the copies | `test_fixtures_and_module_match_the_manifest` in each repository |
+| a fixture in a copy | the source | the manifest hash |
+| the table of ADR §4 | the fixtures' `expect` | `test_decision_matches_the_adr_table` |
+
 ## Traversal test (`tests/contract/`, part of the default `testpaths`)
 
 `test_orbit_forge_nova_traversal.py` chains the three fixtures: the real ORBIT answer, the body FORGE produced from it,
