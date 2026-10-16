@@ -138,6 +138,22 @@ workspace and are read by every workspace: the Skill catalog, the learning loop 
 agent versions cache, revoked agent keys, the FORGE link health. Tests: `tests/integration/test_workspace_isolation.py`,
 `tests/unit/test_workspace_inventory.py` (a table or route without a declared filter fails), `tests/migration/`.
 
+## FORGE -> NOVA authentication (`NOVA_FORGE_INBOUND_AUTH`, NOV-112, ADR 001 §7)
+
+FORGE calls `POST /v1/agents/{id}/runs` with a credential. Three modes:
+
+* `token` (**default, unchanged**): the shared bearer `NOVA_FORGE_INBOUND_TOKEN`, compared in constant time;
+* `both`: that bearer **or** a service-account token of the IdP (the switch-over window: move FORGE, then remove the bearer);
+* `oidc`: only the IdP token; the shared bearer is refused (and no longer required in production).
+
+The IdP token must be a client-credentials token (the service account `service-account-<client>`, never a person, no `act`),
+audience `nova-web`, scope `orion:run.execute`, `azp` in `NOVA_FORGE_INBOUND_CLIENTS` (default `forge-service`), signed RS256 by
+the issuer's JWKS (`NOVA_FORGE_INBOUND_ISSUER`, default `NOVA_OIDC_ISSUER`; keys fetched from `<issuer>/protocol/openid-connect/certs`)
+and well-formed under the claims contract (`docs/CONTRACTS.md`). Any other token, for any reason, is the same 401 `UNAUTHORIZED`.
+Switch over: create FORGE's service client in the IdP (the realm `orion` ships `nova-service` only: a `forge-service` client with
+client credentials, an audience mapper for `nova-web` and the scope `orion:run.execute` is to be added there), set `both`, give FORGE
+the token flow, check, then `oidc`. Roll back by setting `token` again (the bearer is unchanged and was never removed).
+
 ## FORGE capture outbox
 
 A finished run's capture into FORGE is recorded first in the `forge_outbox` table (before the run completes, key

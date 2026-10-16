@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import re
-import secrets
 import uuid
 from typing import Annotated, Any
 
@@ -28,7 +27,7 @@ from nova.infra.db import get_session, session_scope
 from nova.infra.models import AgentPolicy, Artifact, ArtifactVersion, ExecutionEvent, SkillExecution, Task
 from nova.integrations.forge import mapper, runtime
 from nova.integrations.forge.schemas import FapError, FapEvent, FapUsage, NovaRunRequest, NovaRunResponse
-from nova.services import providers
+from nova.services import forge_inbound, providers
 from nova.services.executions import run_task
 from nova.services.users import service_user
 from nova.skills.registry import get_skill_registry
@@ -52,9 +51,7 @@ async def run(
 ) -> Any:
     settings = get_settings()
     token = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
-    if not token or not secrets.compare_digest(
-        token.encode(), settings.forge_inbound_token.encode()
-    ):  # bytes: any token is a 401
+    if not token or await forge_inbound.authorize(token, settings) is None:  # bytes-safe: any token is a 401
         return _error(401, "UNAUTHORIZED", "Jeton NOVA invalide")
     profile = mapper.profile_of(nova_agent_id)
     if nova_agent_id != mapper.NOVA_AGENT_ID and profile is None:
