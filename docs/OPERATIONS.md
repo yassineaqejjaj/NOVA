@@ -123,6 +123,13 @@ migration runs and never change it afterwards.**
   several), else the default one; checkpoint threads, outbox keys and the composition cache carry the workspace (the default
   workspace keeps the historical keys, the `external_id` FORGE sees is unchanged).
 
+**ORION project id.** ORBIT (NOV-106) reports `orion_project_id` on `GET /projects`, in the context package and in snapshots.
+NOVA records it on the ORBIT `ProjectReference` and on the linked NOVA `Project` when it syncs ORBIT projects, when a
+retrieval is recorded and when a snapshot is read. The id NOVA minted before ORBIT said anything is a placeholder and gives
+way once; after that an id never changes: a different one from ORBIT, or one another project already holds, is not applied,
+is logged and audited (`project.orion_id_conflict`, once per report). Several NOVA projects linked to the same ORBIT project
+cannot all hold its id: the first one does, the others are reported as conflicts. The id is never part of an API response.
+
 `NOVA_WORKSPACE_STRICT_CLAIM` (default `false`, NOV-104 wiring): reads Keycloak access tokens and the SSO id token through
 the ORION claims contract (`nova/domain/orion_claims.py`; the signature is still checked by the existing JWKS validation).
 When `true`: a token without `orion_workspace_id` opens nothing (403 `workspace_required`, no account is created); a
