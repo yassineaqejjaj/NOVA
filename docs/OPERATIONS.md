@@ -126,7 +126,7 @@ migration runs and never change it afterwards.**
 Roll back by setting `off` (no data change). Downgrading the migration is refused while rows belong to another workspace than
 the default one (`NOVA_ALLOW_WORKSPACE_MERGE=1` overrides it: the workspaces then merge). Platform records stay in the default
 workspace and are read by every workspace: the Skill catalog, the learning loop (policies, releases, training cycles), the FORGE
-agent versions cache, revoked agent keys, the FORGE link health. Tests: `tests/integration/test_workspace_isolation.py`,
+agent versions cache, revoked agent keys, the FORGE link health. Isolation cases of the three repositories: `docs/ISOLATION.md`. Tests: `tests/integration/test_workspace_isolation.py`, `tests/integration/test_workspace_matrix.py`,
 `tests/unit/test_workspace_inventory.py` (a table or route without a declared filter fails), `tests/migration/`.
 
 ## FORGE capture outbox
