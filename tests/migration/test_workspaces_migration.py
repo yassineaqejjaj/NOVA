@@ -196,9 +196,9 @@ def test_workspaces_migration_on_a_populated_database(database, start):
     assert sum(n for n, _ in before.values()) > 250
 
     # --- up: nothing lost, nothing changed outside the new columns -----------------------------------------------------------
-    _ok(_alembic(url, "upgrade", "head"))
+    _ok(_alembic(url, "upgrade", "0020"))  # this test is about 0020 (later revisions have their own)
     heads = _alembic(url, "heads")
-    assert heads.stdout.count("(head)") == 1, heads.stdout  # one head only
+    assert heads.stdout.count("(head)") == 1, heads.stdout  # one head only (and it is not necessarily 0020 any more)
     assert snapshot(engine, old) == before
     new = columns_of(engine)
     assert {t for t, c in new.items() if "workspace_id" in c} == set(new) - NOT_SCOPED
@@ -234,7 +234,7 @@ def test_workspaces_migration_on_a_populated_database(database, start):
         assert down == old
 
     # --- up again: same rows, same new values ---------------------------------------------------------------------------------
-    _ok(_alembic(url, "upgrade", "head"))
+    _ok(_alembic(url, "upgrade", "0020"))  # this test is about 0020 (later revisions have their own)
     assert {t: v for t, v in snapshot(engine, new).items() if t != "workspaces"} == upgraded
 
     # --- the downgrade that merges workspaces, when it is explicitly accepted -------------------------------------------------
