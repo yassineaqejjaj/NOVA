@@ -14,6 +14,65 @@
 * Retention: `NOVA_CONTEXT_REFERENCE_RETENTION_DAYS`, `NOVA_EXECUTION_EVENT_RETENTION_DAYS`, `NOVA_CHECKPOINT_RETENTION_DAYS` (daily
   job); forgetting a source, project or user and the other copies: `docs/DATA_INVENTORY.md`, `NOVA_FORGET_ARTIFACTS`.
 
+## Shared identity provider: realm `orion` (NOV-103, ADR 001)
+
+A second Keycloak realm, `orion`, is the future identity provider of NOVA, ORBIT and FORGE (`infrastructure/keycloak/orion-realm.json`).
+It is **off by default**: nothing imports it and no service points at it. The realm `nova` (`nova-realm.json`, never modified:
+a test pins its hash) and NOVA's current sign-in are unchanged. Tokens follow the claims contract of `docs/CONTRACTS.md`
+(`contracts/claims/`).
+
+**What the realm contains.** Clients, all confidential, no password grant, no implicit flow:
+
+| Client | Use | Notes |
+|---|---|---|
+| `nova-web` | NOVA (Authorization Code + PKCE S256) | redirect `${ORION_NOVA_PUBLIC_URL}/api/v1/auth/callback`; the only client allowed to do token exchange (RFC 8693), towards the audiences `orbit` and `forge` only |
+| `orbit`, `forge` | ORBIT / FORGE (Authorization Code + PKCE S256) | redirect `${ORION_ORBIT_PUBLIC_URL}` / `${ORION_FORGE_PUBLIC_URL}` + `/api/v1/auth/oidc/callback` (a convention for the two follow-up tickets; adjust there) |
+| `nova-service` | service account (client credentials) | no audience by default: ask `scope=orion-audience-orbit` or `orion-audience-forge` (+ `orion:run.execute`, `orion:context.read`), one token per audience; no realm role and no workspace until an administrator sets them |
+
+Claims minted: `sub`, `email`, `email_verified`, `orion_workspace_id` (UUID), `orion_project_id` (optional UUID),
+`orion_clearance` (**integer** 0-3), `realm_access.roles`, `amr`, `scope`, and the audience of the client. Realm roles: `nova-admin`,
+`orbit-admin`, `forge-admin`, `forge-maintainer`, `forge-editor`, `forge-evaluator`, `forge-viewer`; each client only receives the roles of
+its own prefix (`fullScopeAllowed` is off). The three `orion_*` attributes and the e-mail are editable by realm administrators only
+(declarative user profile): a user cannot raise their own clearance or change workspace. Access tokens live 5 minutes (ADR §6).
+Not emitted by Keycloak 26.8 and expected by later tickets: `act` (delegation, preview feature `TOKEN_EXCHANGE_DELEGATION`: the
+exchanged token has `sub` = the user but no `act` yet, and carries the roles of the requesting client, so ORBIT / FORGE see local roles only),
+`nbf` (the validation module checks it when present), a per-exchange `orion_project_id`.
+
+**Variables** (Keycloak service; secrets of at least 32 characters, from the secret store, never in the repository):
+`ORION_REALM_IMPORT=true`, `ORION_NOVA_PUBLIC_URL`, `ORION_ORBIT_PUBLIC_URL`, `ORION_FORGE_PUBLIC_URL`, `ORION_NOVA_CLIENT_SECRET`,
+`ORION_ORBIT_CLIENT_SECRET`, `ORION_FORGE_CLIENT_SECRET`, `ORION_NOVA_SERVICE_SECRET`. The image entrypoint
+(`infrastructure/keycloak/docker-entrypoint.sh`) copies the realm into the import directory **only** when
+`ORION_REALM_IMPORT=true` and refuses to start if a variable is missing or a secret is short (an unresolved `${...}` would be imported
+literally). Without the flag the container is `exec kc.sh` exactly as before.
+
+**Create the realm in pre-production** (operator, never production without an explicit decision):
+
+1. On the pre-production `keycloak` service set the variables above (generate each secret, e.g. `openssl rand -base64 36`), then deploy
+   that service as usual (`railway up -s keycloak -e preprod` with a reduced context). The import runs **only if the realm does not exist
+   yet**: a later start never overwrites it, and changing a variable afterwards changes nothing (edit the client in the admin console).
+   Set `ORION_REALM_IMPORT` back to `false` once the realm exists.
+2. Finish the realm (idempotent): `KC_URL=https://<keycloak> KC_ADMIN=<admin> KC_ADMIN_PASSWORD=<…> ORION_ENVIRONMENT=preprod uv run python infrastructure/keycloak/configure_orion.py --mfa off --test-user`.
+   It sets the `amr` references (`pwd` on the password form, `mfa` on the OTP form), the MFA policy and creates the single synthetic test
+   user `orion-test` (role `forge-viewer`, clearance 1, a fake workspace id): the password is generated and printed once, or taken
+   from `ORION_TEST_USER_PASSWORD`; it is refused unless `ORION_ENVIRONMENT=preprod`. No production user is ever imported.
+3. Check `<keycloak>/realms/orion/.well-known/openid-configuration` and sign in at the `nova-web` client; confirm that `/realms/nova` still works.
+
+**MFA (OTP)** is off by default in pre-production. `configure_orion.py --mfa on` makes "Configure OTP" a default required action and
+requires it at next sign-in from every existing user without OTP (service accounts excepted); `--mfa off` removes the default action
+(pending required actions stay). With OTP configured the token carries `amr` = `["pwd", "mfa"]`, which the sensitive operations of ADR §4 require.
+
+**Rotate a client secret.** In the admin console (realm `orion`, client, Credentials) regenerate the secret, store it in the secret
+store, and redeploy the service that uses it. Rotate `nova-service` the same way for every caller. After the realm exists the
+`ORION_*_SECRET` variables are not read again: they only matter for a re-created realm. Rotate after any suspected leak, when a person with
+access leaves, and at least once a year.
+
+**Break-glass.** Keycloak's administrator (`KC_BOOTSTRAP_ADMIN_*`, realm `master`) is independent of the realm `orion`: keep it offline in the
+vault with a second holder, use it to disable a compromised user or client, to reset MFA of a locked-out administrator
+(Users, Credentials, delete OTP) and to restore access; never share it. Each service keeps its own local break-glass administrator outside SSO
+(ADR §8) until the migration ends. If the IdP is down the services keep their existing local sign-in (the realm is not wired yet). Roll back
+the whole realm by deleting realm `orion` in the admin console (realm `nova` is not touched) and unsetting `ORION_REALM_IMPORT`; restore
+from the Keycloak database backup if realm settings were changed by mistake.
+
 ## ORBIT revocation events (webhook)
 
 After a change of rights in ORBIT, NOVA must stop using what it kept (extracts, derived Artifacts, replays, sessions).
