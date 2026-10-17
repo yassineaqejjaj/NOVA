@@ -37,6 +37,8 @@ class FakeIdP:
         self.refresh_valid = True
         self.unavailable = False
         self.now = time.time
+        self.clearance = 2  # orion_clearance of the tokens it issues
+        self.roles: list[str] = []
 
     # -- tokens -----------------------------------------------------------------------------------------------------
 
@@ -51,7 +53,8 @@ class FakeIdP:
             "email": "alice@example.test",
             "email_verified": True,
             "orion_workspace_id": WORKSPACE,
-            "orion_clearance": 2,
+            "orion_clearance": self.clearance,
+            "realm_access": {"roles": self.roles},
             "amr": ["pwd"],
             "scope": scope,
             **extra,

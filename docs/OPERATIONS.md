@@ -170,6 +170,19 @@ workspace and are read by every workspace: the Skill catalog, the learning loop 
 agent versions cache, revoked agent keys, the FORGE link health. Isolation cases of the three repositories: `docs/ISOLATION.md`. Tests: `tests/integration/test_workspace_isolation.py`, `tests/integration/test_workspace_matrix.py`,
 `tests/unit/test_workspace_inventory.py` (a table or route without a declared filter fails), `tests/migration/`.
 
+### Links screen with federated delegation (NOV-114, ADR 001 §11)
+
+With `NOVA_DELEGATION_MODE=token_exchange`, `GET /api/v1/me/links` adds `federated` (Settings → Links then shows it instead of the ORBIT
+session view); in `linked_session` (default) the answer has no such key and the screen is unchanged. Per service (ORBIT, FORGE):
+state (`ok`, `expiring` (< `NOVA_LINKS_EXPIRY_WARNING_SECONDS`, default 60, of the 5 minute token), `expired` (the user's IdP session is over),
+`revoked` (by the user, or removed by ORBIT, NOV-81), `degraded`, `unlinked`, `not_configured`), identity (abbreviated `sub`, e-mail, `iss`, `amr`, `act`),
+target project (`orion_project_id`, alias, workspace), expiry and remaining time, scope (scopes, role, effective clearance = `min`, and why it is lower),
+last exchange and last round trip (operation, outcome, latency, consecutive errors). Everything is read from what NOVA already recorded
+(`delegation_sessions.links`): opening the screen calls neither the IdP nor ORBIT; no token or secret is ever returned. Actions:
+reconnect (a new sign-in), `DELETE /me/links/{service}` (revoke: no new token until the user reconnects, audited as `delegation.revoke`),
+`POST /me/links/orbit/test` (one `GET /auth/me`, no data). `GET /admin/links` (administrators): statuses of the workspace's members, masked
+e-mail, no identity detail, no content.
+
 ## FORGE -> NOVA authentication (`NOVA_FORGE_INBOUND_AUTH`, NOV-112, ADR 001 §7)
 
 FORGE calls `POST /v1/agents/{id}/runs` with a credential. Three modes:

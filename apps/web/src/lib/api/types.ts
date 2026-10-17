@@ -96,10 +96,52 @@ export interface ForgeLink {
   capture_queue: number | null;
 }
 
+/** State of a federated (token exchange) link, ADR 001 §11. */
+export type FederatedStatus = "ok" | "expiring" | "expired" | "revoked" | "degraded" | "unlinked" | "not_configured";
+
+/** One service of `GET /me/links` → `federated` (only with NOVA_DELEGATION_MODE=token_exchange). Never a token or a secret. */
+export interface FederatedLink {
+  service: "orbit" | "forge";
+  status: FederatedStatus;
+  linked: boolean;
+  revoked_reason: string | null;
+  identity: { sub: string | null; email: string | null; issuer: string | null; amr: string[]; act: string | null };
+  project: { orion_project_id: string | null; alias: string | null; workspace_id: string | null };
+  expiry: { expires_at: string | null; remaining_seconds: number | null; session_expires_at: string | null; renewal: "on_demand" };
+  scope: {
+    scopes: string[];
+    roles: string[];
+    clearance: { local: number; cap: number | null; effective: number; reason: "no_cap" | "capped_by_token" | "local" };
+  };
+  last_exchange: { at: string | null; status: string | null; exchange_ms: number | null; consecutive_errors: number; last_error: string | null; last_error_at: string | null };
+  roundtrip: { at: string; operation: string; status: string; latency_ms: number } | null;
+  call_errors: number;
+  actions: ("reconnect" | "revoke" | "test")[];
+}
+
+export interface FederatedLinks {
+  mode: "token_exchange";
+  expiry_warning_seconds: number;
+  services: { orbit: FederatedLink; forge: FederatedLink };
+}
+
+/** `GET /admin/links`: for an administrator, the state of the workspace's links (statuses only). */
+export interface WorkspaceLinks {
+  mode: "linked_session" | "token_exchange";
+  members: {
+    user_id: string;
+    name: string;
+    email: string | null;
+    services: Record<"orbit" | "forge", { status: FederatedStatus; last_error: string | null; consecutive_errors: number; expires_at: string | null; roundtrip: FederatedLink["roundtrip"] }>;
+  }[];
+}
+
 /** `GET /me/links`: the health of the ORBIT and FORGE links; `forge` is for administrators only. */
 export interface Links {
   orbit: OrbitIdentity & { status: "ok" | "degraded" | "fallback" | "expired" | "revoked" | "agent_key" | "unlinked"; revoked_reason?: string | null; agent_keys: OrbitAgentKey[] };
   forge: ForgeLink | null;
+  /** Present only in token exchange mode; absent (not null) in the default `linked_session` mode: the screen is then unchanged. */
+  federated?: FederatedLinks;
 }
 
 export interface Block<T = Record<string, unknown>> { key: string; type: BlockType; position: number; data: T }
