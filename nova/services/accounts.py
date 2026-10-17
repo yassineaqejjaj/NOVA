@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nova.config import Settings, get_settings
 from nova.infra.db import utcnow
 from nova.infra.models import EmailCode, User, UserPreferences
+from nova.services import account_flags
 from nova.services.audit import audit
 from nova.services.identity import IdentityError, IdentityUser, check_password_strength, identity_backend
 from nova.services.mailer import MailerError, code_email, send_email
@@ -183,6 +184,13 @@ async def verify_signup(session: AsyncSession, *, email: str, code: str) -> User
 async def password_login(session: AsyncSession, *, email: str, password: str) -> User:
     identity = await identity_backend(session).authenticate(normalize_email(email), password)
     user = await _nova_user(session, identity)
+    if await account_flags.password_blocked(session, user.id):  # NOV-113: moved to SSO; same answer as a wrong password
+        await audit(
+            session, actor_id=user.id, action="auth.password_refused", target_type="user", target_id=str(user.id),
+            summary="Password sign-in refused: this account signs in with SSO",
+        )  # fmt: skip
+        await session.commit()
+        raise IdentityError("invalid_credentials", "Incorrect e-mail or password.")
     await audit(session, actor_id=user.id, action="auth.login", target_type="user", target_id=str(user.id), summary="Signed in")
     await session.commit()
     return user
