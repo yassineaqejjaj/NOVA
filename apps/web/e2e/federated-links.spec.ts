@@ -37,9 +37,10 @@ async function signIn(page: Page, lang?: "en" | "fr", admin = false) {
 async function mockLinks(page: Page, orbit: Status, forge: Status = "unlinked", workspace = false) {
   const calls = { revoked: [] as string[], tested: [] as string[] };
   await page.route("**/api/v1/me/links", async (route) => {
-    const real = await (await route.fetch()).json();
+    // A static base (not route.fetch()): a refetch that lands while the test ends would race with the disposal of the response
+    const base = { orbit: { linked: false, mode: "none", status: "unlinked", agent_keys: [] }, forge: null };
     await route.fulfill({
-      json: { ...real, federated: { mode: "token_exchange", expiry_warning_seconds: 60, services: { orbit: link("orbit", orbit), forge: link("forge", forge) } } },
+      json: { ...base, federated: { mode: "token_exchange", expiry_warning_seconds: 60, services: { orbit: link("orbit", orbit), forge: link("forge", forge) } } },
     });
   });
   await page.route("**/api/v1/me/links/*/test", async (route) => {
