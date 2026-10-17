@@ -186,6 +186,44 @@ Switch over: create FORGE's service client in the IdP (the realm `orion` ships `
 client credentials, an audience mapper for `nova-web` and the scope `orion:run.execute` is to be added there), set `both`, give FORGE
 the token flow, check, then `oidc`. Roll back by setting `token` again (the bearer is unchanged and was never removed).
 
+## Account migration tool (NOV-113, ADR 001 §8)
+
+`uv run python -m nova.migration.accounts <command>` (in the API container: `python -m nova.migration.accounts`) moves accounts to the
+shared identity provider **without ever changing a local id** (migration 0022 adds the empty table `account_migrations`; an
+account without a row signs in exactly as before; nothing here runs by itself). **Running it in production is the owner's separate
+decision**: any write command refuses in production unless `ORION_MIGRATION_ALLOW_PRODUCTION=owner-decision` is set.
+
+| Phase (ADR §8) | Command | Writes? |
+|---|---|---|
+| 0. Inventory | `inventory [--emails hash\|masked\|clear] [--format json\|csv] [--out FILE]` | **never** |
+| 2. Reconciliation | `reconcile --idp-export FILE [--domains d1,d2] [--emit-approval FILE]` | **never** (dry run) |
+| 2. Approve | review the template (delete the pairs that must not be linked), then `sign-approval FILE --approved-by NAME` | the file only |
+| 2. Link | `apply --idp-export FILE --approval FILE --confirm-backup ID` | links the approved pairs, all or nothing |
+| 3. SSO by default | `break-glass --user U --confirm-backup ID`, then `flags --user U --disable-password\|--sso-required --confirm-backup ID` | one account |
+| back | `flags --user U --enable-password` (one command, nothing required), `rollback --batch B --confirm-backup ID`, `break-glass --user U --unset` | yes |
+
+* **Inventory**: per account the e-mail (**hashed** with `ORION_INVENTORY_SALT`, the same salt in the three services so the tables can be
+  joined; `masked`; or `clear` only with `--confirm-sensitive`), domain, role, effective clearance and its source, workspace, last seen,
+  link and flags, problems (`duplicate_email`, `email_not_verifiable`), and a summary; service accounts, and the *existence* (never the value) of the keys.
+  Files written with `--out` are mode 0600.
+* **Reconciliation** proposes a pair only when nothing is in doubt; conflicts it reports for a person to decide: `duplicate_local_email`
+  (merged by an administrator, never automatically), `email_missing`, `unexpected_domain`, `idp_email_unverified` (the address alone proves
+  nothing), `duplicate_idp_email`, `sub_already_linked`, `workspace_mismatch` (the workspace comes from the inventory, not the domain),
+  `linked_sub_missing_in_idp`. The IdP export is JSON (list or `{"users": [...]}`) or CSV: `sub,email,email_verified[,workspace_id]`.
+  Sign-in time confirmation by the user (ADR §8 phase 2) stays the rule in the application: this tool links only pairs a person approved.
+* **Approval file**: signed with an HMAC (`ORION_APPROVAL_KEY`, ≥ 32 characters, held by the approver, not by the operator running `apply`)
+  over the batch, the proposal hash, the pairs, the approver and the time. `apply` refuses an unsigned or edited file, another key, a data set that
+  moved since the approval, a pair that is not in the *current* proposal (nothing is applied then), and a missing or malformed backup id.
+* **Flags**: a closed password (`password_login_disabled` / `sso_required`) is refused for an unlinked account, for a break-glass account, and
+  while no break-glass administrator exists; the NOVA password sign-in answers a closed account like a wrong password (audited as
+  `auth.password_refused`). The break-glass administrator is a person with the administrator role, outside SSO, with a strong password held offline.
+* Everything is audited: `account.link`, `account.password_closed`, `account.password_reopened`, `account.break_glass_set|unset`, `account.rollback`.
+
+**Restore procedure.** Before `apply`, `flags` or `break-glass`: take a database backup (`pg_dump`) and note its identifier (the tool records it
+in the audit trail). To undo one batch: `rollback --batch <batch>` (removes its links, re-opens the passwords it closed; no account is deleted).
+To re-open one password: `flags --user U --enable-password`. To go back further: restore the backup (the only table touched is
+`account_migrations`, so `TRUNCATE account_migrations` also returns every account to "untouched"). Rehearse on pre-production data first.
+
 ## FORGE capture outbox
 
 A finished run's capture into FORGE is recorded first in the `forge_outbox` table (before the run completes, key

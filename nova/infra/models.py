@@ -20,6 +20,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -128,6 +129,26 @@ class DelegationSession(WorkspaceScoped, Base):
     links: Mapped[dict] = mapped_column(JSONType, default=dict)
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _created()
+
+
+class AccountMigration(WorkspaceScoped, Base):
+    """Where an account stands in the move to the shared identity provider (ADR 001 §8, NOV-113).
+
+    One row per account the migration tool touched; absent = untouched (password sign-in as ever). ``orion_sub`` is the
+    external identifier added next to the local id (the local UUID never changes). Written only by ``python -m
+    nova.migration.accounts``; nothing in the default configuration reads a flag but the password sign-in.
+    """
+
+    __tablename__ = "account_migrations"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    orion_sub: Mapped[str | None] = mapped_column(String(255), unique=True)
+    linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    linked_batch: Mapped[str | None] = mapped_column(String(80))  # the approval that linked it (rollback key)
+    password_login_disabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    sso_required: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    break_glass: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    flags_batch: Mapped[str | None] = mapped_column(String(80))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
 class OrbitSnapshotReference(WorkspaceScoped, Base):
