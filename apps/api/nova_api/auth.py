@@ -27,7 +27,7 @@ from nova.config import Settings, get_settings
 from nova.domain.permissions import Principal
 from nova.infra import scope
 from nova.infra.db import get_session
-from nova.services import accounts, workspaces
+from nova.services import accounts, delegation, workspaces
 from nova.services.audit import audit
 from nova.services.identity import IdentityError, validate_oidc_token
 from nova.services.mailer import last_code
@@ -267,6 +267,8 @@ async def callback(request: Request, session: SessionDep, code: str = Query(), s
     await audit(
         session, actor_id=user.id, action="auth.login", target_type="user", target_id=str(user.id), summary="Signed in (SSO)"
     )
+    if delegation.enabled(settings):  # NOV-111: keep the user's own tokens (encrypted) to exchange them for ORBIT / FORGE
+        await delegation.remember_subject(session, user.id, tokens)
     await session.commit()
     response = RedirectResponse(flow["next"])
     _set_session(response, issue_session(str(user.id), settings, clearance_cap=orion.clearance if orion else None), settings)
@@ -444,8 +446,11 @@ async def dev_outbox(email: str = Query()) -> dict[str, str | None]:
 async def logout(request: Request, response: Response) -> dict[str, str | None]:
     settings = get_settings()
     try:
-        method = jwt.decode(request.cookies.get(SESSION_COOKIE, ""), settings.session_secret, algorithms=["HS256"]).get("amr")
-    except jwt.PyJWTError:
+        session_claims = jwt.decode(request.cookies.get(SESSION_COOKIE, ""), settings.session_secret, algorithms=["HS256"])
+        method = session_claims.get("amr")
+        if delegation.enabled(settings):  # NOV-111: signing out ends what NOVA may do for the user at ORBIT / FORGE
+            await delegation.forget_subject(session_claims["sub"])
+    except (jwt.PyJWTError, KeyError, ValueError):
         method = None
     response.delete_cookie(SESSION_COOKIE, path="/")
     end_session = None

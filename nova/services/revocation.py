@@ -38,7 +38,7 @@ from nova.infra.models import (
     ProjectReference,
     User,
 )
-from nova.services import workspaces
+from nova.services import delegation, workspaces
 from nova.services.audit import audit
 
 #: Events that make a source unreadable for what NOVA kept: the extracts holding it are revoked.
@@ -308,6 +308,7 @@ async def _remove_member(session: AsyncSession, row: OrbitEvent) -> dict[str, in
         account.token_ciphertext, account.expires_at = None, now
         account.clearance = get_settings().default_clearance
         account.revoked_at, account.revoked_reason = now, row.type
+        delegation.drop_cached(account.user_id, row.project_slug)  # NOV-111: a delegated token for this project is gone too
         await audit(
             session,
             actor_id=None,

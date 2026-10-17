@@ -170,7 +170,8 @@ class ContextIdentity(BaseModel):
     display_name: str | None = None
     clearance: int | None = None
     expires_at: datetime | None = None
-    mode: Literal["session", "agent_key", "none"] = "none"  # the credential actually used for ORBIT calls
+    # the credential actually used for ORBIT calls; "delegated": a short token exchanged for the user (NOV-111)
+    mode: Literal["session", "agent_key", "delegated", "none"] = "none"
     session_expired: bool = False
     # The session is gone and the project agent key acts instead: another identity, a lower clearance
     fallback: bool = False
