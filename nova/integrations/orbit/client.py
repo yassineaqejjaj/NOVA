@@ -28,7 +28,8 @@ class OrbitAuth:
 
 def _error(response: httpx.Response) -> ContextError:
     try:
-        detail = str(response.json().get("detail") or "")
+        body = response.json()
+        detail = str(body.get("detail") or "") if isinstance(body, dict) else ""  # a list or a string is not a detail
     except ValueError:
         detail = ""
     status = response.status_code

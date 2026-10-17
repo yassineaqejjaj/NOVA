@@ -19,7 +19,7 @@ from nova.infra.db import get_session, utcnow
 from nova.infra.models import OrbitAccount, User, UserPreferences
 from nova.integrations import link_health
 from nova.integrations.forge import connection as forge_connection
-from nova.services import providers
+from nova.services import delegation, federated_links, providers
 from nova.services.audit import audit
 from nova.services.projects import sync_from_orbit
 from nova.services.users import preferences_dict
@@ -143,7 +143,61 @@ async def links(principal: CurrentPrincipal, session: SessionDep) -> dict[str, A
     revoked = await session.get(OrbitAccount, uuid.UUID(principal.user_id))
     if revoked is not None and revoked.revoked_at is not None:  # ORBIT removed this member (NOV-81): link again
         orbit.update(status="revoked", revoked_at=revoked.revoked_at.isoformat(), revoked_reason=revoked.revoked_reason)
-    return {"orbit": orbit, "forge": await _forge_link(get_settings()) if principal.is_admin else None}
+    result: dict[str, Any] = {"orbit": orbit, "forge": await _forge_link(get_settings()) if principal.is_admin else None}
+    if delegation.enabled():  # NOV-114: only with NOVA_DELEGATION_MODE=token_exchange; the default answer is unchanged
+        result["federated"] = await federated_links.user_links(session, principal, get_settings())
+    return result
+
+
+def _federated_only(service: str) -> None:
+    if not delegation.enabled():
+        raise ApiError(404, "not_found", "Not available.")
+    if service not in federated_links.SERVICES:
+        raise ApiError(404, "not_found", "Unknown service.")
+
+
+@router.delete("/me/links/{service}", status_code=204)
+async def revoke_link(service: str, principal: CurrentPrincipal, session: SessionDep) -> None:
+    """Revoke the delegation: NOVA stops acting for the user at that service until they sign in again."""
+    _federated_only(service)
+    await delegation.revoke(principal.user_id, service)
+    await audit(
+        session,
+        actor_id=principal.user_id,
+        action="delegation.revoke",
+        target_type="user",
+        target_id=principal.user_id,
+        summary=f"Delegation to {service.upper()} revoked by the user",
+        details={"service": service},
+    )
+    await session.commit()
+
+
+@router.post("/me/links/{service}/test")
+async def test_link(service: str, principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """Health check: one call that touches no data. The outcome is recorded like any exchange and returned as the link's state."""
+    _federated_only(service)
+    check = getattr(providers.context(), "health_check", None)
+    if service != "orbit" or check is None:
+        raise ApiError(400, "not_supported", "This link cannot be tested from here.")
+    try:
+        await check(principal.user_id)
+        outcome = "ok"
+    except ContextError as exc:
+        outcome = exc.code
+    await session.commit()  # the check recorded its outcome in its own transaction
+    links = await federated_links.user_links(session, principal, get_settings())
+    return {"result": outcome, "link": links["services"][service]}
+
+
+@router.get("/admin/links")
+async def workspace_links(principal: CurrentPrincipal, session: SessionDep) -> dict[str, Any]:
+    """An administrator sees the state of the links of the workspace, never a content or a token."""
+    if not principal.is_admin:
+        raise ApiError(403, "forbidden", "Administrators only.")
+    if not delegation.enabled():
+        return {"mode": "linked_session", "members": []}
+    return {"mode": "token_exchange", "members": await federated_links.workspace_links(session, principal, get_settings())}
 
 
 async def _apply(prefs: UserPreferences, body: PreferencesIn) -> None:

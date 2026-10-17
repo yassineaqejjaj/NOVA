@@ -7,6 +7,8 @@ import type { ForgeLink, Links, OrbitAgentKey } from "@/lib/api/types";
 import { dateTime } from "@/lib/format";
 import { defineMessages, useT } from "@/lib/i18n";
 
+import { FederatedSection, WorkspaceLinksSection } from "./federated-links";
+
 const M = defineMessages({
   en: {
     orbit: "ORBIT",
@@ -175,7 +177,16 @@ export function LinksCard() {
   if (!data) return <Skeleton className="h-32" />;
   return (
     <div className="space-y-5" data-testid="links-card" aria-live="polite" data-admin={me.data?.is_admin ? "true" : "false"}>
-      <OrbitSection orbit={data.orbit} />
+      {data.federated ? (
+        // Token exchange mode (NOV-114): the delegation, per service. Without `federated` the screen below is the one it always was.
+        <>
+          <FederatedSection link={data.federated.services.orbit} />
+          <FederatedSection link={data.federated.services.forge} />
+          <WorkspaceLinksSection isAdmin={Boolean(me.data?.is_admin)} />
+        </>
+      ) : (
+        <OrbitSection orbit={data.orbit} />
+      )}
       {data.forge ? <ForgeSection forge={data.forge} /> : null}
     </div>
   );

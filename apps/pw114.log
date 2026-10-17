@@ -1,0 +1,24 @@
+[WebServer] INFO:     Started server process [55239]
+[WebServer] INFO:     Waiting for application startup.
+[WebServer] INFO:     Application startup complete.
+[WebServer] INFO:     Uvicorn running on http://127.0.0.1:8391 (Press CTRL+C to quit)
+[WebServer] INFO:     Started server process [55241]
+[WebServer] INFO:     Waiting for application startup.
+[WebServer] INFO:     Application startup complete.
+[WebServer] INFO:     Uvicorn running on http://127.0.0.1:8392 (Press CTRL+C to quit)
+[WebServer] INFO:     Started server process [55243]
+[WebServer] INFO:     Waiting for application startup.
+[WebServer] INFO:     Application startup complete.
+[WebServer] INFO:     Uvicorn running on http://127.0.0.1:8394 (Press CTRL+C to quit)
+[WebServer] 2026-10-17 04:08:48,877 INFO nova_api.main Skill catalog cfebdba46b1c01fc: 69 skills ({'created': 69, 'updated': 0})
+[WebServer]  ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+
+Running 5 tests using 1 worker
+
+  ✓  1 [chromium] › e2e/federated-links.spec.ts:71:5 › federated links: who acts, the target project, expiry, scope and the last round trip, with no secret (835ms)
+  ✓  2 [chromium] › e2e/federated-links.spec.ts:93:5 › federated links: every state has its own label and message, in English and in French (7.8s)
+  ✓  3 [chromium] › e2e/federated-links.spec.ts:131:5 › federated links: reconnect, revoke and test the link (426ms)
+  ✓  4 [chromium] › e2e/federated-links.spec.ts:145:5 › federated links: the screen is read only for a member (no workspace table) and an unlinked member gets no actions that act (332ms)
+  ✓  5 [chromium] › e2e/federated-links.spec.ts:155:5 › default mode: Settings → Links has no federated view and is the screen it always was (383ms)
+
+  5 passed (31.8s)

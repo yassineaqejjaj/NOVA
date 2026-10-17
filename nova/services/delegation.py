@@ -57,6 +57,7 @@ class DelegatedToken:
     workspace_id: str | None
     project_id: str | None
     clearance: int | None
+    roles: tuple[str, ...] = ()  # realm roles of the audience's own prefix (what the service will see), prefix removed
 
     def __repr__(self) -> str:  # a token must never reach a log through repr
         return f"DelegatedToken(audience={self.audience!r}, project={self.project_key!r}, expires_at={self.expires_at})"
@@ -109,6 +110,8 @@ async def remember_subject(session: Any, user_id: uuid.UUID, tokens: dict[str, A
     if row is None:
         row = DelegationSession(user_id=user_id, links={})
         session.add(row)
+    row.links = {k: v for k, v in dict(row.links or {}).items() if not (isinstance(v, dict) and v.get("revoked_by_user"))}
+    # a fresh sign-in is a new consent: a delegation the user had revoked starts again
     row.access_ciphertext = encrypt(access)
     row.access_expires_at = _expiry(tokens.get("expires_in"))
     row.refresh_ciphertext = encrypt(refresh) if isinstance(refresh, str) else None
@@ -197,6 +200,7 @@ def _checked(
         workspace_id=claims.workspace_id,
         project_id=claims.project_id,
         clearance=claims.clearance,
+        roles=tuple(sorted(claims.roles_for(audience))),
     )
 
 
@@ -220,6 +224,8 @@ async def delegated_token(
     wanted = scope or (settings.delegation_scope_orbit if audience == "orbit" else sorted(ALLOWED_SCOPES[audience])[0])
     if wanted not in ALLOWED_SCOPES[audience]:  # refused here, before the IdP is even asked
         raise DelegationError("scope_refused", "This scope is broader than what NOVA may ask for this audience")
+    if await revoked_by_user(user_id, audience):
+        raise DelegationError("delegation_revoked", "You revoked this delegation: reconnect to let NOVA act for you again")
     key = (user_id, project_key or "-", audience, wanted)
     now = _clock()
     cached = _cache.get(key)
@@ -296,6 +302,7 @@ async def record(
                     "project_id": token.project_id,
                     "project_key": token.project_key,
                     "clearance_cap": token.clearance,
+                    "roles": list(token.roles),
                     "expires_at": datetime.fromtimestamp(token.expires_at, UTC).isoformat(),
                     "exchange_ms": latency_ms,
                 }
@@ -314,3 +321,55 @@ async def record(
             row.updated_at = utcnow()
     except Exception:  # bookkeeping never fails the exchange it observes
         return
+
+
+_CALL_WRITE_EVERY = 30.0  # seconds: a busy link does not write a row per call
+_last_call_write: dict[tuple[str, str], float] = {}
+
+
+async def record_call(user_id: str, audience: str, *, operation: str, status: str, latency_ms: int) -> None:
+    """The last round trip with the service (operation, outcome, latency), for the links screen. Best effort, throttled when ok."""
+    ok = status == "ok"
+    key, now = (user_id, audience), _clock()
+    if ok and now - _last_call_write.get(key, 0.0) < _CALL_WRITE_EVERY:
+        return
+    try:
+        async with session_scope() as session:
+            row = await session.get(DelegationSession, uuid.UUID(user_id))
+            if row is None:
+                return
+            links = dict(row.links or {})
+            entry = dict(links.get(audience) or {})
+            stamp = datetime.fromtimestamp(now, UTC).isoformat()
+            entry["roundtrip"] = {"at": stamp, "operation": operation[:60], "status": status[:40], "latency_ms": latency_ms}
+            entry["call_errors"] = 0 if ok else int(entry.get("call_errors", 0)) + 1
+            links[audience] = entry
+            row.links = links
+        if ok:
+            _last_call_write[key] = now
+    except Exception:  # bookkeeping never fails the call it observes
+        return
+
+
+async def revoked_by_user(user_id: str, audience: str) -> bool:
+    async with session_scope() as session:
+        row = await session.get(DelegationSession, uuid.UUID(user_id))
+    return bool(row and (row.links or {}).get(audience, {}).get("revoked_by_user"))
+
+
+async def revoke(user_id: str, audience: str) -> bool:
+    """The user ends what NOVA may do for them at ``audience``: cached tokens are dropped, no new one is exchanged until they
+    sign in again. The stored session itself stays (the other audience keeps working); sign-out deletes it."""
+    if audience not in TARGETS:
+        raise DelegationError("audience_refused", "NOVA delegates to ORBIT and FORGE only")
+    async with session_scope() as session:
+        row = await session.get(DelegationSession, uuid.UUID(user_id))
+        if row is None:
+            return False
+        links = dict(row.links or {})
+        links[audience] = {"status": "revoked", "revoked_by_user": True, "revoked_at": _now().isoformat()}
+        row.links = links
+        row.updated_at = utcnow()
+    for key in [k for k in _cache if k[0] == user_id and k[2] == audience]:
+        del _cache[key]
+    return True

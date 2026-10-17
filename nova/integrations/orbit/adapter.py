@@ -7,6 +7,7 @@ Credential resolution per user and project:
 
 from __future__ import annotations
 
+import time
 import uuid
 from collections.abc import Awaitable
 from datetime import UTC, datetime, timedelta
@@ -158,12 +159,23 @@ class OrbitContextProvider:
             return
 
     async def _seen(self, user_id: str, call: Awaitable[T]) -> T:
+        delegated = self.settings.delegation_mode == "token_exchange"
+        operation = getattr(getattr(call, "cr_code", None), "co_name", "call")  # the client method that is awaited
+        started = time.monotonic()
         try:
             result = await call
         except ContextError as exc:
             await self._record(user_id, error=f"{exc.code}: {exc.message}")
+            if delegated:
+                await delegation.record_call(
+                    user_id, "orbit", operation=operation, status=exc.code, latency_ms=int((time.monotonic() - started) * 1000)
+                )
             raise
         await self._record(user_id)
+        if delegated:
+            await delegation.record_call(
+                user_id, "orbit", operation=operation, status="ok", latency_ms=int((time.monotonic() - started) * 1000)
+            )
         return result
 
     # --- Account linking --------------------------------------------------------------------------
@@ -221,6 +233,11 @@ class OrbitContextProvider:
             last_error_at=when("last_error_at"),
             last_error=entry.get("last_error"),
         )
+
+    async def health_check(self, user_id: str) -> None:
+        """A call that touches no data (``GET /auth/me``): proves the delegation works end to end (links screen, NOV-114)."""
+        auth = await self._auth(user_id, None, user_endpoint=True)
+        await self._seen(user_id, self.client.me(auth))
 
     async def identity(self, user_id: str) -> ContextIdentity:
         if self.settings.delegation_mode == "token_exchange":

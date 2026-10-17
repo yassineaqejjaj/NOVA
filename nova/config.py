@@ -73,6 +73,8 @@ class Settings(BaseSettings):
     delegation_service_client_id: str = "nova-service"  # no-user work (routines, FORGE protocol): client credentials
     delegation_service_client_secret: str = ""
     delegation_timeout_seconds: float = 10.0
+    # Links screen (NOV-114, token_exchange only): a delegated token with less than this left is shown as "expiring soon".
+    links_expiry_warning_seconds: int = Field(default=60, ge=0, le=300)
     # The workspace of every row created before an IdP gives one, and of every request while OIDC claims are not read.
     default_workspace_id: uuid.UUID = Field(
         default=DEFAULT_WORKSPACE_ID, validation_alias=AliasChoices("ORION_DEFAULT_WORKSPACE_ID", "NOVA_DEFAULT_WORKSPACE_ID")
