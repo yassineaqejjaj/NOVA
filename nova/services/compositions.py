@@ -10,10 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from nova.domain.assembly import composition_bonuses
 from nova.domain.release import TRAFFIC_ORIGINS
 from nova.infra.models import Task
+from nova.services.workspaces import cache_key
 
 HISTORY = 400  # most recent final production executions examined
 CACHE_SECONDS = 60.0
-_cache: dict[str, tuple[float, dict[str, float]]] = {}
+_cache: dict[tuple, tuple[float, dict[str, float]]] = {}  # (workspace, category): never served across workspaces
 
 
 def invalidate() -> None:
@@ -22,7 +23,8 @@ def invalidate() -> None:
 
 async def priors(session: AsyncSession, category: str) -> dict[str, float]:
     """Router bonuses per Skill for requests of ``category``, from past executions' manifests."""
-    cached = _cache.get(category)
+    key = cache_key(category)
+    cached = _cache.get(key)
     if cached and time.monotonic() - cached[0] < CACHE_SECONDS:
         return dict(cached[1])
     rows = (
@@ -39,5 +41,5 @@ async def priors(session: AsyncSession, category: str) -> dict[str, float]:
         if (manifest := task.run_manifest or {}).get("category") == category
     ]
     bonuses = composition_bonuses(history)
-    _cache[category] = (time.monotonic(), bonuses)
+    _cache[key] = (time.monotonic(), bonuses)
     return dict(bonuses)

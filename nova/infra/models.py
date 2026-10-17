@@ -20,10 +20,12 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from nova.infra.db import Base, JSONType, new_id, utcnow
+from nova.infra.scope import WorkspaceScoped
 
 
 def _pk() -> Mapped[uuid.UUID]:
@@ -34,7 +36,20 @@ def _created() -> Mapped[datetime]:
     return mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
-class User(Base):
+class Workspace(Base):
+    """An ORION workspace (``orion_workspace_id``): the isolation boundary of a company (ADR 001 §5, NOV-107).
+
+    Created and governed in the identity provider; NOVA registers the ones it sees in a validated token and keeps the
+    default one (``ORION_DEFAULT_WORKSPACE_ID``). Rows of every other table carry its id in ``workspace_id``.
+    """
+
+    __tablename__ = "workspaces"
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[datetime] = _created()
+
+
+class User(WorkspaceScoped, Base):
     __tablename__ = "users"
     id: Mapped[uuid.UUID] = _pk()
     subject: Mapped[str] = mapped_column(String(255), unique=True)  # OIDC `sub`
@@ -50,7 +65,7 @@ class User(Base):
     preferences: Mapped[UserPreferences | None] = relationship(back_populates="user", uselist=False, lazy="joined")
 
 
-class UserPreferences(Base):
+class UserPreferences(WorkspaceScoped, Base):
     __tablename__ = "user_preferences"
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     nova_name: Mapped[str] = mapped_column(String(60), default="NOVA")
@@ -76,7 +91,7 @@ class UserPreferences(Base):
     user: Mapped[User] = relationship(back_populates="preferences")
 
 
-class OrbitAccount(Base):
+class OrbitAccount(WorkspaceScoped, Base):
     """Delegated ORBIT session (integration-analysis §1.7). Only the session token, encrypted."""
 
     __tablename__ = "orbit_accounts"
@@ -98,7 +113,45 @@ class OrbitAccount(Base):
     revoked_reason: Mapped[str | None] = mapped_column(String(60))
 
 
-class OrbitSnapshotReference(Base):
+class DelegationSession(WorkspaceScoped, Base):
+    """What NOVA keeps of a user's own OIDC session to delegate by token exchange (NOV-111, ADR 001 §6).
+
+    Only the user's tokens, encrypted (like the ORBIT session of ``OrbitAccount``); the short tokens obtained by exchange are
+    never stored. ``links`` is a status line per audience for the links screen: no token, no body, no secret.
+    """
+
+    __tablename__ = "delegation_sessions"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    access_ciphertext: Mapped[str | None] = mapped_column(Text)
+    access_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    refresh_ciphertext: Mapped[str | None] = mapped_column(Text)
+    refresh_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    links: Mapped[dict] = mapped_column(JSONType, default=dict)
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _created()
+
+
+class AccountMigration(WorkspaceScoped, Base):
+    """Where an account stands in the move to the shared identity provider (ADR 001 §8, NOV-113).
+
+    One row per account the migration tool touched; absent = untouched (password sign-in as ever). ``orion_sub`` is the
+    external identifier added next to the local id (the local UUID never changes). Written only by ``python -m
+    nova.migration.accounts``; nothing in the default configuration reads a flag but the password sign-in.
+    """
+
+    __tablename__ = "account_migrations"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    orion_sub: Mapped[str | None] = mapped_column(String(255), unique=True)
+    linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    linked_batch: Mapped[str | None] = mapped_column(String(80))  # the approval that linked it (rollback key)
+    password_login_disabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    sso_required: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    break_glass: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    flags_batch: Mapped[str | None] = mapped_column(String(80))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class OrbitSnapshotReference(WorkspaceScoped, Base):
     """The ORBIT snapshot a user wants NOVA's agents to use for a project. Reference only: never the content."""
 
     __tablename__ = "orbit_snapshot_references"
@@ -112,7 +165,7 @@ class OrbitSnapshotReference(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
 
-class FigmaAccount(Base):
+class FigmaAccount(WorkspaceScoped, Base):
     """Figma link of a user: OAuth tokens (MCP) or a personal access token (REST, read-only). Encrypted."""
 
     __tablename__ = "figma_accounts"
@@ -127,7 +180,7 @@ class FigmaAccount(Base):
     linked_at: Mapped[datetime] = _created()
 
 
-class UserLLMConfig(Base):
+class UserLLMConfig(WorkspaceScoped, Base):
     """The user's own LLM (bring your own key). The key is stored encrypted and never returned by the API."""
 
     __tablename__ = "user_llm_configs"
@@ -141,7 +194,7 @@ class UserLLMConfig(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
-class GithubAccount(Base):
+class GithubAccount(WorkspaceScoped, Base):
     """GitHub link of a user (personal access token, encrypted)."""
 
     __tablename__ = "github_accounts"
@@ -152,7 +205,7 @@ class GithubAccount(Base):
     linked_at: Mapped[datetime] = _created()
 
 
-class SdlcRun(Base):
+class SdlcRun(WorkspaceScoped, Base):
     """One autonomous software-delivery run: intent → spec → design → code → tests → PR → review → CI → merge → release."""
 
     __tablename__ = "sdlc_runs"
@@ -191,10 +244,13 @@ class SdlcRun(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
-class Project(Base):
+class Project(WorkspaceScoped, Base):
     __tablename__ = "projects"
+    __table_args__ = (Index("uq_projects_orion_project_id", "orion_project_id", unique=True),)
     id: Mapped[uuid.UUID] = _pk()
     slug: Mapped[str] = mapped_column(String(120), unique=True)
+    # The ORION project (ADR 001 §5): immutable, globally unique, aligned with the ORBIT project through ProjectReference
+    orion_project_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, default=new_id)
     name: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
@@ -206,7 +262,7 @@ class Project(Base):
     )
 
 
-class ProjectMember(Base):
+class ProjectMember(WorkspaceScoped, Base):
     __tablename__ = "project_members"
     project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
@@ -215,13 +271,14 @@ class ProjectMember(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class ProjectReference(Base):
+class ProjectReference(WorkspaceScoped, Base):
     __tablename__ = "project_references"
     __table_args__ = (UniqueConstraint("project_id", "system", "external_id"),)
     id: Mapped[uuid.UUID] = _pk()
     project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
     system: Mapped[str] = mapped_column(String(20))  # orbit | forge
     external_id: Mapped[str] = mapped_column(String(200))  # ORBIT slug, FORGE agent id…
+    orion_project_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)  # what that system says the ORION project is (ORBIT)
     label: Mapped[str] = mapped_column(String(200), default="")
     url: Mapped[str | None] = mapped_column(String(1000))
     created_at: Mapped[datetime] = _created()
@@ -229,7 +286,7 @@ class ProjectReference(Base):
     project: Mapped[Project] = relationship(back_populates="references")
 
 
-class Conversation(Base):
+class Conversation(WorkspaceScoped, Base):
     __tablename__ = "conversations"
     __table_args__ = (Index("ix_conversations_user_updated", "user_id", "updated_at"),)
     id: Mapped[uuid.UUID] = _pk()
@@ -241,7 +298,7 @@ class Conversation(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
-class Message(Base):
+class Message(WorkspaceScoped, Base):
     __tablename__ = "messages"
     __table_args__ = (Index("ix_messages_conversation_created", "conversation_id", "created_at"),)
     id: Mapped[uuid.UUID] = _pk()
@@ -256,7 +313,7 @@ class Message(Base):
     )
 
 
-class MessageBlock(Base):
+class MessageBlock(WorkspaceScoped, Base):
     __tablename__ = "message_blocks"
     __table_args__ = (UniqueConstraint("message_id", "key"),)
     id: Mapped[uuid.UUID] = _pk()
@@ -270,7 +327,7 @@ class MessageBlock(Base):
     message: Mapped[Message] = relationship(back_populates="blocks")
 
 
-class Task(Base):
+class Task(WorkspaceScoped, Base):
     """A Work item: one NOVA execution (LangGraph thread)."""
 
     __tablename__ = "tasks"
@@ -305,7 +362,7 @@ class Task(Base):
     steps: Mapped[list[TaskStep]] = relationship(lazy="selectin", order_by="TaskStep.position", cascade="all, delete-orphan")
 
 
-class TaskStep(Base):
+class TaskStep(WorkspaceScoped, Base):
     __tablename__ = "task_steps"
     __table_args__ = (UniqueConstraint("task_id", "step_key"),)
     id: Mapped[uuid.UUID] = _pk()
@@ -345,7 +402,7 @@ class SkillVersion(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class SkillExecution(Base):
+class SkillExecution(WorkspaceScoped, Base):
     __tablename__ = "skill_executions"
     id: Mapped[uuid.UUID] = _pk()
     task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), index=True)
@@ -363,7 +420,7 @@ class SkillExecution(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class Workflow(Base):
+class Workflow(WorkspaceScoped, Base):
     __tablename__ = "workflows"
     id: Mapped[uuid.UUID] = _pk()
     project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
@@ -375,7 +432,7 @@ class Workflow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
-class WorkflowExecution(Base):
+class WorkflowExecution(WorkspaceScoped, Base):
     __tablename__ = "workflow_executions"
     id: Mapped[uuid.UUID] = _pk()
     workflow_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("workflows.id", ondelete="SET NULL"))
@@ -388,7 +445,7 @@ class WorkflowExecution(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
-class Artifact(Base):
+class Artifact(WorkspaceScoped, Base):
     __tablename__ = "artifacts"
     __table_args__ = (Index("ix_artifacts_owner_updated", "owner_id", "updated_at"),)
     id: Mapped[uuid.UUID] = _pk()
@@ -408,7 +465,7 @@ class Artifact(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
-class ArtifactVersion(Base):
+class ArtifactVersion(WorkspaceScoped, Base):
     __tablename__ = "artifact_versions"
     __table_args__ = (UniqueConstraint("artifact_id", "version"),)
     id: Mapped[uuid.UUID] = _pk()
@@ -425,7 +482,7 @@ class ArtifactVersion(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class ArtifactComment(Base):
+class ArtifactComment(WorkspaceScoped, Base):
     __tablename__ = "artifact_comments"
     id: Mapped[uuid.UUID] = _pk()
     artifact_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("artifacts.id", ondelete="CASCADE"), index=True)
@@ -437,7 +494,7 @@ class ArtifactComment(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class ContextRetrievalReference(Base):
+class ContextRetrievalReference(WorkspaceScoped, Base):
     """What ORBIT served to this user for one execution (titles/ids/short excerpts for citations)."""
 
     __tablename__ = "context_retrieval_references"
@@ -461,7 +518,7 @@ class ContextRetrievalReference(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class OrbitEvent(Base):
+class OrbitEvent(WorkspaceScoped, Base):
     """A revocation event received from ORBIT (signed webhook): idempotence key, audit and replay. No content."""
 
     __tablename__ = "orbit_events"
@@ -479,7 +536,7 @@ class OrbitEvent(Base):
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
-class ForgetRequest(Base):
+class ForgetRequest(WorkspaceScoped, Base):
     """One erasure of the context NOVA kept (by source, project or user): what was done, never the content."""
 
     __tablename__ = "forget_requests"
@@ -494,10 +551,11 @@ class ForgetRequest(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class ForgeErasureRequest(Base):
+class ForgeErasureRequest(WorkspaceScoped, Base):
     """Ask FORGE to delete a run NOVA captured from context that was forgotten; kept until FORGE acknowledges."""
 
     __tablename__ = "forge_erasure_requests"
+    workspace_soft_parents = (("task_id", "tasks"),)
     id: Mapped[uuid.UUID] = _pk()
     run_id: Mapped[str] = mapped_column(String(200), unique=True)
     task_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
@@ -508,7 +566,7 @@ class ForgeErasureRequest(Base):
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
-class LLMCall(Base):
+class LLMCall(WorkspaceScoped, Base):
     """One call to the model during a run: what it cost and how long it took (never the prompt or the answer)."""
 
     __tablename__ = "llm_calls"
@@ -527,7 +585,7 @@ class LLMCall(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class ToolExecution(Base):
+class ToolExecution(WorkspaceScoped, Base):
     __tablename__ = "tool_executions"
     id: Mapped[uuid.UUID] = _pk()
     task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), index=True)
@@ -542,7 +600,7 @@ class ToolExecution(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class ExecutionEvent(Base):
+class ExecutionEvent(WorkspaceScoped, Base):
     __tablename__ = "execution_events"
     __table_args__ = (UniqueConstraint("task_id", "seq"),)
     id: Mapped[uuid.UUID] = _pk()
@@ -553,8 +611,9 @@ class ExecutionEvent(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class Feedback(Base):
+class Feedback(WorkspaceScoped, Base):
     __tablename__ = "feedback"
+    workspace_soft_parents = (("task_id", "tasks"), ("artifact_id", "artifacts"), ("conversation_id", "conversations"))
     id: Mapped[uuid.UUID] = _pk()
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     rating: Mapped[str] = mapped_column(String(20))
@@ -570,11 +629,17 @@ class Feedback(Base):
     created_at: Mapped[datetime] = _created()
 
 
-class IntegrationReference(Base):
+class IntegrationReference(WorkspaceScoped, Base):
     """Link between a NOVA object and an object in ORBIT/FORGE (e.g. task → FORGE run)."""
 
     __tablename__ = "integration_references"
     __table_args__ = (UniqueConstraint("system", "kind", "nova_type", "nova_id"),)
+    _PARENT_TABLES = {"task": "tasks", "artifact": "artifacts", "sdlc_run": "sdlc_runs"}
+
+    def workspace_hint(self) -> tuple[str, str]:
+        """The object this reference is about, when it is one of a workspace (a run, an Artifact): it gives the workspace."""
+        return self._PARENT_TABLES.get(self.nova_type or "", ""), self.nova_id
+
     id: Mapped[uuid.UUID] = _pk()
     system: Mapped[str] = mapped_column(String(20))  # orbit | forge
     kind: Mapped[str] = mapped_column(String(40))  # evaluation | agent_version | memory | document
@@ -586,7 +651,7 @@ class IntegrationReference(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
-class ForgeOutbox(Base):
+class ForgeOutbox(WorkspaceScoped, Base):
     """Intent to capture a finished run into FORGE, recorded before the run completes and delivered with retries.
 
     ``status``: ``pending`` (to send, ``next_attempt_at`` says when) → ``sent`` | ``failed`` (gave up: the failure queue)
@@ -610,8 +675,9 @@ class ForgeOutbox(Base):
     settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
-class AuditEvent(Base):
+class AuditEvent(WorkspaceScoped, Base):
     __tablename__ = "audit_events"
+    workspace_soft_parents = (("actor_id", "users"), ("project_id", "projects"))
     __table_args__ = (Index("ix_audit_created", "created_at"),)
     id: Mapped[uuid.UUID] = _pk()
     actor_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
@@ -650,7 +716,7 @@ class DevIdentity(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class Goal(Base):
+class Goal(WorkspaceScoped, Base):
     """A result the user entrusts to NOVA ("Ship Checkout v2 by 15 December"). NOVA plans milestones and runs them."""
 
     __tablename__ = "goals"
@@ -672,7 +738,7 @@ class Goal(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
-class Routine(Base):
+class Routine(WorkspaceScoped, Base):
     """Work that should not need to be asked twice: runs on a schedule (or on demand) as a NOVA task."""
 
     __tablename__ = "routines"
@@ -695,7 +761,7 @@ class Routine(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
-class LearnedSkill(Base):
+class LearnedSkill(WorkspaceScoped, Base):
     """A workflow NOVA learned by watching the user (Teach NOVA): existing Skills chained with the user's own steps."""
 
     __tablename__ = "learned_skills"

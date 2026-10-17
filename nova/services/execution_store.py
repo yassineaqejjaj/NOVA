@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
@@ -35,7 +36,7 @@ from nova.infra.models import (
     WorkflowExecution,
 )
 from nova.infra.redaction import redact_obj
-from nova.services import forge_outbox
+from nova.services import forge_outbox, workspaces
 from nova.services.access import AccessDenied, artifact_role, within_clearance
 
 
@@ -52,6 +53,9 @@ async def emit_event(
     session.add(ExecutionEvent(task_id=task_id, seq=seq, type=str(type_), payload=payload))
     await session.flush()
     await publisher.publish(str(task_id), {"seq": seq, "type": str(type_), **payload})
+
+
+log = logging.getLogger(__name__)
 
 
 class SqlExecutionStore:
@@ -245,6 +249,11 @@ class SqlExecutionStore:
             )
             session.add(ref)
             await session.flush()
+            if bundle.orion_project_id:  # ORBIT says which ORION project this context is about (best effort)
+                try:
+                    await workspaces.sync_orion_project_id_by_slug(session, bundle.project_slug, bundle.orion_project_id)
+                except Exception:  # bookkeeping must never fail a retrieval
+                    log.warning("ORION project id of %s could not be synchronized", bundle.project_slug, exc_info=True)
             return str(ref.id)
 
     async def get_snapshot_reference(self, user_id: str, project_slug: str) -> SnapshotRef | None:

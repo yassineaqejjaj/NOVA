@@ -91,6 +91,7 @@ def context_bundle(package: dict[str, Any], project_slug: str, orbit_public_url:
         candidates_count=pkg.candidates_count,
         tokens_used=pkg.tokens_used,
         snapshot=SnapshotRef(name=pkg.snapshot.name, version=pkg.snapshot.version) if pkg.snapshot else None,
+        orion_project_id=pkg.orion_project_id,
         sufficiency=(pkg.sufficiency or {}).get("verdict"),
         missing=[str(m) for m in (pkg.sufficiency or {}).get("missing_subtopics") or []][:10],
         latency_ms=total if isinstance(total := pkg.timings.get("total"), int | float) else None,
@@ -100,7 +101,12 @@ def context_bundle(package: dict[str, Any], project_slug: str, orbit_public_url:
 def project_info(raw: dict[str, Any]) -> ContextProjectInfo:
     p = OrbitProject.model_validate(raw)
     return ContextProjectInfo(
-        slug=p.slug, name=p.name, description=p.description, role=p.role, stats=p.stats.model_dump() if p.stats else {}
+        slug=p.slug,
+        name=p.name,
+        description=p.description,
+        role=p.role,
+        stats=p.stats.model_dump() if p.stats else {},
+        orion_project_id=p.orion_project_id,
     )
 
 
@@ -187,6 +193,7 @@ def snapshot(raw: dict[str, Any]) -> ContextSnapshot:
         items=[ContextSnapshotItem(**i.model_dump()) for i in s.items],
         created_by_label=s.created_by_label,
         created_at=s.created_at,
+        orion_project_id=s.orion_project_id,
     )
 
 

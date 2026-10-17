@@ -142,7 +142,7 @@ async def _forge_feedback(session: AsyncSession, task: Task, record: FeedbackRec
             ):
                 return None
             async with open_checkpointer(get_settings().database_url) as checkpointer:
-                state = await AgentRuntime(checkpointer).current_state(str(task.id))
+                state = await AgentRuntime(checkpointer, task.workspace_id).current_state(str(task.id))
             if state is None:
                 return None
             from nova.services.executions import build_deps
