@@ -30,7 +30,7 @@ def test_delegation_sessions_migration_on_a_populated_database(database):  # noq
     old = columns_of(engine)
     before = snapshot(engine, old)
 
-    _ok(_alembic(url, "upgrade", "head"))
+    _ok(_alembic(url, "upgrade", "0021"))  # this test is about 0021 (later revisions have their own)
     heads = _alembic(url, "heads")
     assert heads.stdout.count("(head)") == 1, heads.stdout
     assert snapshot(engine, old) == before  # every existing table, byte for byte
@@ -57,6 +57,6 @@ def test_delegation_sessions_migration_on_a_populated_database(database):  # noq
 
     _ok(_alembic(url, "downgrade", "0020"))
     assert columns_of(engine) == old and snapshot(engine, old) == before
-    _ok(_alembic(url, "upgrade", "head"))
+    _ok(_alembic(url, "upgrade", "0021"))  # this test is about 0021 (later revisions have their own)
     assert snapshot(engine, old) == before
     assert uuid.UUID(int=0) != DEFAULT_WORKSPACE
