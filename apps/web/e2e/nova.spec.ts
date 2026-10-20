@@ -455,7 +455,7 @@ test("Settings → Links shows who acts in ORBIT and the health of the link, wit
   await page.goto("/settings#integrations");
   const orbit = page.getByTestId("link-orbit");
   await expect(orbit).toHaveAttribute("data-status", "ok");
-  await expect(page.getByTestId("orbit-acting")).toContainText("you (ORBIT session)");
+  await expect(page.getByTestId("orbit-acting")).toContainText("you (Nova Context session)");
   await expect(orbit).toContainText("Clearance");
   await expect(orbit).toContainText("Last successful exchange");
   await expect(page.getByTestId("orbit-health").first()).toHaveAttribute("data-status", "ok");
