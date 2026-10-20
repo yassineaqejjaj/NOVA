@@ -12,7 +12,6 @@ import {
 } from "@nova/ui";
 import {
   Code2,
-  ExternalLink,
   FolderKanban,
   History,
   Inbox,
@@ -102,7 +101,7 @@ const M = defineMessages({
 });
 type Label = keyof typeof M.en;
 
-type NavItem = { href: string; label: Label | MissionLabel; icon: "orb" | typeof FolderKanban; badge?: "inbox"; external?: "context" | "quality"; match?: string[] };
+type NavItem = { href: string; label: Label | MissionLabel; icon: "orb" | typeof FolderKanban; badge?: "inbox"; match?: string[] };
 type MissionLabel = keyof typeof MM.en;
 
 /** NOVA as a team member (Today, Inbox, Goals & missions, Tasks), then deliverables, capabilities and the Nova suite. */
@@ -136,7 +135,7 @@ export const NAV_GROUPS: { label: MissionLabel; items: NavItem[] }[] = [
     label: "navSuite",
     items: [
       { href: "/context", label: "novaContext", icon: Orbit },
-      { href: "", label: "novaQuality", icon: ShieldCheck, external: "quality" },
+      { href: "/quality", label: "novaQuality", icon: ShieldCheck },
     ],
   },
 ];
@@ -247,7 +246,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const running = useNovaState((s) => s.running);
   const current = Object.values(running)[0];
-  const { data: me } = useMe();
   const [collapsed, toggle] = useCollapsed();
   const itemClass = (active: boolean) =>
     cn(
@@ -300,27 +298,18 @@ export function Sidebar() {
             )}
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => {
-                // Nova Context / Nova Quality are separate apps: open them in a new tab (hidden until their URL is known)
-                const externalUrl = item.external ? me?.apps?.[`${item.external}_url`] : undefined;
-                if (item.external && !externalUrl) return null;
-                const active = !item.external && isActive(pathname, item.href, item.match);
+                const active = isActive(pathname, item.href, item.match);
                 const name = navLabel(item.label);
                 const phase = item.icon === "orb" && current ? (current.label ? label(current.label) : PHASE_LABEL[current.phase]) : null;
-                const content = (
-                  <>
+                const link = (
+                  <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={itemClass(active)}>
                     <NavIcon icon={item.icon} active={active} phase={item.icon === "orb" ? current?.phase : undefined} />
                     <span className={collapsed ? "sr-only" : undefined}>{name}</span>
-                    {item.external ? <ExternalLink className={cn("size-3.5 text-subtle", collapsed ? "hidden" : "ml-auto")} /> : null}
                     {item.badge === "inbox" ? <InboxBadge compact={collapsed} /> : null}
-                  </>
-                );
-                const link = externalUrl ? (
-                  <a key={item.external} href={externalUrl} target="_blank" rel="noreferrer" className={itemClass(false)}>{content}</a>
-                ) : (
-                  <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={itemClass(active)}>{content}</Link>
+                  </Link>
                 );
                 const tip = collapsed ? (phase ? `${name} · ${phase}` : name) : phase;
-                return withTip(item.external ?? item.href, tip, link);
+                return withTip(item.href, tip, link);
               })}
             </div>
           </div>
