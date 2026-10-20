@@ -47,8 +47,8 @@ export function ClassificationBadge({ level }: { level: number }) {
     <span
       title={
         getLang() === "fr"
-          ? "Contient du contexte classifié issu d’ORBIT. Les résultats héritent de cette classification."
-          : "Contains classified context from ORBIT. Outputs inherit this classification."
+          ? "Contient du contexte classifié issu de Nova Context. Les résultats héritent de cette classification."
+          : "Contains classified context from Nova Context. Outputs inherit this classification."
       }
       className={cn(
         "inline-flex shrink-0 items-center whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide",

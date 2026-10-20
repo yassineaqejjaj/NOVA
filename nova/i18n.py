@@ -19,7 +19,7 @@ MESSAGES: dict[str, dict[str, str]] = {
     "check_impact": {"en": "Check impact with NOVA", "fr": "Vérifier l’impact avec NOVA"},
     "check_affected": {"en": "Check affected work", "fr": "Voir le travail impacté"},
     "find_updates": {"en": "Find what to update", "fr": "Trouver quoi mettre à jour"},
-    "resolve_in_orbit": {"en": "Resolve in ORBIT", "fr": "Résoudre dans ORBIT"},
+    "resolve_in_orbit": {"en": "Resolve in Nova Context", "fr": "Résoudre dans Nova Context"},
     "refresh_with_nova": {"en": "Refresh with NOVA", "fr": "Actualiser avec NOVA"},
     # --- Home: ORBIT changes -------------------------------------------------------------------
     "s_new_version": {
@@ -47,8 +47,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "fr": "« {subject} » a été remplacé. Que dois-je mettre à jour ?",
     },
     "s_conflict": {
-        "en": "Two pieces of project knowledge contradict each other. Resolve it in ORBIT so NOVA uses the right one.",
-        "fr": "Deux connaissances du projet se contredisent. Résolvez-le dans ORBIT pour que NOVA utilise la bonne.",
+        "en": "Two pieces of project knowledge contradict each other. Resolve it in Nova Context so NOVA uses the right one.",
+        "fr": "Deux connaissances du projet se contredisent. Résolvez-le dans Nova Context pour que NOVA utilise la bonne.",
     },
     "s_stale": {
         "en": "NOVA can draft a refreshed version from the latest project context.",
@@ -106,8 +106,8 @@ MESSAGES: dict[str, dict[str, str]] = {
     "retrieved_one": {"en": "Retrieved {title}", "fr": "A récupéré {title}"},
     "retrieved_other": {"en": "Retrieved {n} context items", "fr": "A récupéré {n} éléments de contexte"},
     "and_more": {"en": "{shown} and {n} more", "fr": "{shown} et {n} autres"},
-    "forge_evaluated": {"en": "FORGE evaluated the output", "fr": "FORGE a évalué le résultat"},
-    "forge_queued": {"en": "FORGE evaluation queued", "fr": "Évaluation FORGE en file d’attente"},
+    "forge_evaluated": {"en": "Nova Quality evaluated the output", "fr": "Nova Quality a évalué le résultat"},
+    "forge_queued": {"en": "Nova Quality evaluation queued", "fr": "Évaluation Nova Quality en file d’attente"},
     "score": {"en": "Score {score}", "fr": "Score {score}"},
     "passed": {"en": "passed", "fr": "réussi"},
     "decision_status": {"en": "Marked {title} as {status}", "fr": "{title} marqué comme {status}"},
