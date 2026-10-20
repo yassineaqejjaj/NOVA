@@ -23,7 +23,7 @@ interface Freshness {
 
 const M = defineMessages({
   en: {
-    stale: (v: { n: number }) => `${v.n} source${v.n === 1 ? "" : "s"} this Artifact cites changed in ORBIT since this version.`,
+    stale: (v: { n: number }) => `${v.n} source${v.n === 1 ? "" : "s"} this Artifact cites changed in Nova Context since this version.`,
     sections: (v: { names: string }) => `Affected: ${v.names}`,
     update: "Propose an update",
     updating: "NOVA is preparing an update…",
@@ -31,10 +31,10 @@ const M = defineMessages({
     fresh: (v: { n: number; when: string }) => `Up to date with its ${v.n} cited source${v.n === 1 ? "" : "s"} (this version ${v.when}).`,
     noCitations: "No citations to check against.",
     unavailable: "Could not check the sources just now.",
-    incomplete: "ORBIT reported many changes: older ones may not be listed.",
+    incomplete: "Nova Context reported many changes: older ones may not be listed.",
   },
   fr: {
-    stale: (v: { n: number }) => `${v.n} source${v.n === 1 ? "" : "s"} citée${v.n === 1 ? "" : "s"} par cet Artefact a changé dans ORBIT depuis cette version.`,
+    stale: (v: { n: number }) => `${v.n} source${v.n === 1 ? "" : "s"} citée${v.n === 1 ? "" : "s"} par cet Artefact a changé dans Nova Context depuis cette version.`,
     sections: (v: { names: string }) => `Concerné : ${v.names}`,
     update: "Proposer une mise à jour",
     updating: "NOVA prépare une mise à jour…",
@@ -42,7 +42,7 @@ const M = defineMessages({
     fresh: (v: { n: number; when: string }) => `À jour de ses ${v.n} source${v.n === 1 ? "" : "s"} citée${v.n === 1 ? "" : "s"} (cette version ${v.when}).`,
     noCitations: "Aucune citation à vérifier.",
     unavailable: "Impossible de vérifier les sources pour le moment.",
-    incomplete: "ORBIT signale de nombreux changements : les plus anciens peuvent manquer.",
+    incomplete: "Nova Context signale de nombreux changements : les plus anciens peuvent manquer.",
   },
 });
 

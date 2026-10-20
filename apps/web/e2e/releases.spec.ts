@@ -77,11 +77,11 @@ test("a healthy canary shows its comparison and an administrator approves it", a
   await expect(section.getByText("10% of users")).toBeVisible();
   await expect(section.getByText("4% failed (1/24)")).toBeVisible();
   await expect(section.getByText("6% failed (11/180)")).toBeVisible();
-  await expect(section.getByText("FORGE gain +6.5 pts")).toBeVisible();
+  await expect(section.getByText("Nova Quality gain +6.5 pts")).toBeVisible();
   // History
   await expect(section.getByText("Rolled back")).toBeVisible();
   await expect(section.getByText("Échecs 50% contre 5% pour les autres.")).toBeVisible();
-  await expect(section.getByText("FORGE watch · no degradation on real traffic")).toBeVisible();
+  await expect(section.getByText("Nova Quality watch · no degradation on real traffic")).toBeVisible();
 
   page.once("dialog", (dialog) => dialog.accept());
   await section.getByRole("button", { name: "Approve for everyone" }).click();

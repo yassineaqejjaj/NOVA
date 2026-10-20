@@ -47,7 +47,7 @@ const M = defineMessages({
     artifacts: "Artifacts",
     conversations: "Conversations",
     skills: "Skills",
-    orbitContext: "ORBIT context",
+    orbitContext: "Nova Context context",
     empty: "Nothing matches. Press Enter on “Ask NOVA”.",
   },
   fr: {
@@ -69,7 +69,7 @@ const M = defineMessages({
     artifacts: "Artefacts",
     conversations: "Conversations",
     skills: "Compétences",
-    orbitContext: "Contexte ORBIT",
+    orbitContext: "Nova Context",
     empty: "Aucun résultat. Appuyez sur Entrée sur « Demander à NOVA ».",
   },
 });

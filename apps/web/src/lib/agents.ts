@@ -105,7 +105,7 @@ export const SUPPORT_AGENTS: Record<SupportAgent, { icon: LucideIcon; color: str
     icon: Search,
     color: "#14b8a6",
     name: { en: "Research agent", fr: "Agent Recherche" },
-    mission: { en: "Finds the relevant project context in ORBIT, as you.", fr: "Trouve le contexte projet pertinent dans ORBIT, avec vos droits." },
+    mission: { en: "Finds the relevant project context in Nova Context, as you.", fr: "Trouve le contexte projet pertinent dans Nova Context, avec vos droits." },
   },
   validation: {
     icon: ShieldCheck,
