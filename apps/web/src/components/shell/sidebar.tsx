@@ -23,7 +23,6 @@ import {
   Orbit,
   PanelLeftClose,
   PanelLeftOpen,
-  Radar,
   Repeat,
   Search,
   Settings,
@@ -61,6 +60,7 @@ const M = defineMessages({
     knowledge: "Knowledge",
     novaContext: "Nova Context",
     novaQuality: "Nova Quality",
+    goalsMissions: "Goals & missions",
     nova: "NOVA",
     main: "Main",
     settings: "Settings",
@@ -84,6 +84,7 @@ const M = defineMessages({
     timeline: "Timeline",
     workspace: "Espace de travail",
     knowledge: "Connaissances",
+    goalsMissions: "Objectifs & missions",
     novaContext: "Nova Context",
     novaQuality: "Nova Quality",
     nova: "NOVA",
@@ -101,33 +102,31 @@ const M = defineMessages({
 });
 type Label = keyof typeof M.en;
 
-type NavItem = { href: string; label: Label | MissionLabel; icon: "orb" | typeof FolderKanban; badge?: "inbox"; external?: "context" | "quality" };
+type NavItem = { href: string; label: Label | MissionLabel; icon: "orb" | typeof FolderKanban; badge?: "inbox"; external?: "context" | "quality"; match?: string[] };
 type MissionLabel = keyof typeof MM.en;
 
-/** NOVA as a team member first (Today, Goals, Missions, Tasks, Inbox), then the workspace, automation and activity. */
+/** NOVA as a team member (Today, Inbox, Goals & missions, Tasks), then deliverables, capabilities and the Nova suite. */
 export const NAV_GROUPS: { label: MissionLabel; items: NavItem[] }[] = [
   {
     label: "navNova",
     items: [
       { href: "/", label: "today", icon: "orb" },
-      { href: "/goals", label: "goals", icon: Target },
-      { href: "/missions", label: "missions", icon: Radar },
-      { href: "/work", label: "tasks", icon: ListTodo },
       { href: "/inbox", label: "inbox", icon: Inbox, badge: "inbox" },
+      { href: "/goals", label: "goalsMissions", icon: Target, match: ["/goals", "/missions"] },
+      { href: "/work", label: "tasks", icon: ListTodo },
     ],
   },
   {
-    label: "navWorkspace",
+    label: "navDeliverables",
     items: [
       { href: "/projects", label: "projects", icon: FolderKanban },
       { href: "/artifacts", label: "artifacts", icon: Library },
-      { href: "/context", label: "knowledge", icon: Orbit },
+      { href: "/engineering", label: "engineering", icon: Code2 },
     ],
   },
   {
-    label: "navAutomation",
+    label: "navCapabilities",
     items: [
-      { href: "/engineering", label: "engineering", icon: Code2 },
       { href: "/skills", label: "skills", icon: Sparkles },
       { href: "/routines", label: "routines", icon: Repeat },
       { href: "/team", label: "team", icon: Users },
@@ -136,11 +135,10 @@ export const NAV_GROUPS: { label: MissionLabel; items: NavItem[] }[] = [
   {
     label: "navSuite",
     items: [
-      { href: "", label: "novaContext", icon: Orbit, external: "context" },
+      { href: "/context", label: "novaContext", icon: Orbit },
       { href: "", label: "novaQuality", icon: ShieldCheck, external: "quality" },
     ],
   },
-  { label: "navActivity", items: [{ href: "/activity", label: "timeline", icon: History }] },
 ];
 
 /** Bottom tab bar on phones (5 entries). */
@@ -152,7 +150,8 @@ export const NAV: NavItem[] = [
   { href: "/artifacts", label: "artifacts", icon: Library },
 ];
 
-export function isActive(pathname: string, href: string): boolean {
+export function isActive(pathname: string, href: string, match?: string[]): boolean {
+  if (match) return match.some((m) => pathname.startsWith(m));
   if (href === "/") return pathname === "/" || pathname.startsWith("/c/");
   if (href === "/artifacts") return pathname.startsWith("/library") || pathname.startsWith("/artifacts");
   return pathname.startsWith(href);
@@ -304,7 +303,7 @@ export function Sidebar() {
                 // Nova Context / Nova Quality are separate apps: open them in a new tab (hidden until their URL is known)
                 const externalUrl = item.external ? me?.apps?.[`${item.external}_url`] : undefined;
                 if (item.external && !externalUrl) return null;
-                const active = !item.external && isActive(pathname, item.href);
+                const active = !item.external && isActive(pathname, item.href, item.match);
                 const name = navLabel(item.label);
                 const phase = item.icon === "orb" && current ? (current.label ? label(current.label) : PHASE_LABEL[current.phase]) : null;
                 const content = (
@@ -328,6 +327,14 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="mt-auto space-y-0.5">
+        {withTip(
+          "timeline",
+          collapsed ? t("timeline") : null,
+          <Link href="/activity" className={itemClass(pathname.startsWith("/activity"))}>
+            <History className={cn("size-[18px]", pathname.startsWith("/activity") ? "text-text" : "text-subtle")} />
+            <span className={collapsed ? "sr-only" : undefined}>{t("timeline")}</span>
+          </Link>,
+        )}
         {withTip(
           "settings",
           collapsed ? t("settings") : null,

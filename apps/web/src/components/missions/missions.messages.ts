@@ -8,7 +8,7 @@ export const M = defineMessages({
     // nav
     today: "Today", goals: "Goals", missions: "Missions", tasks: "Tasks", inbox: "Inbox", projects: "Projects", artifacts: "Artifacts",
     knowledge: "Knowledge", skills: "Skills", routines: "Routines", timeline: "Timeline", team: "Product team",
-    navNova: "NOVA", navWorkspace: "Workspace", navAutomation: "Automation", navActivity: "Activity", navSuite: "Nova suite",
+    navNova: "NOVA", navWorkspace: "Workspace", navAutomation: "Automation", navActivity: "Activity", navSuite: "Nova suite", navDeliverables: "Deliverables", navCapabilities: "Capabilities",
     // presence
     presenceWorking: (v: { title: string }) => `NOVA is working on ${v.title}`,
     presenceWaiting: (v: N) => (v.n === 1 ? "1 thing needs you" : `${v.n} things need you`),
@@ -79,7 +79,7 @@ export const M = defineMessages({
   fr: {
     today: "Aujourd’hui", goals: "Objectifs", missions: "Missions", tasks: "Tâches", inbox: "Inbox", projects: "Projets", artifacts: "Artefacts",
     knowledge: "Connaissances", skills: "Compétences", routines: "Routines", timeline: "Timeline", team: "Équipe produit",
-    navNova: "NOVA", navWorkspace: "Espace de travail", navAutomation: "Automatisation", navActivity: "Activité", navSuite: "Suite Nova",
+    navNova: "NOVA", navWorkspace: "Espace de travail", navAutomation: "Automatisation", navActivity: "Activité", navSuite: "Suite Nova", navDeliverables: "Livrables", navCapabilities: "Capacités",
     presenceWorking: (v: { title: string }) => `NOVA travaille sur ${v.title}`,
     presenceWaiting: (v: N) => (v.n > 1 ? `${v.n} sujets attendent votre avis` : "1 sujet attend votre avis"),
     presenceIdle: "NOVA est disponible",

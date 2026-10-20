@@ -198,7 +198,7 @@ test("Home is a command center: brief, continue, real results and the Timeline c
   await expect(page.getByTestId("today-hero")).toContainText("Scheduled CSV exports of evaluation results for stakeholders");
   await expect(page.getByRole("heading", { name: "What NOVA recommends today" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Recent results" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Timeline" })).toBeVisible();
+  await expect(page.getByTestId("sidebar").getByRole("link", { name: "Timeline" })).toBeVisible();
   await page.goto("/activity");
   await expect(page.getByRole("heading", { name: "Timeline" })).toBeVisible();
   await expect(page.getByText("NOVA", { exact: true }).first()).toBeVisible();
@@ -439,8 +439,8 @@ test("the menu collapses to icons, keeps its state and toggles with ⌘\\", asyn
   const menu = page.getByTestId("sidebar");
   await page.getByRole("button", { name: "Collapse the menu" }).click();
   await expect(menu).toHaveAttribute("data-collapsed", "true");
-  await expect(menu.getByText("Goals", { exact: true })).toHaveClass(/sr-only/); // labels move to tooltips
-  await menu.getByRole("link", { name: "Goals" }).click(); // still navigable by name
+  await expect(menu.getByText("Goals & missions", { exact: true })).toHaveClass(/sr-only/); // labels move to tooltips
+  await menu.getByRole("link", { name: "Goals & missions" }).click(); // still navigable by name
   await expect(page).toHaveURL(/\/goals/);
   await page.reload();
   await expect(menu).toHaveAttribute("data-collapsed", "true"); // remembered

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { MISSION_ORB, MissionChip, ProgressBar } from "@/components/missions/ui";
 import { M } from "@/components/missions/missions.messages";
+import { GoalsMissionsTabs } from "@/components/missions/goals-missions-tabs";
 import { Page, PageHeader } from "@/components/shell/page";
 import { NovaOrb } from "@/components/shell/nova-orb";
 import { useMissions } from "@/lib/api/missions";
@@ -22,6 +23,7 @@ export default function MissionsPage() {
   const standalone = (data?.tasks ?? []).filter((task) => !task.goal_id);
   return (
     <Page>
+      <GoalsMissionsTabs />
       <PageHeader title={t("missionsTitle")} description={t("missionsDescription")} />
       {isLoading ? <Skeleton className="h-60" /> : null}
       <section aria-labelledby="goals-heading">
