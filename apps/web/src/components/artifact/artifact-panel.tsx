@@ -29,7 +29,7 @@ import { VersionHistory } from "./version-history";
 const M = defineMessages({
   en: {
     unavailable: "This Artifact is not available.",
-    forgeEvaluation: (v: { status: string }) => `FORGE evaluation · ${v.status}`,
+    forgeEvaluation: (v: { status: string }) => `Nova Quality evaluation · ${v.status}`,
     pending: "pending",
     queued: "queued",
     running: "running",
@@ -60,7 +60,7 @@ const M = defineMessages({
   },
   fr: {
     unavailable: "Cet Artefact n’est pas disponible.",
-    forgeEvaluation: (v: { status: string }) => `Évaluation FORGE · ${v.status}`,
+    forgeEvaluation: (v: { status: string }) => `Évaluation Nova Quality · ${v.status}`,
     pending: "en attente",
     queued: "en file d’attente",
     running: "en cours",

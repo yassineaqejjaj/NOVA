@@ -69,6 +69,8 @@ class ContextBundle(BaseModel):
     snapshot: SnapshotRef | None = None  # base snapshot ORBIT actually applied to this retrieval
     sufficiency: str | None = None  # ORBIT verdict: sufficient | partial | insufficient
     missing: list[str] = Field(default_factory=list)  # sub-topics no served item covers
+    # The ORION project ORBIT says this context is about (ADR 001 §5). Never part of an API response.
+    orion_project_id: str | None = Field(default=None, exclude=True)
 
     @property
     def max_classification(self) -> int:
@@ -84,6 +86,7 @@ class ContextProjectInfo(BaseModel):
     description: str = ""
     role: str | None = None
     stats: dict[str, int] = Field(default_factory=dict)
+    orion_project_id: str | None = Field(default=None, exclude=True)  # ADR 001 §5: ORBIT's id of the ORION project
 
 
 class ContextOverview(BaseModel):
@@ -157,6 +160,7 @@ class ContextSnapshot(BaseModel):
     items: list[ContextSnapshotItem] = Field(default_factory=list)
     created_by_label: str = ""
     created_at: datetime | None = None
+    orion_project_id: str | None = Field(default=None, exclude=True)  # ADR 001 §5, never part of an API response
 
 
 class ContextIdentity(BaseModel):
@@ -166,7 +170,8 @@ class ContextIdentity(BaseModel):
     display_name: str | None = None
     clearance: int | None = None
     expires_at: datetime | None = None
-    mode: Literal["session", "agent_key", "none"] = "none"  # the credential actually used for ORBIT calls
+    # the credential actually used for ORBIT calls; "delegated": a short token exchanged for the user (NOV-111)
+    mode: Literal["session", "agent_key", "delegated", "none"] = "none"
     session_expired: bool = False
     # The session is gone and the project agent key acts instead: another identity, a lower clearance
     fallback: bool = False

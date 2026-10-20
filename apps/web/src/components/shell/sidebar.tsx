@@ -12,6 +12,7 @@ import {
 } from "@nova/ui";
 import {
   Code2,
+  ExternalLink,
   FolderKanban,
   History,
   Inbox,
@@ -26,6 +27,7 @@ import {
   Repeat,
   Search,
   Settings,
+  ShieldCheck,
   Sparkles,
   Sun,
   Target,
@@ -57,6 +59,8 @@ const M = defineMessages({
     timeline: "Timeline",
     workspace: "Workspace",
     knowledge: "Knowledge",
+    novaContext: "Nova Context",
+    novaQuality: "Nova Quality",
     nova: "NOVA",
     main: "Main",
     settings: "Settings",
@@ -80,6 +84,8 @@ const M = defineMessages({
     timeline: "Timeline",
     workspace: "Espace de travail",
     knowledge: "Connaissances",
+    novaContext: "Nova Context",
+    novaQuality: "Nova Quality",
     nova: "NOVA",
     main: "Principal",
     settings: "Paramètres",
@@ -95,7 +101,7 @@ const M = defineMessages({
 });
 type Label = keyof typeof M.en;
 
-type NavItem = { href: string; label: Label | MissionLabel; icon: "orb" | typeof FolderKanban; badge?: "inbox" };
+type NavItem = { href: string; label: Label | MissionLabel; icon: "orb" | typeof FolderKanban; badge?: "inbox"; external?: "context" | "quality" };
 type MissionLabel = keyof typeof MM.en;
 
 /** NOVA as a team member first (Today, Goals, Missions, Tasks, Inbox), then the workspace, automation and activity. */
@@ -125,6 +131,13 @@ export const NAV_GROUPS: { label: MissionLabel; items: NavItem[] }[] = [
       { href: "/skills", label: "skills", icon: Sparkles },
       { href: "/routines", label: "routines", icon: Repeat },
       { href: "/team", label: "team", icon: Users },
+    ],
+  },
+  {
+    label: "navSuite",
+    items: [
+      { href: "", label: "novaContext", icon: Orbit, external: "context" },
+      { href: "", label: "novaQuality", icon: ShieldCheck, external: "quality" },
     ],
   },
   { label: "navActivity", items: [{ href: "/activity", label: "timeline", icon: History }] },
@@ -235,6 +248,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const running = useNovaState((s) => s.running);
   const current = Object.values(running)[0];
+  const { data: me } = useMe();
   const [collapsed, toggle] = useCollapsed();
   const itemClass = (active: boolean) =>
     cn(
@@ -287,18 +301,27 @@ export function Sidebar() {
             )}
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => {
-                const active = isActive(pathname, item.href);
+                // Nova Context / Nova Quality are separate apps: open them in a new tab (hidden until their URL is known)
+                const externalUrl = item.external ? me?.apps?.[`${item.external}_url`] : undefined;
+                if (item.external && !externalUrl) return null;
+                const active = !item.external && isActive(pathname, item.href);
                 const name = navLabel(item.label);
                 const phase = item.icon === "orb" && current ? (current.label ? label(current.label) : PHASE_LABEL[current.phase]) : null;
-                const link = (
-                  <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={itemClass(active)}>
+                const content = (
+                  <>
                     <NavIcon icon={item.icon} active={active} phase={item.icon === "orb" ? current?.phase : undefined} />
                     <span className={collapsed ? "sr-only" : undefined}>{name}</span>
+                    {item.external ? <ExternalLink className={cn("size-3.5 text-subtle", collapsed ? "hidden" : "ml-auto")} /> : null}
                     {item.badge === "inbox" ? <InboxBadge compact={collapsed} /> : null}
-                  </Link>
+                  </>
+                );
+                const link = externalUrl ? (
+                  <a key={item.external} href={externalUrl} target="_blank" rel="noreferrer" className={itemClass(false)}>{content}</a>
+                ) : (
+                  <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={itemClass(active)}>{content}</Link>
                 );
                 const tip = collapsed ? (phase ? `${name} · ${phase}` : name) : phase;
-                return withTip(item.href, tip, link);
+                return withTip(item.external ?? item.href, tip, link);
               })}
             </div>
           </div>

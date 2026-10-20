@@ -15,9 +15,11 @@ from sqlalchemy import text
 from nova.agent.runtime import setup_checkpointer
 from nova.config import get_settings
 from nova.infra import db
+from nova.infra.scope import ScopeMiddleware
 from nova.infra.telemetry import configure_telemetry
 from nova.services.accounts import ensure_demo_account
 from nova.services.skills_sync import sync_skills
+from nova.services.workspaces import ensure_default_workspace
 from nova.skills.registry import get_skill_registry
 from nova_api import auth, errors
 from nova_api.routers import (
@@ -48,6 +50,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     configure_telemetry(service_name=f"{settings.otel_service_name}-api")
     db.configure()
     registry = get_skill_registry()  # fails fast on an invalid Skill library
+    try:
+        async with db.session_scope() as session:
+            await ensure_default_workspace(session)  # the migration inserts it; this covers a database built another way
+    except Exception:  # a database that is not migrated yet fails loudly elsewhere: never hide it behind this
+        log.exception("The default workspace could not be registered")
     async with db.session_scope() as session:
         result = await sync_skills(session, registry)
     log.info("Skill catalog %s: %s skills (%s)", registry.catalog_digest(), len(registry.all()), result)
@@ -98,6 +105,8 @@ def create_app() -> FastAPI:
         api.include_router(module.router)
     app.include_router(api)
     app.include_router(forge_protocol.router)
+
+    app.add_middleware(ScopeMiddleware)  # one workspace scope per request; authentication fills it in
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next: Any) -> Response:

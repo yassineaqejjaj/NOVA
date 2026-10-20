@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import logging
 import uuid
+from contextlib import nullcontext
 from typing import Any, Literal
 
 from opentelemetry import context as otel_context
 from opentelemetry.propagate import extract
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from nova.agent.deps import AgentDeps
 from nova.agent.nodes.common import ExecutionPaused
@@ -32,10 +33,12 @@ from nova.domain.state import NovaState
 from nova.infra.db import session_scope, utcnow
 from nova.infra.events import get_publisher
 from nova.infra.models import ContextRetrievalReference, Task, WorkflowExecution
-from nova.services import compositions, learning, llm_calls, llm_config, llm_guard, providers, skill_scores
+from nova.infra.scope import platform_scope, workspace_scope
+from nova.services import compositions, learning, llm_calls, llm_config, llm_guard, providers, skill_scores, workspaces
 from nova.services.access import effective_permissions
 from nova.services.execution_store import SqlExecutionStore, emit_event
 from nova.services.users import get_user, resolve_principal
+from nova.services.workspaces import thread_id
 from nova.skills.registry import get_skill_registry
 
 log = logging.getLogger(__name__)
@@ -156,7 +159,7 @@ async def _set_status(task_id: uuid.UUID, status: TaskStatus, **values: Any) -> 
             task.finished_at = utcnow()
             task.waiting_for = None
         await session.execute(
-            WorkflowExecution.__table__.update()
+            update(WorkflowExecution)
             .where(WorkflowExecution.task_id == task_id)
             .values(status=status.value, finished_at=task.finished_at)
         )
@@ -173,16 +176,38 @@ async def run_task(
     traceparent: dict[str, str] | None = None,
     final_attempt: bool = True,
 ) -> TaskStatus:
-    """Run one segment of an execution (until completion or the next interrupt), then let missions move forward."""
-    status = await _run_segment(task_id, mode, resume_value, traceparent=traceparent, final_attempt=final_attempt)
-    if status in (TaskStatus.completed, TaskStatus.failed, TaskStatus.waiting_user, TaskStatus.cancelled):
-        from nova.services.maintenance import on_task_settled
+    """Run one segment of an execution (until completion or the next interrupt), then let missions move forward.
 
-        try:
-            await on_task_settled(task_id)
-        except Exception:  # a goal bookkeeping problem must never fail the execution itself
-            log.exception("Mission update after %s failed", task_id)
-    return status
+    Everything the run reads or writes is scoped to the workspace of its task (NOVA_WORKSPACE_ENFORCEMENT), whoever
+    started it: the API request that is still running, or a worker that has no request at all.
+    """
+    with _task_scope(await _workspace_of(task_id)):
+        status = await _run_segment(task_id, mode, resume_value, traceparent=traceparent, final_attempt=final_attempt)
+        if status in (TaskStatus.completed, TaskStatus.failed, TaskStatus.waiting_user, TaskStatus.cancelled):
+            from nova.services.maintenance import on_task_settled
+
+            try:
+                await on_task_settled(task_id)
+            except Exception:  # a goal bookkeeping problem must never fail the execution itself
+                log.exception("Mission update after %s failed", task_id)
+        return status
+
+
+async def _workspace_of(task_id: str) -> uuid.UUID | None:
+    """The workspace of a task, read without any scope (the caller already holds the right to run it)."""
+    if not workspaces.enabled():
+        return None
+    try:
+        tid = uuid.UUID(task_id)
+    except ValueError:
+        return None
+    with platform_scope():
+        async with session_scope() as session:
+            return await session.scalar(select(Task.workspace_id).where(Task.id == tid))
+
+
+def _task_scope(workspace_id: uuid.UUID | None) -> Any:
+    return workspace_scope(workspace_id) if workspace_id is not None else nullcontext()
 
 
 async def _run_segment(
@@ -205,8 +230,9 @@ async def _run_segment(
         task.status = TaskStatus.running.value
         task.started_at = task.started_at or utcnow()
         task.waiting_for = None
+        workspace_id = task.workspace_id
         if await session.scalar(select(WorkflowExecution).where(WorkflowExecution.task_id == tid)) is None:
-            session.add(WorkflowExecution(task_id=tid, thread_id=task_id))
+            session.add(WorkflowExecution(task_id=tid, thread_id=thread_id(task_id, workspace_id), workspace_id=workspace_id))
         user_id, project_id, origin, initial_input = str(task.user_id), task.project_id, task.origin, dict(task.input)
         if mode != "resume" and "learning" not in initial_input:
             # Lessons the agents learned from FORGE, frozen for the whole execution (services/learning.py)
@@ -235,7 +261,7 @@ async def _run_segment(
     settings = get_settings()
     try:
         async with open_checkpointer(settings.database_url) as checkpointer:
-            runtime = AgentRuntime(checkpointer)
+            runtime = AgentRuntime(checkpointer, workspace_id)
             if mode == "start":
                 initial = NovaState.model_validate({**initial_input, "task_id": task_id, "user_id": user_id})
                 outcome = await runtime.run(task_id, deps, initial=initial, parent=parent)

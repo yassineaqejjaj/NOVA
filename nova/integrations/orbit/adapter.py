@@ -7,13 +7,14 @@ Credential resolution per user and project:
 
 from __future__ import annotations
 
+import time
 import uuid
 from collections.abc import Awaitable
 from datetime import UTC, datetime, timedelta
 from typing import Any, TypeVar
 
 import jwt
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from nova.config import Settings
 from nova.domain.context import (
@@ -30,10 +31,11 @@ from nova.domain.context import (
 )
 from nova.infra.crypto import decrypt, encrypt
 from nova.infra.db import aware, session_scope, utcnow
-from nova.infra.models import OrbitAccount
+from nova.infra.models import DelegationSession, OrbitAccount, ProjectReference
+from nova.integrations.idp import DelegationError
 from nova.integrations.orbit import mapper
 from nova.integrations.orbit.client import OrbitAuth, OrbitClient
-from nova.services import revocation
+from nova.services import delegation, revocation
 from nova.services.audit import audit
 
 CHANGE_TYPES_FOR_TODAY = (
@@ -58,7 +60,45 @@ class OrbitContextProvider:
         async with session_scope() as session:
             return await session.get(OrbitAccount, uuid.UUID(user_id))
 
+    async def _delegated_auth(self, user_id: str, project_slug: str | None) -> OrbitAuth:
+        """``NOVA_DELEGATION_MODE=token_exchange`` (ADR 001 §6): a short token for ORBIT on behalf of the user, for one project.
+
+        No fallback of any kind: not the linked session, not the project agent key (another identity, another clearance).
+        """
+        orion_project_id: str | None = None
+        if project_slug:
+            async with session_scope() as session:
+                found = await session.scalar(
+                    select(ProjectReference.orion_project_id).where(
+                        ProjectReference.system == "orbit",
+                        ProjectReference.external_id == project_slug,
+                        ProjectReference.orion_project_id.is_not(None),
+                    )
+                )
+            orion_project_id = str(found) if found else None
+        try:
+            token = await delegation.delegated_token(
+                user_id,
+                audience="orbit",
+                project_key=orion_project_id or (f"slug:{project_slug}" if project_slug else None),
+                orion_project_id=orion_project_id,
+                scope=self.settings.delegation_scope_orbit,
+                settings=self.settings,
+            )
+        except DelegationError as exc:
+            code = {
+                "idp_unavailable": "unavailable",
+                "audience_refused": "forbidden",
+                "scope_refused": "forbidden",
+                "exchange_forbidden": "forbidden",
+                "idp_invalid": "invalid",
+            }.get(exc.code, "unauthorized")  # subject_missing / subject_expired / user_disabled: sign in again
+            raise ContextError(code, exc.message, retryable=exc.retryable) from exc  # type: ignore[arg-type]
+        return OrbitAuth("session", token.access_token)
+
     async def _auth(self, user_id: str, project_slug: str | None, *, user_endpoint: bool) -> OrbitAuth:
+        if self.settings.delegation_mode == "token_exchange":
+            return await self._delegated_auth(user_id, project_slug)
         account = await self._account(user_id)
         if account and account.revoked_at is not None:
             # ORBIT removed this member: no session, and no agent key acting for them either, until they link again
@@ -119,12 +159,23 @@ class OrbitContextProvider:
             return
 
     async def _seen(self, user_id: str, call: Awaitable[T]) -> T:
+        delegated = self.settings.delegation_mode == "token_exchange"
+        operation = getattr(getattr(call, "cr_code", None), "co_name", "call")  # the client method that is awaited
+        started = time.monotonic()
         try:
             result = await call
         except ContextError as exc:
             await self._record(user_id, error=f"{exc.code}: {exc.message}")
+            if delegated:
+                await delegation.record_call(
+                    user_id, "orbit", operation=operation, status=exc.code, latency_ms=int((time.monotonic() - started) * 1000)
+                )
             raise
         await self._record(user_id)
+        if delegated:
+            await delegation.record_call(
+                user_id, "orbit", operation=operation, status="ok", latency_ms=int((time.monotonic() - started) * 1000)
+            )
         return result
 
     # --- Account linking --------------------------------------------------------------------------
@@ -163,7 +214,34 @@ class OrbitContextProvider:
 
     # --- ContextProvider --------------------------------------------------------------------------
 
+    async def _delegated_identity(self, user_id: str) -> ContextIdentity:
+        """What NOVA knows of the delegation of this user (no call to the IdP, nothing but a status line)."""
+        async with session_scope() as session:
+            row = await session.get(DelegationSession, uuid.UUID(user_id))
+        entry = ((row.links or {}) if row else {}).get("orbit") or {}
+
+        def when(key: str) -> datetime | None:
+            return datetime.fromisoformat(entry[key]) if entry.get(key) else None
+
+        return ContextIdentity(
+            linked=bool(row and (row.access_ciphertext or row.refresh_ciphertext)),
+            external_user_id=entry.get("subject"),
+            clearance=entry.get("clearance_cap"),
+            expires_at=when("expires_at"),
+            mode="delegated",
+            last_success_at=when("last_success_at"),
+            last_error_at=when("last_error_at"),
+            last_error=entry.get("last_error"),
+        )
+
+    async def health_check(self, user_id: str) -> None:
+        """A call that touches no data (``GET /auth/me``): proves the delegation works end to end (links screen, NOV-114)."""
+        auth = await self._auth(user_id, None, user_endpoint=True)
+        await self._seen(user_id, self.client.me(auth))
+
     async def identity(self, user_id: str) -> ContextIdentity:
+        if self.settings.delegation_mode == "token_exchange":
+            return await self._delegated_identity(user_id)
         keys = self.settings.orbit_agent_key_map()
         account = await self._account(user_id)
         if account is None:

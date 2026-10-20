@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import uuid
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -15,10 +16,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEV_SESSION_SECRET = "nova-dev-session-secret-change-me-0123456789abcdef"
 DEV_SECRETS_KEY = "nova-dev-secrets-key-change-me-0123456789abcdef"
 DEV_FORGE_INBOUND_TOKEN = "nova-dev-forge-inbound-token"
+#: The workspace every row belongs to until an identity provider says otherwise (NOV-107). Fixed before the migration
+#: runs and never changed afterwards: ``ORION_DEFAULT_WORKSPACE_ID`` overrides it for an installation.
+DEFAULT_WORKSPACE_ID = uuid.UUID("00000000-0000-4000-8000-000000000001")
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="NOVA_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="NOVA_", env_file=".env", extra="ignore", populate_by_name=True)
 
     env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
@@ -47,6 +51,34 @@ class Settings(BaseSettings):
     session_ttl_minutes: int = 720
     remember_me_days: int = 30  # "Keep me signed in"
     cookie_secure: bool = False
+
+    # --- Workspaces (docs/adr/001-identite-federee.md §5 and §9, NOV-107) -----------------------------------------
+    # "off": nothing changes (rows carry a workspace, no request is filtered); "shadow": the filter is computed and what it
+    # would have hidden is counted (nova_workspace_shadow_total, log), nothing is refused; "enforce": every query is
+    # filtered by the workspace of the request and a foreign object answers 404 like an unknown one.
+    workspace_enforcement: Literal["off", "shadow", "enforce"] = "off"
+    # Strict claims (ADR 001 §3-§4, NOV-104): a validated token without ``orion_workspace_id`` opens no workspace resource, a
+    # malformed ORION claim refuses the token, ``orion_workspace_id`` decides the workspace of the account it creates and
+    # the effective clearance is ``min(local clearance, orion_clearance)``. Off: tokens are read as before.
+    workspace_strict_claim: bool = False
+    # --- Delegation (ADR 001 §6, NOV-111) ------------------------------------------------------------------------
+    # "linked_session" (default): NOVA acts on ORBIT with the ORBIT session the user linked, falling back to the project
+    # agent key: nothing changes. "token_exchange": NOVA exchanges the user's own token (RFC 8693) for a short token to the
+    # audience `orbit` (never stored, never reused for another project) and never falls back to a key or a session.
+    delegation_mode: Literal["linked_session", "token_exchange"] = "linked_session"
+    delegation_token_url: str | None = None  # the IdP token endpoint; default: <oidc back-channel>/protocol/openid-connect/token
+    delegation_scope_orbit: str = (
+        "orion:context.read"  # the smallest scope that serves the call (allowed set: services.delegation)
+    )
+    delegation_service_client_id: str = "nova-service"  # no-user work (routines, FORGE protocol): client credentials
+    delegation_service_client_secret: str = ""
+    delegation_timeout_seconds: float = 10.0
+    # Links screen (NOV-114, token_exchange only): a delegated token with less than this left is shown as "expiring soon".
+    links_expiry_warning_seconds: int = Field(default=60, ge=0, le=300)
+    # The workspace of every row created before an IdP gives one, and of every request while OIDC claims are not read.
+    default_workspace_id: uuid.UUID = Field(
+        default=DEFAULT_WORKSPACE_ID, validation_alias=AliasChoices("ORION_DEFAULT_WORKSPACE_ID", "NOVA_DEFAULT_WORKSPACE_ID")
+    )
 
     # --- Accounts: sign-up with a company address, verified by an e-mailed code -------------------
     signup_domains: str = "devoteam.com"  # comma-separated; "*" = any address; empty disables sign-up
@@ -128,6 +160,15 @@ class Settings(BaseSettings):
     forge_public_url: str = "http://localhost:3100"
     forge_api_key: str = ""  # fgk_… with role evaluator/editor
     forge_inbound_token: str = DEV_FORGE_INBOUND_TOKEN  # bearer FORGE sends to the NOVA Agent Protocol
+    # How FORGE authenticates to the NOVA Agent Protocol (ADR 001 §7, NOV-112): "token" (default: the shared bearer above, as
+    # today) | "oidc" (a service-account token of the IdP, audience nova-web, scope orion:run.execute; the bearer is refused)
+    # | "both" (either is accepted, for the switch-over; remove the shared bearer once FORGE uses the service account).
+    forge_inbound_auth: Literal["token", "oidc", "both"] = "token"
+    forge_inbound_issuer: str = (
+        ""  # expected `iss` of those tokens; empty = NOVA_OIDC_ISSUER (the realm `orion` once NOVA moves to it)
+    )
+    forge_inbound_clients: str = "forge-service"  # comma-separated client ids (`azp`) allowed to call: FORGE's service account(s)
+    forge_inbound_scope: str = "orion:run.execute"
     forge_capture_policy: Literal["off", "on_feedback", "sampled", "all"] = "on_feedback"
     forge_capture_sample_rate: float = 0.1
     # "reexecute": FORGE replays the request under the version active at that moment (comparable across versions);
@@ -293,6 +334,16 @@ class Settings(BaseSettings):
             return True
         return self.llm_provider != "anthropic" and self.is_local_host(self.llm_base_url)
 
+    @property
+    def forge_inbound_client_list(self) -> list[str]:
+        return [c.strip() for c in self.forge_inbound_clients.split(",") if c.strip()]
+
+    @property
+    def forge_inbound_jwks_url(self) -> str:
+        issuer = (self.forge_inbound_issuer or self.oidc_issuer).rstrip("/")
+        base = self.oidc_backchannel if issuer == self.oidc_issuer.rstrip("/") else issuer
+        return f"{base}/protocol/openid-connect/certs"
+
     def orbit_agent_key_map(self) -> dict[str, str]:
         result: dict[str, str] = {}
         for pair in self.orbit_agent_keys.split(","):
@@ -309,8 +360,10 @@ class Settings(BaseSettings):
                 problems.append("NOVA_SESSION_SECRET")
             if self.secrets_key == DEV_SECRETS_KEY or len(self.secrets_key) < 32:
                 problems.append("NOVA_SECRETS_KEY")
-            if self.forge_inbound_token == DEV_FORGE_INBOUND_TOKEN:
+            if self.forge_inbound_auth != "oidc" and self.forge_inbound_token == DEV_FORGE_INBOUND_TOKEN:
                 problems.append("NOVA_FORGE_INBOUND_TOKEN")
+            if self.forge_inbound_auth != "token" and not self.forge_inbound_client_list:
+                problems.append("NOVA_FORGE_INBOUND_CLIENTS (required by NOVA_FORGE_INBOUND_AUTH=oidc|both)")
             if self.auth_mode == "dev":
                 problems.append("NOVA_AUTH_MODE=dev")
             if not self.cookie_secure:
@@ -319,6 +372,8 @@ class Settings(BaseSettings):
                 problems.append("NOVA_PUBLIC_URL must be https")
             if self.auth_mode == "oidc" and len(self.oidc_client_secret) < 16:
                 problems.append("NOVA_OIDC_CLIENT_SECRET")
+            if self.delegation_mode == "token_exchange" and self.auth_mode != "oidc":
+                problems.append("NOVA_DELEGATION_MODE=token_exchange needs NOVA_AUTH_MODE=oidc")
             if "elevenlabs" in (self.voice_tts_provider, self.voice_stt_provider) and not self.elevenlabs_api_key:
                 problems.append("NOVA_ELEVENLABS_API_KEY (required by the ElevenLabs voice provider)")
             if self.voice_url and len(self.voice_token) < 24:

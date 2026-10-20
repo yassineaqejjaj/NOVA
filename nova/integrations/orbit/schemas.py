@@ -65,6 +65,7 @@ class OrbitContextPackage(_Out):
     warnings: list[str] = Field(default_factory=list)
     sufficiency: dict[str, Any] | None = None  # ORBIT's verdict: is this context enough for the task?
     snapshot: OrbitSnapshotRef | None = None
+    orion_project_id: str | None = None  # ADR 001 §5 (ORBIT NOV-106): the ORION project this context is about
 
 
 class OrbitProjectStats(_Out):
@@ -81,6 +82,7 @@ class OrbitProject(_Out):
     description: str = ""
     role: str | None = None
     stats: OrbitProjectStats | None = None
+    orion_project_id: str | None = None  # ADR 001 §5 (ORBIT NOV-106)
 
 
 class OrbitChangeEvent(_Out):
@@ -142,6 +144,7 @@ class OrbitSnapshot(_Out):
     items: list[OrbitSnapshotItem] = Field(default_factory=list)
     created_by_label: str = ""
     created_at: datetime | None = None
+    orion_project_id: str | None = None  # ADR 001 §5 (ORBIT NOV-106)
 
 
 class OrbitSnapshotRef(_Out):

@@ -14,21 +14,21 @@ import type { ComposerContextRef } from "@/stores/ui";
 
 const M = defineMessages({
   en: {
-    title: "Add context from ORBIT",
-    description: "ORBIT returns only what you are allowed to see, with sources.",
+    title: "Add context from Nova Context",
+    description: "Nova Context returns only what you are allowed to see, with sources.",
     placeholder: "e.g. Sprint 19 objective and unfinished stories",
     find: "Find",
-    error: "ORBIT could not provide context",
+    error: "Nova Context could not provide context",
     retrieving: "Retrieving context…",
     found: (v: { n: number }) => `${v.n} source${v.n === 1 ? "" : "s"} found`,
     use: "Use this context",
   },
   fr: {
-    title: "Ajouter du contexte depuis ORBIT",
-    description: "ORBIT ne renvoie que ce que vous êtes autorisé à consulter, avec les sources.",
+    title: "Ajouter du contexte depuis Nova Context",
+    description: "Nova Context ne renvoie que ce que vous êtes autorisé à consulter, avec les sources.",
     placeholder: "ex. Objectif du sprint 19 et stories non terminées",
     find: "Rechercher",
-    error: "ORBIT n’a pas pu fournir de contexte",
+    error: "Nova Context n’a pas pu fournir de contexte",
     retrieving: "Récupération du contexte…",
     found: (v: { n: number }) => `${v.n} source${v.n > 1 ? "s" : ""} trouvée${v.n > 1 ? "s" : ""}`,
     use: "Utiliser ce contexte",

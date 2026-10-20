@@ -98,8 +98,14 @@ class RunOutcome:
 
 
 class AgentRuntime:
-    def __init__(self, checkpointer: Any) -> None:
+    def __init__(self, checkpointer: Any, workspace_id: Any = None) -> None:
         self.graph = build_graph(checkpointer)
+        self.workspace_id = workspace_id  # the workspace of the runs: it is part of the checkpoint thread (NOV-107)
+
+    def thread(self, task_id: str) -> str:
+        from nova.domain.workspace import thread_id
+
+        return thread_id(task_id, self.workspace_id)
 
     async def run(
         self,
@@ -111,7 +117,7 @@ class AgentRuntime:
         retry: bool = False,
         parent: otel_context.Context | None = None,
     ) -> RunOutcome:
-        config = {"configurable": {"thread_id": task_id}, "recursion_limit": RECURSION_LIMIT}
+        config = {"configurable": {"thread_id": self.thread(task_id)}, "recursion_limit": RECURSION_LIMIT}
         with tracer.start_as_current_span("invoke_agent nova", context=parent) as span:
             span.set_attribute("gen_ai.operation.name", "invoke_agent")
             span.set_attribute("gen_ai.agent.name", "nova")
@@ -130,13 +136,13 @@ class AgentRuntime:
             else:
                 raise ValueError("initial, resume or retry is required")
             await self.graph.ainvoke(payload, config, context=deps)
-            snapshot = await self.graph.aget_state({"configurable": {"thread_id": task_id}})
+            snapshot = await self.graph.aget_state({"configurable": {"thread_id": self.thread(task_id)}})
         state = NovaState.model_validate(snapshot.values)
         interrupts = [i for task in snapshot.tasks for i in (task.interrupts or ())]
         return RunOutcome(state=state, waiting_for=interrupts[0].value if interrupts else None)
 
     async def has_checkpoint(self, task_id: str) -> bool:
-        snapshot = await self.graph.aget_state({"configurable": {"thread_id": task_id}})
+        snapshot = await self.graph.aget_state({"configurable": {"thread_id": self.thread(task_id)}})
         return bool(snapshot and snapshot.values)
 
     async def _retry_config(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -151,5 +157,5 @@ class AgentRuntime:
         return config
 
     async def current_state(self, task_id: str) -> NovaState | None:
-        snapshot = await self.graph.aget_state({"configurable": {"thread_id": task_id}})
+        snapshot = await self.graph.aget_state({"configurable": {"thread_id": self.thread(task_id)}})
         return NovaState.model_validate(snapshot.values) if snapshot and snapshot.values else None

@@ -35,6 +35,8 @@ Browser ──► Vercel (web + same-origin /api proxy, cookies first-party) ─
   secret and demo password come from `NOVA_PUBLIC_URL`, `NOVA_OIDC_CLIENT_SECRET`, `NOVA_DEMO_PASSWORD`.
   The import runs **only if the realm does not exist yet**: change those values in the Keycloak admin console
   afterwards.
+  A second realm, `orion` (shared identity provider, NOV-103), ships in the image but is **off** unless
+  `ORION_REALM_IMPORT=true`: see `docs/OPERATIONS.md`.
 * **Valkey** (`infrastructure/railway/valkey.Dockerfile`) requires `VALKEY_PASSWORD`, has no public domain.
 * **Web on Vercel**: root directory `apps/web`, Node 22, Fluid compute. The only variable is `NOVA_API_URL`
   (read at runtime by `src/app/api/[...path]/route.ts`, no rebuild needed to change it). Live execution streams

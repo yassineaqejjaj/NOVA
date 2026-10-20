@@ -12,6 +12,7 @@ import type {
   CommentInfo,
   ComposerPayload,
   Conversation,
+  FederatedLink,
   Links,
   Me,
   Message,
@@ -25,6 +26,7 @@ import type {
   TaskSummary,
   Today,
   WorkItem,
+  WorkspaceLinks,
 } from "./types";
 
 export const keys = {
@@ -52,6 +54,27 @@ export const keys = {
 
 export const useMe = () => useQuery({ queryKey: keys.me, queryFn: () => api.get<Me>("/me"), staleTime: 60_000 });
 export const useLinks = () => useQuery({ queryKey: keys.links, queryFn: () => api.get<Links>("/me/links"), refetchInterval: 60_000 });
+
+/** Administrators: the state of the workspace's federated links (enabled by the caller only in token exchange mode). */
+export const useWorkspaceLinks = (enabled: boolean) =>
+  useQuery({ queryKey: ["admin-links"] as const, queryFn: () => api.get<WorkspaceLinks>("/admin/links"), enabled, refetchInterval: 60_000 });
+
+/** Federated link actions: revoke the delegation, test the link (one call that touches no data). */
+export function useRevokeLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (service: "orbit" | "forge") => api.delete(`/me/links/${service}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.links }),
+  });
+}
+
+export function useTestLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (service: "orbit" | "forge") => api.post<{ result: string; link: FederatedLink }>(`/me/links/${service}/test`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.links }),
+  });
+}
 export const useToday = () => useQuery({ queryKey: keys.today, queryFn: () => api.get<Today>("/today"), refetchInterval: 120_000 });
 export const useProjects = () => useQuery({ queryKey: keys.projects, queryFn: () => api.get<Project[]>("/projects") });
 export const useProject = (id: string) => useQuery({ queryKey: keys.project(id), queryFn: () => api.get<ProjectDetail>(`/projects/${id}`) });

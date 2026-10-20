@@ -23,9 +23,10 @@ from nova.config import get_settings
 from nova.domain.evaluation import EvaluationSink, ExecutionRecord
 from nova.domain.outputs import EvaluationReference
 from nova.infra.db import aware, session_scope, utcnow
-from nova.infra.models import ForgeOutbox, IntegrationReference
+from nova.infra.models import ForgeOutbox, IntegrationReference, Task
 from nova.integrations.forge import guard
 from nova.integrations.forge.client import ForgeError
+from nova.services.workspaces import outbox_key
 
 log = logging.getLogger(__name__)
 
@@ -43,8 +44,16 @@ async def _scope(session: AsyncSession | None) -> AsyncIterator[AsyncSession]:
             yield own
 
 
-def key_of(task_id: str) -> str:
-    return f"nova-task:{task_id}"
+def key_of(task_id: str, workspace_id: uuid.UUID | str | None = None) -> str:
+    """The outbox's deduplication key: ``nova-task:<id>``, with the workspace in it outside the default workspace."""
+    return outbox_key(task_id, workspace_id)
+
+
+async def _workspace_of(session: AsyncSession, task_id: str) -> uuid.UUID | None:
+    try:
+        return await session.scalar(select(Task.workspace_id).where(Task.id == uuid.UUID(task_id)))
+    except ValueError:  # not a NOVA task id (a synthetic run): the default workspace
+        return None
 
 
 def _storable(record: ExecutionRecord, ceiling: int) -> dict[str, Any]:
@@ -68,8 +77,9 @@ async def enqueue_capture(
     record: ExecutionRecord, *, feedback: list[dict[str, Any]] | None = None, session: AsyncSession | None = None
 ) -> str:
     """Record the intent to capture ``record`` (idempotent per run); ``feedback`` waits for the capture, then is delivered."""
-    key = key_of(record.task_id)
     async with _scope(session) as s:
+        workspace_id = await _workspace_of(s, record.task_id)
+        key = key_of(record.task_id, workspace_id)
         row = await s.scalar(select(ForgeOutbox).where(ForgeOutbox.idempotency_key == key))
         if row is not None:
             if feedback and row.status in ("pending", "failed"):
@@ -78,6 +88,7 @@ async def enqueue_capture(
         ceiling = get_settings().forge_max_capture_classification
         row = ForgeOutbox(
             task_id=record.task_id,
+            **({"workspace_id": workspace_id} if workspace_id else {}),
             idempotency_key=key,
             status="pending",
             attempts=0,

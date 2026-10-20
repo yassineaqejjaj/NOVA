@@ -4,7 +4,7 @@ export const M = defineMessages({
   en: {
     loadingSource: "Loading source…",
     updated: (v: { when: string }) => `updated ${v.when}`,
-    openInOrbit: "Open in ORBIT",
+    openInOrbit: "Open in Nova Context",
     sourceUnavailable: (v: { title: string }) => `${v.title} — the source is no longer available to you.`,
     asA: "As a",
     iWant: "I want",
@@ -29,7 +29,7 @@ export const M = defineMessages({
   fr: {
     loadingSource: "Chargement de la source…",
     updated: (v: { when: string }) => `mis à jour ${v.when}`,
-    openInOrbit: "Ouvrir dans ORBIT",
+    openInOrbit: "Ouvrir dans Nova Context",
     sourceUnavailable: (v: { title: string }) => `${v.title} — cette source ne vous est plus accessible.`,
     asA: "En tant que",
     iWant: "Je veux",

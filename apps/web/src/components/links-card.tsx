@@ -7,6 +7,8 @@ import type { ForgeLink, Links, OrbitAgentKey } from "@/lib/api/types";
 import { dateTime } from "@/lib/format";
 import { defineMessages, useT } from "@/lib/i18n";
 
+import { FederatedSection, WorkspaceLinksSection } from "./federated-links";
+
 const M = defineMessages({
   en: {
     orbit: "ORBIT",
@@ -15,16 +17,16 @@ const M = defineMessages({
     s_degraded: "Last exchange failed",
     s_fallback: "Acting with the project key",
     s_expired: "Session expired",
-    s_revoked: "Access revoked by ORBIT",
-    revokedWarning: "ORBIT removed you from a project: your session was dropped and your clearance reset. Reconnect ORBIT to continue.",
-    keyRevoked: "revoked by ORBIT",
+    s_revoked: "Access revoked by Nova Context",
+    revokedWarning: "Nova Context removed you from a project: your session was dropped and your clearance reset. Reconnect Nova Context to continue.",
+    keyRevoked: "revoked by Nova Context",
     s_agent_key: "Project key only",
     s_unlinked: "Not connected",
     s_not_configured: "Not configured",
-    fallbackWarning: "Your ORBIT session has expired: NOVA now acts with the project's agent key. That is a different identity with a reduced clearance. Reconnect ORBIT to act as yourself.",
-    expiredWarning: "Your ORBIT session has expired and no project key is configured. Reconnect ORBIT.",
+    fallbackWarning: "Your Nova Context session has expired: NOVA now acts with the project's agent key. That is a different identity with a reduced clearance. Reconnect Nova Context to act as yourself.",
+    expiredWarning: "Your Nova Context session has expired and no project key is configured. Reconnect Nova Context.",
     acting: "Acting as",
-    actingSession: "you (ORBIT session)",
+    actingSession: "you (Nova Context session)",
     actingKey: "the project agent key",
     actingNone: "nobody",
     expires: "Session expires",
@@ -35,19 +37,19 @@ const M = defineMessages({
     never: "never",
     agentKeys: "Project agent keys",
     keyValid: "valid",
-    keyRejected: "rejected by ORBIT",
-    keyUnavailable: "not available (ORBIT does not report it)",
+    keyRejected: "rejected by Nova Context",
+    keyUnavailable: "not available (Nova Context does not report it)",
     keyScopes: "scopes",
     endpoint: "Endpoint",
     apiKey: "API key",
     present: "present",
     missing: "missing",
     inboundCredential: "Callback credential",
-    callback: "FORGE calls NOVA at",
+    callback: "Nova Quality calls NOVA at",
     capture: "Capture",
     queue: "Capture queue",
     queueNA: "not available",
-    forgeOff: "FORGE is not configured: nothing is evaluated or captured.",
+    forgeOff: "Nova Quality is not configured: nothing is evaluated or captured.",
   },
   fr: {
     orbit: "ORBIT",
@@ -56,16 +58,16 @@ const M = defineMessages({
     s_degraded: "Dernier échange en erreur",
     s_fallback: "Agit avec la clé du projet",
     s_expired: "Session expirée",
-    s_revoked: "Accès révoqué par ORBIT",
-    revokedWarning: "ORBIT vous a retiré d’un projet : votre session a été supprimée et votre habilitation réinitialisée. Reconnectez ORBIT pour continuer.",
-    keyRevoked: "révoquée par ORBIT",
+    s_revoked: "Accès révoqué par Nova Context",
+    revokedWarning: "Nova Context vous a retiré d’un projet : votre session a été supprimée et votre habilitation réinitialisée. Reconnectez Nova Context pour continuer.",
+    keyRevoked: "révoquée par Nova Context",
     s_agent_key: "Clé de projet uniquement",
     s_unlinked: "Non connecté",
     s_not_configured: "Non configuré",
-    fallbackWarning: "Votre session ORBIT a expiré : NOVA agit désormais avec la clé d’agent du projet. C’est une autre identité, avec une habilitation réduite. Reconnectez ORBIT pour agir en votre nom.",
-    expiredWarning: "Votre session ORBIT a expiré et aucune clé de projet n’est configurée. Reconnectez ORBIT.",
+    fallbackWarning: "Votre session Nova Context a expiré : NOVA agit désormais avec la clé d’agent du projet. C’est une autre identité, avec une habilitation réduite. Reconnectez Nova Context pour agir en votre nom.",
+    expiredWarning: "Votre session Nova Context a expiré et aucune clé de projet n’est configurée. Reconnectez Nova Context.",
     acting: "Agit en tant que",
-    actingSession: "vous (session ORBIT)",
+    actingSession: "vous (session Nova Context)",
     actingKey: "la clé d’agent du projet",
     actingNone: "personne",
     expires: "La session expire",
@@ -76,19 +78,19 @@ const M = defineMessages({
     never: "jamais",
     agentKeys: "Clés d’agent des projets",
     keyValid: "valide",
-    keyRejected: "refusée par ORBIT",
-    keyUnavailable: "non disponible (ORBIT ne l’indique pas)",
+    keyRejected: "refusée par Nova Context",
+    keyUnavailable: "non disponible (Nova Context ne l’indique pas)",
     keyScopes: "périmètre",
     endpoint: "Adresse",
     apiKey: "Clé d’API",
     present: "présente",
     missing: "absente",
     inboundCredential: "Identifiant de rappel",
-    callback: "FORGE rappelle NOVA à",
+    callback: "Nova Quality rappelle NOVA à",
     capture: "Capture",
     queue: "File de capture",
     queueNA: "non disponible",
-    forgeOff: "FORGE n’est pas configuré : rien n’est évalué ni capturé.",
+    forgeOff: "Nova Quality n’est pas configuré : rien n’est évalué ni capturé.",
   },
 });
 
@@ -175,7 +177,16 @@ export function LinksCard() {
   if (!data) return <Skeleton className="h-32" />;
   return (
     <div className="space-y-5" data-testid="links-card" aria-live="polite" data-admin={me.data?.is_admin ? "true" : "false"}>
-      <OrbitSection orbit={data.orbit} />
+      {data.federated ? (
+        // Token exchange mode (NOV-114): the delegation, per service. Without `federated` the screen below is the one it always was.
+        <>
+          <FederatedSection link={data.federated.services.orbit} />
+          <FederatedSection link={data.federated.services.forge} />
+          <WorkspaceLinksSection isAdmin={Boolean(me.data?.is_admin)} />
+        </>
+      ) : (
+        <OrbitSection orbit={data.orbit} />
+      )}
       {data.forge ? <ForgeSection forge={data.forge} /> : null}
     </div>
   );
