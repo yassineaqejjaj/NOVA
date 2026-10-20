@@ -171,6 +171,11 @@ async def tick() -> int:
                 advanced += 1
         except Exception:  # one broken cycle must not block the others
             log.exception("Training cycle %s could not advance", cycle_id)
+    try:  # a canary only changes state when an execution settles: this also lets one with no traffic expire
+        async with session_scope() as session:
+            advanced += await releases.evaluate_open(session)
+    except Exception:
+        log.exception("Open canaries could not be evaluated")
     return started + advanced
 
 
@@ -413,10 +418,13 @@ async def _evaluate(session: AsyncSession, cycle: TrainingCycle, client: ForgeCl
     if baseline is not None and known:
         baseline.score = statistics.fmean(known)  # latest FORGE measure of the active policy
     if not distilled.changed:
-        cycle.result = {
-            **cycle.result,
-            "decision": {"promote": False, "reason": "FORGE n'a relevé aucune leçon applicable aux consignes."},
-        }
+        if not any(item.report_id for item in feedback):
+            reason = f"FORGE n'a produit aucun rapport de feedback ({failures} exécution(s) en échec)."
+        elif not any(item.recommendations or item.weaknesses for item in feedback):
+            reason = "FORGE n'a relevé ni faiblesse ni recommandation : le score de départ laisse peu à apprendre."
+        else:
+            reason = "FORGE n'a relevé aucune leçon applicable aux consignes, ou elles sont déjà acquises."
+        cycle.result = {**cycle.result, "decision": {"promote": False, "reason": reason}}
         await _finish(session, cycle, "no_change")
         return
 
@@ -483,7 +491,9 @@ async def _decide(session: AsyncSession, cycle: TrainingCycle, client: ForgeClie
     if status != "completed":
         return
     comparison = await client.experiment_comparison(cycle.forge_experiment_id)
-    decision = promotion_decision(comparison)
+    scenario_of = {item["id"]: str(item["scenario_id"]) for item in cycle.skills}
+    changed_scenarios = {scenario_of[s] for s in cycle.result.get("changed_skills", []) if s in scenario_of}
+    decision = promotion_decision(comparison, changed_scenarios=changed_scenarios, min_changed_gain=settings.training_min_gain)
     skill_of = {item["scenario_id"]: item["id"] for item in cycle.skills}
     composite = comparison.get("composite") or {}
     cycle.result = {

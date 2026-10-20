@@ -55,7 +55,11 @@ lessons (max 5 per Skill, 6 standards per agent). Evidence excerpts are **never*
 3. **experimenting** — when the experiment is finished:
    * `ship` → **promoted** (the candidate becomes active);
    * `ship_with_caution` → promoted only if the composite score improves and no scenario regresses critically;
-   * `inconclusive`, `do_not_ship` → **rejected** (the active policy stays).
+   * `inconclusive` → promoted only when the Skills whose lessons changed gained at least
+     `NOVA_TRAINING_MIN_GAIN` points (default 2) with no regression on them and no critical regression anywhere:
+     FORGE's paired test spans every Skill of the agent, so a lesson on one Skill is diluted and it cannot
+     conclude on it alone. The release below stays the safeguard;
+   * `do_not_ship` → **rejected** (the active policy stays).
 
 With `NOVA_TRAINING_AUTO_PROMOTE=false`, a validated candidate waits for an administrator (**validated**).
 A cycle that does not finish within `NOVA_TRAINING_CYCLE_TIMEOUT_HOURS` fails; FORGE unavailability is retried.
