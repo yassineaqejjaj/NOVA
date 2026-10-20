@@ -18,7 +18,6 @@ export interface Me {
   roles: string[];
   preferences: Preferences;
   orbit: OrbitIdentity;
-  apps: { context_url: string; quality_url: string };
 }
 
 export interface FigmaStatus {

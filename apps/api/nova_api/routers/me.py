@@ -72,7 +72,6 @@ async def _me(session: AsyncSession, user_id: str) -> dict[str, Any]:
     assert user is not None
     prefs = await session.get(UserPreferences, user.id)
     identity = await providers.context().identity(user_id)
-    settings = get_settings()
     return {
         "id": str(user.id),
         "email": user.email,
@@ -82,8 +81,6 @@ async def _me(session: AsyncSession, user_id: str) -> dict[str, Any]:
         "roles": user.realm_roles,
         "preferences": preferences_dict(prefs, user),
         "orbit": identity.model_dump(mode="json"),
-        # Nova Context (ORBIT) and Nova Quality (FORGE): where the menu entries open
-        "apps": {"context_url": settings.orbit_public_url, "quality_url": settings.forge_public_url},
     }
 
 

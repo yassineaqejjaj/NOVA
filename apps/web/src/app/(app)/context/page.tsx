@@ -111,7 +111,7 @@ function ContextPage() {
       {!identity.linked ? (
         <EmptyState icon={<Orbit />} title={t("notConnected")} description={t("notConnectedHint")} action={<Button asChild><Link href="/settings#orbit">{t("connect")}</Link></Button>} />
       ) : (
-        <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr]">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
           <div className="space-y-8">
             <section>
               <h2 className="mb-2 text-[12px] font-medium uppercase tracking-wider text-subtle">{t("profile")}</h2>
