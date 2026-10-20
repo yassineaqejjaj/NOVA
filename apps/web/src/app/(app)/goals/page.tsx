@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { GoalDialog } from "@/components/missions/goal-dialog";
 import { MilestoneList, MISSION_ORB, MissionChip, ProgressBar } from "@/components/missions/ui";
 import { M } from "@/components/missions/missions.messages";
+import { GoalsMissionsTabs } from "@/components/missions/goals-missions-tabs";
 import { EmptyState, Page, PageHeader } from "@/components/shell/page";
 import { NovaOrb } from "@/components/shell/nova-orb";
 import { type Goal, useGoal, useGoalAction, useGoals } from "@/lib/api/missions";
@@ -124,6 +125,7 @@ function GoalsPage() {
     <div className="flex min-h-screen">
       <div className="min-w-0 flex-1">
         <Page>
+          <GoalsMissionsTabs />
           <PageHeader title={t("goalsTitle")} description={t("goalsDescription")} actions={<Button variant="primary" onClick={() => { setPreset(""); setOpen(true); }}><Plus /> {t("newGoal")}</Button>} />
           {isLoading ? <Skeleton className="h-40" /> : null}
           {goals && goals.length === 0 ? (
