@@ -131,6 +131,10 @@ Training scenarios use a **synthetic C1 project** only (`nova/domain/training_pa
 sent to FORGE for training. Production captures (`NOVA_FORGE_CAPTURE_POLICY`) keep the classification of the
 ORBIT context they used and are created **private** in FORGE when it is C2 (confidential) or C3 (secret).
 
+The pack (v2) holds deliberate traps: unreconciled figures, missing decisions and a fictitious contact, so that a
+careful specialist has contradictions to flag and open questions to raise. A clean pack scored about 80 on every
+cycle and left nothing to learn. Bumping `PACK_VERSION` creates new scenarios: scores restart from a new baseline.
+
 ---
 
 ## Proof before activation: the policy gate

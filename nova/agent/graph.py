@@ -29,7 +29,9 @@ def _retry_on(exc: Exception) -> bool:
     return isinstance(exc, (TimeoutError, ConnectionError))
 
 
-MODEL_RETRY = RetryPolicy(max_attempts=3, initial_interval=1.0, backoff_factor=2.0, retry_on=_retry_on)
+# A training cycle fires every Skill at the same inference server: 1 s and 2 s of backoff were too short to ride out
+# its rate limits and overloads (every cycle lost 1 to 3 runs to "inference server did not respond correctly").
+MODEL_RETRY = RetryPolicy(max_attempts=5, initial_interval=2.0, backoff_factor=3.0, max_interval=60.0, retry_on=_retry_on)
 
 
 def _failed(state: NovaState) -> bool:

@@ -363,6 +363,34 @@ async def _condense(skill: SkillSpec, item: SkillFeedback, current: AgentLearnin
     return [x for x in result.value.lessons if x.strip()] or None
 
 
+async def _rerun_failed(
+    cycle: TrainingCycle, runs: list[tuple[dict[str, Any], dict[str, Any]]], client: ForgeClient, settings: Settings
+) -> bool:
+    """Once per cycle, run again the Skills whose baseline runs failed (a transient inference error loses no signal).
+
+    A failed run teaches nothing and drags the baseline down, which makes the experiment's comparison meaningless.
+    """
+    failed = [ref for ref, run in runs if ref.get("skill_id") and run.get("status") != "completed"]
+    version_id = cycle.result.get("baseline_version_id")
+    if not failed or cycle.result.get("rerun_failed") or not version_id:
+        return False
+    scenario_of = {item["id"]: item["scenario_id"] for item in cycle.skills}
+    skill_ids = sorted({ref["skill_id"] for ref in failed if ref["skill_id"] in scenario_of})
+    if not skill_ids:
+        return False
+    created = await client.create_runs(
+        mapper.training_runs_body(version_id, [scenario_of[s] for s in skill_ids], settings.training_repetitions, str(cycle.id))
+    )
+    by_scenario = {str(scenario_of[s]): s for s in skill_ids}
+    failed_ids = {ref["run_id"] for ref in failed}
+    kept = [ref for ref in cycle.baseline_runs if ref["run_id"] not in failed_ids]
+    cycle.baseline_runs = kept + [
+        {"run_id": str(r["id"]), "skill_id": by_scenario.get(str(r.get("scenario_id")))} for r in created or []
+    ]
+    cycle.result = {**cycle.result, "rerun_failed": skill_ids}
+    return True
+
+
 async def _evaluate(session: AsyncSession, cycle: TrainingCycle, client: ForgeClient, settings: Settings) -> None:
     runs = []
     for ref in cycle.baseline_runs:
@@ -373,6 +401,8 @@ async def _evaluate(session: AsyncSession, cycle: TrainingCycle, client: ForgeCl
     if not runs:
         await _finish(session, cycle, "failed", error="FORGE n'a créé aucune exécution.")
         return
+    if await _rerun_failed(cycle, runs, client, settings):
+        return  # fresh runs replace the failed ones: evaluated on a next tick
 
     registry = get_skill_registry()
     profile = AgentProfile(cycle.agent)

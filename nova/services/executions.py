@@ -350,6 +350,7 @@ def _friendly(exc: Exception) -> str:
     if isinstance(exc, BudgetExceeded):
         return f"{exc.message} NOVA stopped before spending more; completed steps were kept."
     if isinstance(exc, LLMError):
+        log.warning("Execution failed on the inference server: %s (retryable=%s)", exc, exc.retryable)
         return "The inference server did not respond correctly. You can retry: NOVA resumes from the last completed step."
     if isinstance(exc, ContextError):
         return f"ORBIT could not be reached ({exc.message}). You can retry."
