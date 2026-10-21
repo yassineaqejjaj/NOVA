@@ -32,6 +32,8 @@ class FakeForge:
         self.runs: dict[str, dict[str, Any]] = {}
         self.experiments: dict[str, dict[str, Any]] = {}
         self.run_status = "pending"
+        self.attempts: dict[str, int] = {}
+        self.fail_first_attempt: set[str] = set()  # skills whose first run fails (a transient inference error)
         self.recommendations: dict[str, list[dict[str, Any]]] = {
             "prd": [
                 {"category": "output_format", "priority": "p0", "title": "Quantify every goal", "description": ""},
@@ -81,9 +83,11 @@ class FakeForge:
     async def create_runs(self, body: dict[str, Any]) -> list[dict[str, Any]]:
         created = []
         for scenario_id in body["scenario_ids"]:
+            self.attempts[scenario_id] = self.attempts.get(scenario_id, 0) + 1
             run = {
                 "id": self._id(),
                 "scenario_id": scenario_id,
+                "attempt": self.attempts[scenario_id],
                 "agent_version_id": body["agent_version_id"],
                 "tags": body["tags"],
             }
@@ -92,7 +96,13 @@ class FakeForge:
         return created
 
     async def get_run(self, run_id: str) -> dict[str, Any]:
-        return {**self.runs[run_id], "status": self.run_status, "composite_score": 0.72}
+        run = self.runs[run_id]
+        failing = run["attempt"] == 1 and self.skill_of(run["scenario_id"]) in self.fail_first_attempt
+        return {
+            **run,
+            "status": "failed" if failing and self.run_status == "completed" else self.run_status,
+            "composite_score": 0.72,
+        }
 
     async def run_feedback(self, run_id: str) -> dict[str, Any] | None:
         skill = self.skill_of(self.runs[run_id]["scenario_id"])
@@ -214,6 +224,34 @@ async def test_rejected_candidate_keeps_the_active_policy(fake_forge):
     async with db.session_scope() as session:
         policies = {p.version: p.status for p in (await session.scalars(select(AgentPolicy))).all()}
     assert policies == {0: "active", 1: "rejected"}
+
+
+async def test_baseline_runs_that_failed_are_run_again_once_before_learning(fake_forge):
+    fake_forge.run_status, fake_forge.fail_first_attempt = "completed", {"prd"}
+    cycle_id = await _start()
+    await training.advance(cycle_id)  # queued → evaluating
+    total = len(fake_forge.runs)
+
+    assert not await training.advance(cycle_id)  # the failed run is replaced: nothing learned from it yet
+    cycle = await _cycle(cycle_id)
+    assert cycle.status == "evaluating" and cycle.result["rerun_failed"] == ["prd"]
+    assert len(fake_forge.runs) == total + 1 and len(cycle.baseline_runs) == total
+
+    assert await training.advance(cycle_id)  # the fresh run succeeded: the cycle goes on
+    cycle = await _cycle(cycle_id)
+    assert cycle.status == "experimenting" and cycle.result["baseline"]["failed_runs"] == 0
+    assert cycle.result["changed_skills"] == ["prd"]
+
+
+async def test_a_run_that_fails_twice_is_not_run_a_third_time(fake_forge):
+    fake_forge.run_status = "failed"
+    cycle_id = await _start()
+    await training.advance(cycle_id)
+    await training.advance(cycle_id)  # rerun
+    runs_after_rerun = len(fake_forge.runs)
+    await training.advance(cycle_id)
+    assert len(fake_forge.runs) == runs_after_rerun
+    assert (await _cycle(cycle_id)).result["rerun_failed"]
 
 
 async def test_nothing_to_learn_ends_without_experiment(fake_forge):
