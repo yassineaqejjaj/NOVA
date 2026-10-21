@@ -1,4 +1,4 @@
-"""Nova Quality: the user's FORGE evaluations, summarised, and nobody else's."""
+"""Nova Evals: the user's FORGE evaluations, summarised, and nobody else's."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ async def test_overview_summarises_my_evaluations_only(app):
     await _evaluated_task(my_id, "Plan the sprint", 60, False)
     await _evaluated_task(other_id, "Someone else's work", 10, False)
 
-    body = (await me.get("/api/v1/quality")).json()
+    body = (await me.get("/api/v1/evals")).json()
 
     assert body["summary"] == {"evaluated": 2, "average_score": 70.0, "pass_rate": 50}
     assert {e["objective"] for e in body["recent"]} == {"Write the PRD", "Plan the sprint"}
@@ -66,6 +66,6 @@ async def test_overview_summarises_my_evaluations_only(app):
 @pytest.mark.asyncio
 async def test_overview_is_empty_without_evaluations(app):
     me, _ = await _user(app)
-    body = (await me.get("/api/v1/quality")).json()
+    body = (await me.get("/api/v1/evals")).json()
     assert body["summary"] == {"evaluated": 0, "average_score": None, "pass_rate": None}
     assert body["recent"] == []

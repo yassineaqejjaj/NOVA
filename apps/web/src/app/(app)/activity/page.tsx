@@ -11,7 +11,7 @@ import { defineMessages, useT } from "@/lib/i18n";
 const M = defineMessages({
   en: {
     title: "Timeline",
-    description: "How your work moved: Nova Context supplies the context, NOVA acts, Nova Quality evaluates — and what you decided.",
+    description: "How your work moved: Nova Context supplies the context, NOVA acts, Nova Evals evaluates — and what you decided.",
     tab_all: "Everything",
     tab_projects: "My projects",
     tab_artifact: "Artifacts",
@@ -23,7 +23,7 @@ const M = defineMessages({
   },
   fr: {
     title: "Timeline",
-    description: "Comment votre travail a avancé : Nova Context fournit le contexte, NOVA agit, Nova Quality évalue — et ce que vous avez décidé.",
+    description: "Comment votre travail a avancé : Nova Context fournit le contexte, NOVA agit, Nova Evals évalue — et ce que vous avez décidé.",
     tab_all: "Tout",
     tab_projects: "Mes projets",
     tab_artifact: "Artefacts",

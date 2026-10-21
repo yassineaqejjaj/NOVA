@@ -13,7 +13,7 @@ import { defineMessages, useT } from "@/lib/i18n";
 const M = defineMessages({
   en: {
     you: "You",
-    openInForge: "Open in Nova Quality",
+    openInForge: "Open in Nova Evals",
     viewArtifact: "View Artifact",
     viewDecision: "View decision",
     viewWork: "View work",
@@ -24,7 +24,7 @@ const M = defineMessages({
   },
   fr: {
     you: "Vous",
-    openInForge: "Ouvrir dans Nova Quality",
+    openInForge: "Ouvrir dans Nova Evals",
     viewArtifact: "Voir l’Artefact",
     viewDecision: "Voir la décision",
     viewWork: "Voir le travail",

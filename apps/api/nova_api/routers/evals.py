@@ -1,4 +1,4 @@
-"""Nova Quality surface: what FORGE evaluated about the user's work, and the health of the link."""
+"""Nova Evals surface: what FORGE evaluated about the user's work, and the health of the link."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from nova.infra.models import IntegrationReference, Task
 from nova.integrations import link_health
 from nova_api.auth import CurrentPrincipal
 
-router = APIRouter(prefix="/quality", tags=["quality"])
+router = APIRouter(prefix="/evals", tags=["evals"])
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 RECENT = 20
 

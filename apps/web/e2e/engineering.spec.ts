@@ -62,5 +62,5 @@ test("Engineering: from an intent to a merged change, with the plan and the merg
   await page.getByTestId("run-row").click();
   await expect(page.getByTestId("run-evaluation")).toContainText("CI green first time");
   // Ingested by FORGE automatically when the run finished (never code: metrics and summaries)
-  await expect(page.getByTestId("forge-card")).toContainText("Sent to Nova Quality");
+  await expect(page.getByTestId("forge-card")).toContainText("Sent to Nova Evals");
 });

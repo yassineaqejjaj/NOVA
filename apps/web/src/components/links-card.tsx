@@ -45,11 +45,11 @@ const M = defineMessages({
     present: "present",
     missing: "missing",
     inboundCredential: "Callback credential",
-    callback: "Nova Quality calls NOVA at",
+    callback: "Nova Evals calls NOVA at",
     capture: "Capture",
     queue: "Capture queue",
     queueNA: "not available",
-    forgeOff: "Nova Quality is not configured: nothing is evaluated or captured.",
+    forgeOff: "Nova Evals is not configured: nothing is evaluated or captured.",
   },
   fr: {
     orbit: "ORBIT",
@@ -86,11 +86,11 @@ const M = defineMessages({
     present: "présente",
     missing: "absente",
     inboundCredential: "Identifiant de rappel",
-    callback: "Nova Quality rappelle NOVA à",
+    callback: "Nova Evals rappelle NOVA à",
     capture: "Capture",
     queue: "File de capture",
     queueNA: "non disponible",
-    forgeOff: "Nova Quality n’est pas configuré : rien n’est évalué ni capturé.",
+    forgeOff: "Nova Evals n’est pas configuré : rien n’est évalué ni capturé.",
   },
 });
 

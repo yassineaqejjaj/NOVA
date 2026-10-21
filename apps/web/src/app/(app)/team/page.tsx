@@ -67,7 +67,7 @@ const M = defineMessages({
     checked: (v: { n: number; r: number }) => `${v.n} deliverables checked · ${v.r} revised`,
     research: (v: { n: number }) => `${v.n} tasks with project context`,
     loop: "Revision loop",
-    training: "Training with Nova Quality",
+    training: "Training with Nova Evals",
   },
   fr: {
     title: "Votre équipe produit",
@@ -98,7 +98,7 @@ const M = defineMessages({
     checked: (v: { n: number; r: number }) => `${v.n} livrable${v.n > 1 ? "s" : ""} contrôlé${v.n > 1 ? "s" : ""} · ${v.r} révisé${v.r > 1 ? "s" : ""}`,
     research: (v: { n: number }) => `${v.n} tâche${v.n > 1 ? "s" : ""} avec contexte projet`,
     loop: "Boucle de révision",
-    training: "Entraînement avec Nova Quality",
+    training: "Entraînement avec Nova Evals",
   },
 });
 

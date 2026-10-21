@@ -24,7 +24,7 @@ export const M = defineMessages({
     exportMarkdown: "Export Markdown",
     exportJson: "Export JSON",
     openWithConversation: "Open with conversation",
-    forgeEvaluation: "Nova Quality evaluation",
+    forgeEvaluation: "Nova Evals evaluation",
     proposed: (v: { version: number }) => `NOVA proposed version ${v.version}.`,
     review: "Review",
     approve: "Approve",
@@ -72,7 +72,7 @@ export const M = defineMessages({
     exportMarkdown: "Exporter en Markdown",
     exportJson: "Exporter en JSON",
     openWithConversation: "Ouvrir avec la conversation",
-    forgeEvaluation: "Évaluation Nova Quality",
+    forgeEvaluation: "Évaluation Nova Evals",
     proposed: (v: { version: number }) => `NOVA propose la version ${v.version}.`,
     review: "Examiner",
     approve: "Approuver",
@@ -108,7 +108,7 @@ const CHECK_LABELS_FR: Record<string, string> = {
   unsupported: "Aucune affirmation non étayée",
   complete: "Toutes les sections rédigées",
   acceptance: "Les user stories ont des critères d’acceptation",
-  forge: "Cohérent avec le contexte (Nova Quality)",
+  forge: "Cohérent avec le contexte (Nova Evals)",
 };
 
 const EVALUATION_STATUS_FR: Record<string, string> = {
