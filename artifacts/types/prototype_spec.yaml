@@ -1,0 +1,54 @@
+type: prototype_spec
+name: Prototype Spec
+description: Specifications reverse-engineered from a prototype (Figma Make, Figma design or screenshots)
+icon: file-text
+sections:
+- key: summary
+  title: Summary
+  kind: rich_text
+  description: ''
+- key: flows
+  title: User flows
+  kind: items
+  item_kind: journey_step
+  description: ''
+- key: screens
+  title: Screens
+  kind: items
+  item_kind: screen
+  description: ''
+- key: stories
+  title: User stories
+  kind: items
+  item_kind: story
+  description: ''
+- key: requirements
+  title: Functional rules
+  kind: items
+  item_kind: requirement
+  description: ''
+- key: components
+  title: Components
+  kind: items
+  item_kind: ui_component
+  description: ''
+- key: tokens
+  title: Design tokens
+  kind: items
+  item_kind: design_token
+  description: ''
+- key: a11y
+  title: Accessibility findings
+  kind: items
+  item_kind: a11y_finding
+  description: ''
+- key: questions
+  title: Open questions
+  kind: items
+  item_kind: question
+  description: ''
+- key: figma
+  title: Figma
+  kind: items
+  item_kind: figma_ref
+  description: ''
