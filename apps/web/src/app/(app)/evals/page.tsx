@@ -12,10 +12,10 @@ import { defineMessages, useT } from "@/lib/i18n";
 
 const M = defineMessages({
   en: {
-    title: "Nova Quality",
-    description: "How your work was evaluated by Nova Quality. NOVA sends outcomes for evaluation; the scenarios and judges live there.",
-    open: "Open Nova Quality",
-    loadFailed: "Nova Quality could not be loaded",
+    title: "Nova Evals",
+    description: "How your work was evaluated by Nova Evals. NOVA sends outcomes for evaluation; the scenarios and judges live there.",
+    open: "Open Nova Evals",
+    loadFailed: "Nova Evals could not be loaded",
     link: "Link",
     linkOk: "Connected",
     linkDegraded: "Degraded",
@@ -25,17 +25,17 @@ const M = defineMessages({
     passRate: "Pass rate",
     recent: "Recent evaluations",
     empty: "No evaluation yet",
-    emptyHint: "Evaluations appear here once Nova Quality has scored your work.",
+    emptyHint: "Evaluations appear here once Nova Evals has scored your work.",
     passed: "Passed",
     failed: "Failed",
     pending: "Pending",
     training: "Teach NOVA from evaluations",
   },
   fr: {
-    title: "Nova Quality",
-    description: "Comment votre travail a été évalué par Nova Quality. NOVA envoie les résultats à évaluer ; les scénarios et les juges y vivent.",
-    open: "Ouvrir Nova Quality",
-    loadFailed: "Nova Quality n’a pas pu être chargé",
+    title: "Nova Evals",
+    description: "Comment votre travail a été évalué par Nova Evals. NOVA envoie les résultats à évaluer ; les scénarios et les juges y vivent.",
+    open: "Ouvrir Nova Evals",
+    loadFailed: "Nova Evals n’a pas pu être chargé",
     link: "Lien",
     linkOk: "Connecté",
     linkDegraded: "Dégradé",
@@ -45,7 +45,7 @@ const M = defineMessages({
     passRate: "Taux de réussite",
     recent: "Évaluations récentes",
     empty: "Aucune évaluation pour l’instant",
-    emptyHint: "Les évaluations apparaissent ici dès que Nova Quality a noté votre travail.",
+    emptyHint: "Les évaluations apparaissent ici dès que Nova Evals a noté votre travail.",
     passed: "Réussi",
     failed: "Échoué",
     pending: "En attente",
@@ -80,9 +80,9 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function QualityPage() {
+export default function EvalsPage() {
   const t = useT(M);
-  const { data, isLoading, isError } = useQuery({ queryKey: ["quality"], queryFn: () => api.get<Overview>("/quality") });
+  const { data, isLoading, isError } = useQuery({ queryKey: ["evals"], queryFn: () => api.get<Overview>("/evals") });
 
   if (isLoading) return <Page><Skeleton className="h-40" /></Page>;
   if (isError || !data) return <Page><ErrorNotice title={t("loadFailed")} /></Page>;
@@ -98,7 +98,7 @@ export default function QualityPage() {
         description={t("description")}
         actions={<Button variant="ghost" size="sm" asChild><a href={data.forge_url} target="_blank" rel="noreferrer">{t("open")} <ExternalLink /></a></Button>}
       />
-      <div className="mb-6 flex items-center gap-2 text-[13px] text-muted" data-testid="quality-link">
+      <div className="mb-6 flex items-center gap-2 text-[13px] text-muted" data-testid="evals-link">
         {t("link")} <Badge>{linkLabel}</Badge>
       </div>
       <div className="mb-8 grid gap-3 sm:grid-cols-3">

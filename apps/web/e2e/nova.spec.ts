@@ -449,13 +449,13 @@ test("the menu collapses to icons, keeps its state and toggles with ⌘\\", asyn
   await expect(page.getByRole("button", { name: "Collapse the menu" })).toBeVisible();
 });
 
-test("Nova Quality is in the menu and shows the evaluations summary", async ({ page }) => {
+test("Nova Evals is in the menu and shows the evaluations summary", async ({ page }) => {
   await signIn(page);
   await page.goto("/");
-  await page.getByTestId("sidebar").getByRole("link", { name: "Nova Quality" }).click();
-  await expect(page).toHaveURL(/\/quality/);
-  await expect(page.getByRole("heading", { name: "Nova Quality" })).toBeVisible();
-  await expect(page.getByTestId("quality-link")).toBeVisible();
+  await page.getByTestId("sidebar").getByRole("link", { name: "Nova Evals" }).click();
+  await expect(page).toHaveURL(/\/evals/);
+  await expect(page.getByRole("heading", { name: "Nova Evals" })).toBeVisible();
+  await expect(page.getByTestId("evals-link")).toBeVisible();
 });
 
 test("Settings → Links shows who acts in ORBIT and the health of the link, with no secret", async ({ page }) => {

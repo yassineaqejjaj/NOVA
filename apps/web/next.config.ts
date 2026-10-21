@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   // Same-origin API through src/app/api/[...path]/route.ts (runtime NOVA_API_URL, streamed, SSE-safe).
+  async redirects() {
+    // Nova Quality was renamed Nova Evals: keep old bookmarks working.
+    return [{ source: "/quality", destination: "/evals", permanent: true }];
+  },
   async headers() {
     return [
       {

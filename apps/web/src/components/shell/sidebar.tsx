@@ -58,7 +58,7 @@ const M = defineMessages({
     workspace: "Workspace",
     knowledge: "Knowledge",
     novaContext: "Nova Context",
-    novaQuality: "Nova Quality",
+    novaEvals: "Nova Evals",
     goalsMissions: "Goals & missions",
     nova: "NOVA",
     main: "Main",
@@ -85,7 +85,7 @@ const M = defineMessages({
     knowledge: "Connaissances",
     goalsMissions: "Objectifs & missions",
     novaContext: "Nova Context",
-    novaQuality: "Nova Quality",
+    novaEvals: "Nova Evals",
     nova: "NOVA",
     main: "Principal",
     settings: "Paramètres",
@@ -135,7 +135,7 @@ export const NAV_GROUPS: { label: MissionLabel; items: NavItem[] }[] = [
     label: "navSuite",
     items: [
       { href: "/context", label: "novaContext", icon: Orbit },
-      { href: "/quality", label: "novaQuality", icon: ShieldCheck },
+      { href: "/evals", label: "novaEvals", icon: ShieldCheck },
     ],
   },
 ];

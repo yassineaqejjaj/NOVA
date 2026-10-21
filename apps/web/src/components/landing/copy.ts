@@ -31,14 +31,14 @@ export const COPY = {
       pillars: [
         { name: "NOVA agit", body: "Comprend l’intention, planifie, choisit les bonnes méthodes et produit un travail durable et éditable." },
         { name: "Nova Context sait", body: "Contexte, mémoire, décisions et documents de vos projets — avec les permissions et la classification de chacun." },
-        { name: "Nova Quality apprend", body: "Traces, évaluations et régressions : la qualité de Nova se mesure et s’améliore en continu." },
+        { name: "Nova Evals apprend", body: "Traces, évaluations et régressions : la qualité de Nova se mesure et s’améliore en continu." },
       ],
     },
     product: {
       eyebrow: "Produit",
       title: "De l’intention à l’Artefact, en une conversation.",
       subtitle: "Exprimez ce que vous voulez obtenir. Nova trouve le contexte, choisit la méthode, exécute le workflow et vous rend un livrable structuré.",
-      steps: ["Intention", "Nova Context", "Plan", "Compétences", "Artefact", "Validation", "Évaluation Nova Quality"],
+      steps: ["Intention", "Nova Context", "Plan", "Compétences", "Artefact", "Validation", "Évaluation Nova Evals"],
       features: [
         { title: "64 compétences versionnées", body: "Produit, projet, design et ingénierie — chaque étape confiée au sous-agent spécialiste, combinées automatiquement en workflows." },
         { title: "54 types d’Artefacts", body: "PRD, backlog, conception technique, ADR, plan de test, brief de design, charte de projet, RAID… Versions, comparaison, commentaires et export." },
@@ -50,7 +50,7 @@ export const COPY = {
       eyebrow: "Cas d’usage",
       title: "Le quotidien d’une équipe produit, accéléré.",
       items: [
-        { prompt: "Transforme la vision Nova Quality en backlog.", result: "Objectifs, initiatives, epics et user stories, chacun relié à ses sources." },
+        { prompt: "Transforme la vision Nova Evals en backlog.", result: "Objectifs, initiatives, epics et user stories, chacun relié à ses sources." },
         { prompt: "Prépare le sprint 19.", result: "Objectif de sprint, périmètre engagé, capacité, risques et dépendances." },
         { prompt: "/prd Check-in par QR code pour Atlas", result: "Un PRD complet, section par section, que vous éditez et faites évoluer avec Nova." },
         { prompt: "Qu’a décidé l’équipe sur l’authentification ?", result: "Une réponse sourcée, avec la décision, sa date et le document d’origine." },
@@ -69,7 +69,7 @@ export const COPY = {
       ],
     },
     cta: { title: "Prêt à travailler avec Nova ?", subtitle: "Découvrez comment Nova s’intègre à vos équipes et à vos outils." },
-    footer: { rights: "Tous droits réservés.", tagline: "NOVA agit · Nova Context sait · Nova Quality apprend" },
+    footer: { rights: "Tous droits réservés.", tagline: "NOVA agit · Nova Context sait · Nova Evals apprend" },
     demoSubject: "Demande de démo NOVA",
   },
   en: {
@@ -101,14 +101,14 @@ export const COPY = {
       pillars: [
         { name: "NOVA acts", body: "Understands intent, plans, picks the right methods and produces durable, editable work." },
         { name: "Nova Context knows", body: "Context, memory, decisions and documents of your projects — with everyone’s permissions and classification." },
-        { name: "Nova Quality learns", body: "Traces, evaluations and regressions: Nova’s quality is measured and continuously improved." },
+        { name: "Nova Evals learns", body: "Traces, evaluations and regressions: Nova’s quality is measured and continuously improved." },
       ],
     },
     product: {
       eyebrow: "Product",
       title: "From intent to artifact, in one conversation.",
       subtitle: "Say what you want to achieve. Nova finds the context, picks the method, runs the workflow and hands you a structured deliverable.",
-      steps: ["Intent", "Nova Context context", "Plan", "Skills", "Artifact", "Approval", "Nova Quality evaluation"],
+      steps: ["Intent", "Nova Context context", "Plan", "Skills", "Artifact", "Approval", "Nova Evals evaluation"],
       features: [
         { title: "64 versioned Skills", body: "Product, project, design and engineering — each step handed to the specialist sub-agent, combined into workflows automatically." },
         { title: "54 Artifact types", body: "PRD, backlog, technical design, ADR, test plan, design brief, project charter, RAID log… Versions, compare, comments and export." },
@@ -120,7 +120,7 @@ export const COPY = {
       eyebrow: "Use cases",
       title: "A product team’s daily work, accelerated.",
       items: [
-        { prompt: "Turn the Nova Quality vision into a backlog.", result: "Objectives, initiatives, epics and user stories, each linked to its sources." },
+        { prompt: "Turn the Nova Evals vision into a backlog.", result: "Objectives, initiatives, epics and user stories, each linked to its sources." },
         { prompt: "Prepare Sprint 19.", result: "Sprint goal, committed scope, capacity, risks and dependencies." },
         { prompt: "/prd QR-code desk check-in for Atlas", result: "A complete PRD, section by section, that you edit and evolve with Nova." },
         { prompt: "What did the team decide about authentication?", result: "A sourced answer with the decision, its date and the original document." },
@@ -139,7 +139,7 @@ export const COPY = {
       ],
     },
     cta: { title: "Ready to work with Nova?", subtitle: "See how Nova fits your teams and your tools." },
-    footer: { rights: "All rights reserved.", tagline: "NOVA acts · Nova Context knows · Nova Quality learns" },
+    footer: { rights: "All rights reserved.", tagline: "NOVA acts · Nova Context knows · Nova Evals learns" },
     demoSubject: "NOVA demo request",
   },
 } as const;
