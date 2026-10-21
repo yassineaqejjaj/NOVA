@@ -75,6 +75,41 @@ def test_promotion_rule():
     assert not promotion_decision({}).promote
 
 
+def _experiment(rec: str, rows: list[dict], *, delta: float = -0.1, regressions: list[dict] | None = None) -> dict:
+    return {
+        "recommendation": {"recommendation": rec},
+        "composite": {"delta": delta},
+        "regressions": regressions or [],
+        "scenarios": rows,
+    }
+
+
+def test_a_gain_on_the_changed_skill_is_promoted_even_when_the_composite_test_cannot_conclude():
+    # One Skill changed among many: FORGE's Wilcoxon test on all scenarios is diluted and says "inconclusive"
+    rows = [
+        {"scenario_id": "s1", "delta": 6.0, "status": "improvement"},
+        {"scenario_id": "s2", "delta": -0.4, "status": "stable"},
+    ]
+    experiment = _experiment("inconclusive", rows)
+    assert not promotion_decision(experiment).promote  # unchanged without the new arguments
+    decision = promotion_decision(experiment, changed_scenarios={"s1"}, min_changed_gain=2.0)
+    assert decision.promote and "+6.0" in decision.reason
+
+
+def test_a_small_gain_a_regression_or_do_not_ship_is_still_rejected():
+    gain = [{"scenario_id": "s1", "delta": 1.0, "status": "stable"}]
+    assert not promotion_decision(_experiment("inconclusive", gain), changed_scenarios={"s1"}, min_changed_gain=2.0).promote
+    hurt = [{"scenario_id": "s1", "delta": 9.0, "status": "regression"}]
+    assert not promotion_decision(_experiment("inconclusive", hurt), changed_scenarios={"s1"}, min_changed_gain=2.0).promote
+    critical = _experiment(
+        "inconclusive", [{"scenario_id": "s1", "delta": 9.0, "status": "improvement"}], regressions=[{"severity": "critical"}]
+    )
+    assert not promotion_decision(critical, changed_scenarios={"s1"}, min_changed_gain=2.0).promote
+    worse = [{"scenario_id": "s1", "delta": 9.0, "status": "improvement"}]
+    assert not promotion_decision(_experiment("do_not_ship", worse), changed_scenarios={"s1"}, min_changed_gain=2.0).promote
+    assert not promotion_decision(_experiment("inconclusive", worse), changed_scenarios=set(), min_changed_gain=2.0).promote
+
+
 def test_learned_lessons_reach_the_specialist_and_the_validation_agent():
     registry = get_skill_registry()
     skill = registry.get("prd")

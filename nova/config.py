@@ -203,7 +203,9 @@ class Settings(BaseSettings):
     # --- Training loop (docs/TRAINING.md): FORGE evaluates each agent on all its Skills, NOVA learns ----------
     training_enabled: bool = True  # needs NOVA_FORGE_API_KEY (role editor) and NOVA_FORGE_CREDENTIAL_ID
     training_interval_days: int = Field(default=0, ge=0, le=90)  # 0 = cycles started by an admin; N = every N days
-    training_repetitions: int = Field(default=1, ge=1, le=5)  # runs per Skill and per arm
+    training_repetitions: int = Field(default=3, ge=1, le=5)  # runs per Skill and per arm (1 is too noisy to conclude)
+    # Promote on an inconclusive experiment when the Skills the lessons changed gained at least this many points (0-100)
+    training_min_gain: float = Field(default=2.0, ge=0, le=100)
     training_max_skills: int = Field(default=0, ge=0, le=100)  # 0 = every Skill of the agent
     training_cycle_timeout_hours: int = Field(default=24, ge=1, le=168)
     # Time FORGE gives one training run (a multi-step Skill on a small model needs more than FORGE's 120 s default)
@@ -216,6 +218,7 @@ class Settings(BaseSettings):
     policy_gate_min_evaluations: int = Field(default=3, ge=1, le=1000)  # independent scored runs per arm
     # Releases (docs/TRAINING.md): a validated candidate goes through a canary before reaching everyone.
     release_canary_percent: int = Field(default=10, ge=0, le=100)  # share of users; 0 = no canary
+    release_canary_max_days: int = Field(default=3, ge=0, le=90)  # 0 = wait for min_runs however long it takes
     release_canary_min_runs: int = Field(default=20, ge=1, le=10000)  # canary executions before a verdict
     release_max_failure_increase: float = Field(default=0.10, ge=0, le=1)  # rollback above this failure-rate gap
     release_approval: Literal["none", "full"] = "full"  # "full": a healthy canary waits for an administrator

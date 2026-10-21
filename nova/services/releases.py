@@ -27,7 +27,7 @@ from nova.domain.release import (
     ReleaseStatus,
     canary_verdict,
 )
-from nova.infra.db import utcnow
+from nova.infra.db import aware, utcnow
 from nova.infra.models import AgentPolicy, Release, Task, TrainingCycle
 from nova.services import learning, policy_gate
 from nova.services.audit import audit
@@ -256,6 +256,11 @@ async def _sdlc_stats(session: AsyncSession, release: Release, since: Any) -> tu
     return cohort(served), cohort(others)
 
 
+def _canary_expired(release: Release, max_days: int) -> bool:
+    started = release.canary_started_at or release.created_at
+    return max_days > 0 and utcnow() - aware(started) > timedelta(days=max_days)
+
+
 async def evaluate(session: AsyncSession, release: Release) -> CanaryVerdict:
     """Compare a running canary with the control and act: roll back, wait for approval, or go live."""
     settings = get_settings()
@@ -265,6 +270,14 @@ async def evaluate(session: AsyncSession, release: Release) -> CanaryVerdict:
     )
     if release.status != ReleaseStatus.canary.value:
         return verdict
+    if verdict.outcome == "waiting" and _canary_expired(release, settings.release_canary_max_days):
+        # Too little traffic to measure anything: FORGE's experiment is the proof and the canary found no harm.
+        verdict = verdict.model_copy(
+            update={
+                "outcome": "healthy",
+                "reason": f"{verdict.reason} Délai de {settings.release_canary_max_days} jour(s) atteint sans dégradation.",
+            }
+        )
     if verdict.outcome == "degraded":
         await rollback(session, release.id, None, verdict.reason)
     elif verdict.outcome == "healthy":

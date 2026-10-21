@@ -196,17 +196,38 @@ class PromotionDecision(BaseModel):
     reason: str
 
 
-def promotion_decision(comparison: dict[str, Any]) -> PromotionDecision:
+def _changed_gain(comparison: dict[str, Any], changed_scenarios: set[str]) -> tuple[float | None, bool]:
+    """Mean gain over the scenarios of the Skills whose lessons changed, and whether one of them regressed."""
+    rows = [s for s in comparison.get("scenarios") or [] if str(s.get("scenario_id")) in changed_scenarios]
+    deltas = [s["delta"] for s in rows if isinstance(s.get("delta"), int | float)]
+    regressed = any(s.get("status") == "regression" for s in rows)
+    return (sum(deltas) / len(deltas) if deltas else None), regressed
+
+
+def promotion_decision(
+    comparison: dict[str, Any], *, changed_scenarios: set[str] | None = None, min_changed_gain: float = 0.0
+) -> PromotionDecision:
     """Automatic promotion rule on a finished FORGE experiment comparison (baseline = active, candidate = new).
 
     * ``ship`` → promoted;
     * ``ship_with_caution`` → promoted only when the composite score improves and no scenario regresses critically;
-    * anything else (``inconclusive``, ``do_not_ship``) → rejected, the active policy stays.
+    * ``inconclusive`` → promoted only on a measured gain over the Skills the lessons changed (``min_changed_gain``
+      points, no regression on them, no critical regression anywhere): the composite test spans every Skill of the
+      agent, so a lesson on one Skill is diluted and FORGE's Wilcoxon test can never conclude on it alone. The
+      release (canary, approval, rollback) stays the safeguard;
+    * ``do_not_ship`` → rejected, the active policy stays.
     """
     rec = (comparison.get("recommendation") or {}).get("recommendation")
     composite = comparison.get("composite") or {}
     delta = composite.get("delta")
     critical = [r for r in comparison.get("regressions") or [] if r.get("severity") == "critical"]
+    if changed_scenarios and min_changed_gain > 0 and rec in ("inconclusive", "ship_with_caution") and not critical:
+        gain, regressed = _changed_gain(comparison, changed_scenarios)
+        no_composite_gain = rec == "inconclusive" or not isinstance(delta, int | float) or delta <= 0
+        if no_composite_gain and gain is not None and gain >= min_changed_gain and not regressed:
+            return PromotionDecision(
+                promote=True, reason=f"Gain de {gain:+.1f} points sur les compétences modifiées, sans régression."
+            )
     if rec == "ship":
         return PromotionDecision(promote=True, reason="FORGE recommande la version candidate.")
     if rec == "ship_with_caution":
