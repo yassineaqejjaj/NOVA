@@ -625,3 +625,18 @@ ui_code:
     tokens: {title: "Tokens de design"}
     a11y_notes: {title: "Notes d’accessibilité"}
     figma: {title: "Figma"}
+
+prototype_spec:
+  name: "Spécifications de prototype"
+  description: "Spécifications déduites d’un prototype (Figma Make, Figma ou captures)"
+  sections:
+    summary: {title: "Synthèse"}
+    flows: {title: "Parcours utilisateur"}
+    screens: {title: "Écrans"}
+    stories: {title: "User stories"}
+    requirements: {title: "Règles fonctionnelles"}
+    components: {title: "Composants"}
+    tokens: {title: "Tokens de design"}
+    a11y: {title: "Constats d’accessibilité"}
+    questions: {title: "Questions ouvertes"}
+    figma: {title: "Figma"}

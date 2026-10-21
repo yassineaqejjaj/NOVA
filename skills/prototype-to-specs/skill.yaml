@@ -1,0 +1,85 @@
+id: prototype-to-specs
+name: Prototype to Specs
+version: 1.0.0
+category: definition
+agent: design
+summary: >-
+  Turn a prototype (Figma Make, Figma design or screenshots) into specifications: flows, screens, user stories with
+  acceptance criteria, functional rules, components, tokens and open questions.
+purpose: >-
+  Let a designer prototype first and have the specifications written from what the prototype actually shows, so
+  product, engineering and QA start from the same traced, reviewable description instead of reverse-engineering it.
+triggers:
+- prototype to specs
+- specs from prototype
+- specs from figma
+- write the specs from the prototype
+- figma make to specs
+- spécifications depuis le prototype
+- specs depuis figma
+- rédiger les specs du prototype
+inputs:
+- name: prototype
+  description: "The prototype to specify: a Figma Make / Figma URL, or a ui_screens Artifact"
+  required: true
+  ask: true
+  question: Which prototype should be specified (Figma Make or Figma URL, or a mockup Artifact)?
+- name: audience
+  description: Who reads the specs (product, engineering, QA); default product and engineering
+expected_context:
+  orbit_intent: specification
+  query_hint: product requirements, existing specifications, personas, glossary, business rules, accessibility requirements
+  token_budget: 6000
+methodology:
+  name: Specification from an observed prototype
+  principles:
+  - What the prototype shows is fact; what it implies is an assumption, and an assumption is stated as an open question
+  - Every screen, rule and story points back to the screen or Figma node it comes from
+  - Behaviour that cannot be seen (validation, permissions, data sources, edge cases) is never invented
+  - Acceptance criteria are testable (Given / When / Then)
+  references:
+  - Mike Cohn — User Stories Applied
+  - Gojko Adzic — Specification by Example
+  - W3C — WCAG 2.2
+steps:
+- id: read
+  title: Reading the prototype
+  instruction: >-
+    Read the prototype with figma_get_design (or get_artifact for a mockup Artifact) and summarize what it is, who it
+    is for and what the user can do. If it cannot be read, say exactly what is missing instead of guessing.
+  fills:
+  - summary
+  - figma
+- id: structure
+  title: Mapping flows, screens and components
+  instruction: >-
+    List the user flows and the screens with their states, then the reusable components and the design tokens used.
+  fills:
+  - flows
+  - screens
+  - components
+  - tokens
+- id: specify
+  title: Writing the specifications
+  instruction: >-
+    Write user stories with Given/When/Then acceptance criteria, the functional rules the prototype implies, the
+    accessibility findings, and the open questions about everything it does not show.
+  fills:
+  - stories
+  - requirements
+  - a11y
+  - questions
+tools:
+- figma_get_design
+- get_artifact
+- list_artifacts
+- search_orbit
+outputs:
+  artifact_type: prototype_spec
+  mode: create
+composes_with:
+- prd
+- user-story-generation
+- accessibility-audit
+- figma-to-code
+- design-review

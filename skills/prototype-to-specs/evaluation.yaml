@@ -1,0 +1,19 @@
+criteria:
+- key: quality.fidelity
+  question: Do the specifications faithfully describe what the prototype shows, without invented rules, figures or screens?
+  weight: 3
+- key: quality.testability
+  question: Are the acceptance criteria precise and testable, and are the unknowns raised as open questions?
+  weight: 2
+checks:
+- type: sections_present
+  params:
+    sections:
+    - Screens
+    - User stories
+    - Open questions
+  description: Core sections are present
+- type: citation_required
+  params:
+    min: 1
+  description: Content cites context when context was provided
