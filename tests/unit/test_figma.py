@@ -225,6 +225,31 @@ async def test_rest_node_cap():
     assert node and len(node.name) <= 80 and len(node.children) == MAX_NODES - 1 and budget[0] == 0
 
 
+async def test_decorative_leaves_do_not_eat_the_budget():
+    from nova.integrations.figma.rest import normalize_node
+
+    card = {
+        "id": "card",
+        "name": "KPI card",
+        "type": "FRAME",
+        "children": [
+            {"id": "i", "name": "icon", "type": "VECTOR"},
+            {"id": "d", "name": "dot", "type": "ELLIPSE"},
+            {"id": "t", "name": "Total revenue", "type": "TEXT", "characters": "Total revenue"},
+            {
+                "id": "w",
+                "name": "group",
+                "type": "BOOLEAN_OPERATION",
+                "children": [{"id": "v", "type": "TEXT", "characters": "$1"}],
+            },
+        ],
+    }
+    budget = [10]
+    node = normalize_node(card, budget)
+    assert node and [c.id for c in node.children] == ["t", "w"]  # drawn leaves dropped, text and containers kept
+    assert budget[0] == 10 - 4
+
+
 def settings():
     return get_settings().model_copy(update={"figma_oauth_client_id": "client", "figma_mcp_url": "https://mcp.test/mcp"})
 
