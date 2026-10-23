@@ -131,72 +131,9 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Validati
 NOVA is a layered system: a Next.js front end, a FastAPI backend, a resumable LangGraph runtime executed by Celery
 workers, and ports/adapters towards ORBIT (context), FORGE (evaluation), the LLM and third-party tools.
 
-```mermaid
-flowchart TB
-    user(["👤 User"])
+[![NOVA architecture](docs/assets/architecture.png)](docs/assets/architecture.png)
 
-    subgraph web["Web — Next.js 15 · React 19 · Tailwind v4"]
-        ui["Today · Inbox · Composer · Artifacts editor<br/>Engineering · Routines · Skills · Voice"]
-        bff["/api proxy · OIDC BFF"]
-    end
-
-    subgraph api["API — FastAPI"]
-        routers["Routers"]
-        services["Services (use cases)"]
-        sse["SSE live stream"]
-        proto["NOVA Agent Protocol<br/>/v1/agents/…/runs"]
-    end
-
-    subgraph runtime["Worker — Celery + LangGraph"]
-        orch["Orchestrator graph<br/>intent → context → plan → skills → execute → validate → artifact"]
-        agents["Specialist agents<br/>Product · Project · Design · Engineering<br/>+ Research · Validation"]
-        sdlc["Engineering SDLC<br/>spec → code → test → PR → review → CI repair → merge"]
-        beat["Beat — routines, FORGE refresh, retention"]
-    end
-
-    subgraph core["Core — nova/"]
-        domain["domain<br/>(pure models, rules, ports)"]
-        skills["Skills registry<br/>skills/*"]
-        arts["Artifact types<br/>artifacts/types/*"]
-        adapters["Adapters<br/>orbit · forge · github · figma"]
-    end
-
-    subgraph data["State and infra"]
-        pg[("PostgreSQL<br/>data + LangGraph checkpoints")]
-        valkey[("Valkey<br/>broker + pub/sub")]
-        kc["Keycloak<br/>OIDC · SSO · RBAC"]
-        otel["OpenTelemetry"]
-    end
-
-    llm["LLM — vLLM / Ollama / OpenAI-compatible / Anthropic"]
-    voice["Voice service<br/>STT · TTS"]
-    orbit["ORBIT<br/>context · memory · ACL · citations"]
-    forge["FORGE<br/>traces · evals · experiments"]
-    gh["GitHub"]
-
-    user --> ui --> bff --> routers
-    kc -.-> bff
-    routers --> services
-    services --> pg
-    services -- "enqueue" --> valkey --> orch
-    orch --> agents
-    orch --> sdlc
-    orch <-->|checkpoints| pg
-    orch -- "events" --> valkey --> sse --> ui
-    beat --> valkey
-    agents --> skills
-    agents --> arts
-    agents --> domain
-    agents --> adapters
-    adapters -- "context as the user" --> orbit
-    adapters -- "traces, experiments" --> forge
-    forge -- "evaluates via" --> proto
-    proto --> orch
-    sdlc --> gh
-    agents --> llm
-    ui --> voice
-    orch --> otel -. "OTLP" .-> forge
-```
+<sub>Click the diagram to enlarge. Source: [`docs/assets/architecture.mmd`](docs/assets/architecture.mmd) (Mermaid).</sub>
 
 Layering is enforced by tests (`tests/unit/test_architecture.py`): `domain` stays pure (no FastAPI, SQLAlchemy, httpx
 or LangGraph), `agent` depends only on domain ports, and nothing outside `integrations` knows ORBIT or FORGE payload
