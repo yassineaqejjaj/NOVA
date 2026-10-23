@@ -23,6 +23,7 @@ high-fi mockups**, audits **accessibility**, and the **Engineering agent generat
 |---|---|---|
 | `ui_screens` | `wireframes`, `lowfi-mockups`, `hifi-mockups` | `summary` rich_text · `flows` items:`note` (user flow steps) · `tokens` items:`design_token` · `screens` items:`screen` · `components` items:`ui_component` · `figma` items:`figma_ref` |
 | `a11y_audit` | `accessibility-audit` | `summary` rich_text · `findings` items:`a11y_finding` · `passed` items:`checklist_item` · `recommendations` items:`action` |
+| `prototype_spec` | `prototype-to-specs` | `summary` rich_text · `flows` items:`journey_step` · `screens` items:`screen` · `stories` items:`story` · `requirements` items:`requirement` · `components` items:`ui_component` · `tokens` items:`design_token` · `a11y` items:`a11y_finding` · `questions` items:`question` · `figma` items:`figma_ref` |
 | `ui_code` | `figma-to-code` | `summary` rich_text · `architecture` rich_text · `files` items:`code_file` · `tokens` items:`design_token` · `a11y_notes` items:`note` · `figma` items:`figma_ref` |
 
 ## 2. New item kinds (packages/schemas/items/*.json, `additionalProperties: false`, `required: []`)
@@ -46,6 +47,8 @@ high-fi mockups**, audits **accessibility**, and the **Engineering agent generat
 ## 3. Skills (skills/<id>/, agent in parentheses; fr translations in skills/i18n/fr.yaml; run `uv run python -m nova.skills.build`)
 
 `wireframes` (design), `lowfi-mockups` (design), `hifi-mockups` (design), `accessibility-audit` (design),
+`prototype-to-specs` (design: the reverse path, a prototype read from Figma / Figma Make becomes traced specifications, what the
+prototype does not show becomes an open question, never an invented rule),
 `figma-to-code` (engineering). Existing research Skills (`user-research-plan`, `interview-guide`,
 `usability-test-plan`, `persona`, `user-journey`, `feedback-synthesis`, `design-review`) stay and are composed with them
 (`composes_with`). Specs are read from earlier Artifacts with the `list_artifacts` / `get_artifact` tools and from ORBIT.

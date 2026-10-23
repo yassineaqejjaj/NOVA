@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+<title id="title">NOVA</title><desc id="desc">Agentic workflow orchestration. From an intention to a validated, editable deliverable</desc>
+<rect width="1200" height="320" rx="22" fill="#101929"/>
+<rect x="0" width="10" height="320" fill="#9B8AFB"/>
+<circle cx="1050" cy="160" r="160" fill="#9B8AFB" opacity=".05"/>
+<circle cx="1050" cy="160" r="108" fill="none" stroke="#9B8AFB" stroke-width="2" opacity=".30"/>
+<circle cx="1050" cy="160" r="55" fill="none" stroke="#9B8AFB" stroke-width="2" opacity=".70"/>
+<path d="M910 78 L1050 105 L1145 75 M915 250 L1050 215 L1148 256" stroke="#9B8AFB" opacity=".50" stroke-width="2" fill="none"/>
+<circle cx="910" cy="78" r="8" fill="#9B8AFB"/><circle cx="1145" cy="75" r="8" fill="#9B8AFB"/><circle cx="915" cy="250" r="8" fill="#9B8AFB"/><circle cx="1148" cy="256" r="8" fill="#9B8AFB"/><circle cx="1050" cy="160" r="18" fill="#9B8AFB"/>
+<text x="58" y="83" fill="#9B8AFB" font-family="Arial, sans-serif" font-weight="700" font-size="19" letter-spacing="2.5">AGENTIC WORKFLOW ORCHESTRATION</text>
+<text x="55" y="160" fill="#F8FAFC" font-family="Arial, sans-serif" font-weight="700" font-size="67">NOVA</text>
+<text x="58" y="205" fill="#C0CAD8" font-family="Arial, sans-serif" font-size="22">From an intention to a validated, editable deliverable</text>
+<g transform="translate(58 235)"><rect width="195" height="43" rx="21" fill="#202C40"/><text x="97" y="27" fill="#D5E3EF" font-family="Arial, sans-serif" font-size="17" text-anchor="middle">Multi-agent</text></g><g transform="translate(268 235)"><rect width="195" height="43" rx="21" fill="#202C40"/><text x="97" y="27" fill="#D5E3EF" font-family="Arial, sans-serif" font-size="17" text-anchor="middle">LangGraph</text></g><g transform="translate(478 235)"><rect width="195" height="43" rx="21" fill="#202C40"/><text x="97" y="27" fill="#D5E3EF" font-family="Arial, sans-serif" font-size="17" text-anchor="middle">Human approval</text></g>
+</svg>

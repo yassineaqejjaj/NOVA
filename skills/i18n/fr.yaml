@@ -1932,3 +1932,30 @@ figma-to-code:
       question: "Quel design faut-il implémenter (URL Figma ou artefact de maquettes) ?"
     framework:
       description: "Pile cible (par défaut React + TypeScript + Tailwind CSS)"
+
+prototype-to-specs:
+  name: "Prototype vers specs"
+  summary: "Transformer un prototype (Figma Make, design Figma ou captures) en spécifications : parcours, écrans, user stories avec critères d’acceptation, règles fonctionnelles, composants, tokens et questions ouvertes."
+  purpose: "Permettre au designer de prototyper d’abord et de rédiger les spécifications à partir de ce que le prototype montre réellement, pour que produit, ingénierie et QA partent de la même description tracée et relisible."
+  method: "Spécification à partir d’un prototype observé"
+  principles:
+  - "Ce que le prototype montre est un fait ; ce qu’il laisse supposer est une hypothèse, formulée comme une question ouverte"
+  - "Chaque écran, règle et story renvoie à l’écran ou au nœud Figma d’origine"
+  - "Le comportement invisible (validation, droits, sources de données, cas limites) n’est jamais inventé"
+  - "Les critères d’acceptation sont testables (Étant donné / Quand / Alors)"
+  steps:
+    read: "Lecture du prototype"
+    structure: "Cartographie des parcours, écrans et composants"
+    specify: "Rédaction des spécifications"
+  criteria:
+    quality.fidelity: "Les spécifications décrivent-elles fidèlement ce que montre le prototype, sans règle inventée ?"
+    quality.testability: "Les critères d’acceptation sont-ils précis et testables, et les inconnues posées en questions ouvertes ?"
+  checks:
+  - "Les sections essentielles sont présentes"
+  - "Le contenu cite le contexte lorsqu’un contexte a été fourni"
+  inputs:
+    prototype:
+      description: "Le prototype à spécifier : une URL Figma Make ou Figma, ou un artefact de maquettes"
+      question: "Quel prototype faut-il spécifier (URL Figma Make ou Figma, ou artefact de maquettes) ?"
+    audience:
+      description: "Qui lit les specs (produit, ingénierie, QA) ; par défaut produit et ingénierie"

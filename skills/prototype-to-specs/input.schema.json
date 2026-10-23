@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Prototype to Specs — inputs",
+  "type": "object",
+  "properties": {
+    "prototype": {
+      "type": "string",
+      "description": "The prototype to specify: a Figma Make / Figma URL, or a ui_screens Artifact"
+    },
+    "audience": {
+      "type": "string",
+      "description": "Who reads the specs (product, engineering, QA); default product and engineering"
+    }
+  },
+  "required": [
+    "prototype"
+  ],
+  "additionalProperties": false
+}

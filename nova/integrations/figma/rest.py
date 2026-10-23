@@ -8,9 +8,11 @@ import httpx
 
 from nova.domain.design import DesignError, DesignNode, DesignSnapshot, DesignVariable
 
-MAX_NODES = 120
-MAX_DEPTH = 6
+MAX_NODES = 400
+MAX_DEPTH = 10
 MAX_NAME = 80
+#: Leaves that draw but say nothing (icons, chart strokes, dividers): they would eat the budget before the text does.
+DECORATIVE = frozenset({"VECTOR", "ELLIPSE", "RECTANGLE", "LINE", "STAR", "POLYGON", "BOOLEAN_OPERATION"})
 
 
 def _error(response: httpx.Response) -> DesignError:
@@ -28,6 +30,8 @@ def _error(response: httpx.Response) -> DesignError:
 
 def normalize_node(raw: dict[str, Any], budget: list[int], depth: int = 0) -> DesignNode | None:
     """Bounded tree: at most ``MAX_NODES`` nodes and ``MAX_DEPTH`` levels, names truncated."""
+    if raw.get("type") in DECORATIVE and not raw.get("children"):
+        return None
     if budget[0] <= 0:
         return None
     budget[0] -= 1

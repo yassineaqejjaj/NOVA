@@ -1,23 +1,31 @@
-<h1 align="center">NOVA — your AI product team</h1>
+# NOVA — Personal AI Product Agent
 
-<p align="center">
-  <b>One collaborator. One NOVA.</b><br>
-  Express what you want to achieve. NOVA finds the context, picks the method, coordinates a team of specialist agents
-  and delivers durable, editable product work — PRDs, backlogs, sprint plans, even merged pull requests.
-</p>
+> **One collaborator. One NOVA.** Express what you want to achieve; NOVA finds the context, picks the
+> method, coordinates a team of specialist agents and delivers durable, editable product work.
 
-<p align="center">
-  <a href="https://nova-six-orcin-96.vercel.app">Live demo</a> ·
-  <a href="docs/ARCHITECTURE.md">Architecture</a> ·
-  <a href="docs/STATUS.md">Status</a> ·
-  <a href="#quick-start-docker">Quick start</a>
-</p>
+NOVA is the personal product agent of the **ORION** ecosystem. It turns an intent into a plan, runs versioned
+Skills and delivers structured, editable Artifacts (PRD, backlog, sprint plan…), even merged pull requests.
+
+## Project snapshot
+
+<!-- portfolio-summary:start -->
+
+![NOVA project cover](docs/assets/github-cover.svg)
+
+> **Agent orchestration** | **Status:** Public beta. Verify deployment status before relying on it.
+>
+> [Live application](https://nova-six-orcin-96.vercel.app) · [Architecture](docs/ARCHITECTURE.md) · [Demo / verification](docs/STATUS.md) · [Source code](https://github.com/yassineaqejjaj/NOVA)
+
+[![GitHub Actions](https://github.com/yassineaqejjaj/NOVA/actions/workflows/ci.yml/badge.svg)](https://github.com/yassineaqejjaj/NOVA/actions/workflows/ci.yml)
+
+[Technical case study and measurement plan](docs/PORTFOLIO_CASE_STUDY.md)
+
+<!-- portfolio-summary:end -->
 
 ![NOVA — Today](docs/screenshots/today.webp)
 
-NOVA is the **personal product agent** of the **ORION** ecosystem. It is not a single chatbot: it is an
-**orchestrator** that understands an intent, grounds it in your real project data, delegates to specialists,
-supervises the work and hands you a finished, reviewable deliverable.
+NOVA is not a single chatbot: it is an **orchestrator** that understands an intent, grounds it in your real project
+data, delegates to specialists, supervises the work and hands you a finished, reviewable deliverable.
 
 ---
 
@@ -28,7 +36,7 @@ supervises the work and hands you a finished, reviewable deliverable.
 * [How it works](#how-it-works)
 * [Architecture](#architecture)
 * [ORION: NOVA, ORBIT and FORGE](#orion-nova-orbit-and-forge)
-* [Under the hood](#under-the-hood)
+* [What it does](#what-it-does)
 * [Security and governance](#security-and-governance)
 * [Production](#production) · [Quick start](#quick-start-docker) · [Development](#development-host)
 * [Repository](#repository) · [Documentation](#documentation)
@@ -218,12 +226,16 @@ for the contracts and the documented gaps.
 
 See [`docs/TRAINING.md`](docs/TRAINING.md#who-learns-what) and the state of every link in [`docs/STATUS.md`](docs/STATUS.md).
 
-## Under the hood
+## What it does
 
+* **Composer** — natural intent, `/skill` shortcuts, project, Auto / Explicit / No context, attachments, Artifact references.
 * **LangGraph runtime** — typed `NovaState`, conditional branching, retries, Postgres checkpoints, human-in-the-loop
   (questions, workflow confirmation, approvals), resumable background execution (Celery + Valkey), live SSE.
-* **Multi-agent orchestration** — task decomposition, routing to specialists, agent hand-offs, a Research agent for
+* **Multi-agent orchestration** — four sub-agents (Product, Project, Design, Engineering); task decomposition, routing to specialists, agent hand-offs, a Research agent for
   context, a Validation agent for quality, live supervision by NOVA.
+* **Engineering (SDLC)** — specification, code, tests, pull request, review, CI repair and merge, with approval gates.
+* **Skills and Artifacts** — versioned Skills and typed Artifacts loaded from `skills/` and `artifacts/types/`.
+* **Transparency and security** — recorded provenance, Keycloak SSO, RBAC and ORBIT ACL propagation (see below).
 * **Ports and adapters** — domain ports implemented by ORBIT, FORGE, GitHub and Figma adapters; LLM providers are
   swappable (vLLM, any OpenAI-compatible server, Anthropic).
 * **Open source stack** — vLLM, PostgreSQL, Valkey, Keycloak, OpenTelemetry. Can run offline with a self-hosted model.
@@ -306,7 +318,7 @@ npm run dev            # http://localhost:3200
 
 On macOS, set `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` for the Celery worker.
 
-### Tests and lint
+## Tests and lint
 
 ```bash
 uv run pytest                                   # unit + integration (SQLite, in-memory checkpointer)
