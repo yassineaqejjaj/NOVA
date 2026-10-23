@@ -2,6 +2,8 @@
 
 <!-- portfolio-summary:start -->
 
+![NOVA project cover](docs/assets/github-cover.svg)
+
 > **Agent orchestration** | **Status:** Public beta. Verify deployment status before relying on it.
 >
 > [Live application](https://nova-six-orcin-96.vercel.app) · [Architecture](docs/ARCHITECTURE.md) · [Demo / verification](docs/STATUS.md) · [Source code](https://github.com/yassineaqejjaj/NOVA)
