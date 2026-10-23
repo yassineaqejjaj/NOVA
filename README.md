@@ -1,5 +1,16 @@
 # NOVA — Personal AI Product Agent
 
+
+
+
+> **One collaborator. One NOVA.** Express what you want to achieve; NOVA finds the context, picks the
+> method, runs the workflow and produces durable, editable product work.
+
+NOVA is the personal product agent of the **ORION** ecosystem. It turns an intent into a plan, runs versioned
+Skills and delivers structured, editable Artifacts (PRD, backlog, sprint plan…).
+
+## Project snapshot
+
 <!-- portfolio-summary:start -->
 
 ![NOVA project cover](docs/assets/github-cover.svg)
@@ -11,13 +22,6 @@
 [![GitHub Actions](https://github.com/yassineaqejjaj/NOVA/actions/workflows/ci.yml/badge.svg)](https://github.com/yassineaqejjaj/NOVA/actions/workflows/ci.yml)
 
 <!-- portfolio-summary:end -->
-
-
-> **One collaborator. One NOVA.** Express what you want to achieve; NOVA finds the context, picks the
-> method, runs the workflow and produces durable, editable product work.
-
-NOVA is the personal product agent of the **ORION** ecosystem. It turns an intent into a plan, runs versioned
-Skills and delivers structured, editable Artifacts (PRD, backlog, sprint plan…).
 
 ## ORION: NOVA, ORBIT and FORGE
 
