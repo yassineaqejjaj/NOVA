@@ -148,7 +148,7 @@ flowchart TB
     end
 
     subgraph runtime["Worker — Celery + LangGraph"]
-        graph["Orchestrator graph<br/>intent → context → plan → skills → execute → validate → artifact"]
+        orch["Orchestrator graph<br/>intent → context → plan → skills → execute → validate → artifact"]
         agents["Specialist agents<br/>Product · Project · Design · Engineering<br/>+ Research · Validation"]
         sdlc["Engineering SDLC<br/>spec → code → test → PR → review → CI repair → merge"]
         beat["Beat — routines, FORGE refresh, retention"]
@@ -178,11 +178,11 @@ flowchart TB
     kc -.-> bff
     routers --> services
     services --> pg
-    services -- "enqueue" --> valkey --> graph
-    graph --> agents
-    graph --> sdlc
-    graph <-- "checkpoints" --> pg
-    graph -- "events" --> valkey --> sse --> ui
+    services -- "enqueue" --> valkey --> orch
+    orch --> agents
+    orch --> sdlc
+    orch <-->|checkpoints| pg
+    orch -- "events" --> valkey --> sse --> ui
     beat --> valkey
     agents --> skills
     agents --> arts
@@ -191,11 +191,11 @@ flowchart TB
     adapters -- "context as the user" --> orbit
     adapters -- "traces, experiments" --> forge
     forge -- "evaluates via" --> proto
-    proto --> graph
+    proto --> orch
     sdlc --> gh
     agents --> llm
     ui --> voice
-    graph --> otel -. "OTLP" .-> forge
+    orch --> otel -. "OTLP" .-> forge
 ```
 
 Layering is enforced by tests (`tests/unit/test_architecture.py`): `domain` stays pure (no FastAPI, SQLAlchemy, httpx
