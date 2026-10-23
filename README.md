@@ -1,5 +1,16 @@
 # NOVA — Personal AI Product Agent
 
+<!-- portfolio-summary:start -->
+
+> **Agent orchestration** | **Status:** Public beta. Verify deployment status before relying on it.
+>
+> [Live application](https://nova-six-orcin-96.vercel.app) · [Architecture](docs/ARCHITECTURE.md) · [Demo / verification](docs/STATUS.md) · [Source code](https://github.com/yassineaqejjaj/NOVA)
+
+[![GitHub Actions](https://github.com/yassineaqejjaj/NOVA/actions/workflows/ci.yml/badge.svg)](https://github.com/yassineaqejjaj/NOVA/actions/workflows/ci.yml)
+
+<!-- portfolio-summary:end -->
+
+
 > **One collaborator. One NOVA.** Express what you want to achieve; NOVA finds the context, picks the
 > method, runs the workflow and produces durable, editable product work.
 
