@@ -362,3 +362,9 @@ tests/              unit, integration, support (test doubles)
 * [Deployment](docs/DEPLOYMENT.md) — Railway + Vercel production setup, releases, FORGE/ORBIT connection
 * [Operations](docs/OPERATIONS.md) — production configuration, scaling, observability
 * [Open source components](OPEN_SOURCE_COMPONENTS.md) — third-party components used by NOVA
+
+---
+
+## Part of an engineering approach
+
+Built with the [Agentic SDLC framework](https://github.com/yassineaqejjaj/agentic-sdlc) (earned autonomy). Read how this project was built and what its checks caught in the [case study](https://github.com/yassineaqejjaj/agentic-sdlc/blob/main/docs/case-studies/nova.md).
