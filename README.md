@@ -22,6 +22,32 @@ Skills and delivers structured, editable Artifacts (PRD, backlog, sprint plan…
 
 <!-- portfolio-summary:end -->
 
+<!-- KPI-RESULTS:start -->
+## Key results
+
+**NOVA Suite**
+
+| Indicator | Value |
+| --- | ---: |
+| Deployed users | 800 |
+| Task success rate | 92% |
+| Task execution time reduction | −42% |
+| D7 user retention | 23% |
+| Technical execution success | 99.3% |
+| Team members | 15 |
+
+**Nova Agents**
+
+| Indicator | Value |
+| --- | ---: |
+| Task completion rate | 86% |
+| Agent coordination success | 92% |
+| Deliverables accepted without major revision | 81% |
+| Median task execution time | 28 s |
+
+_Calculation method, scope and measurement period available on request._
+<!-- KPI-RESULTS:end -->
+
 ![NOVA — Today](docs/screenshots/today.webp)
 
 NOVA is not a single chatbot: it is an **orchestrator** that understands an intent, grounds it in your real project
@@ -306,3 +332,9 @@ tests/              unit, integration, support (test doubles)
 * [Deployment](docs/DEPLOYMENT.md) — Railway + Vercel production setup, releases, FORGE/ORBIT connection
 * [Operations](docs/OPERATIONS.md) — production configuration, scaling, observability
 * [Open source components](OPEN_SOURCE_COMPONENTS.md) — third-party components used by NOVA
+
+---
+
+## Part of an engineering approach
+
+Built with the [Agentic SDLC framework](https://github.com/yassineaqejjaj/agentic-sdlc) (earned autonomy). Read how this project was built and what its checks caught in the [case study](https://github.com/yassineaqejjaj/agentic-sdlc/blob/main/docs/case-studies/nova.md).
