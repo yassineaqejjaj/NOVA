@@ -157,72 +157,9 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Validati
 NOVA is a layered system: a Next.js front end, a FastAPI backend, a resumable LangGraph runtime executed by Celery
 workers, and ports/adapters towards ORBIT (context), FORGE (evaluation), the LLM and third-party tools.
 
-```mermaid
-flowchart TB
-    user(["👤 User"])
+[![NOVA architecture](docs/assets/architecture.png)](docs/assets/architecture.png)
 
-    subgraph web["Web — Next.js 15 · React 19 · Tailwind v4"]
-        ui["Today · Inbox · Composer · Artifacts editor<br/>Engineering · Routines · Skills · Voice"]
-        bff["/api proxy · OIDC BFF"]
-    end
-
-    subgraph api["API — FastAPI"]
-        routers["Routers"]
-        services["Services (use cases)"]
-        sse["SSE live stream"]
-        proto["NOVA Agent Protocol<br/>/v1/agents/…/runs"]
-    end
-
-    subgraph runtime["Worker — Celery + LangGraph"]
-        orch["Orchestrator graph<br/>intent → context → plan → skills → execute → validate → artifact"]
-        agents["Specialist agents<br/>Product · Project · Design · Engineering<br/>+ Research · Validation"]
-        sdlc["Engineering SDLC<br/>spec → code → test → PR → review → CI repair → merge"]
-        beat["Beat — routines, FORGE refresh, retention"]
-    end
-
-    subgraph core["Core — nova/"]
-        domain["domain<br/>(pure models, rules, ports)"]
-        skills["Skills registry<br/>skills/*"]
-        arts["Artifact types<br/>artifacts/types/*"]
-        adapters["Adapters<br/>orbit · forge · github · figma"]
-    end
-
-    subgraph data["State and infra"]
-        pg[("PostgreSQL<br/>data + LangGraph checkpoints")]
-        valkey[("Valkey<br/>broker + pub/sub")]
-        kc["Keycloak<br/>OIDC · SSO · RBAC"]
-        otel["OpenTelemetry"]
-    end
-
-    llm["LLM — vLLM / Ollama / OpenAI-compatible / Anthropic"]
-    voice["Voice service<br/>STT · TTS"]
-    orbit["ORBIT<br/>context · memory · ACL · citations"]
-    forge["FORGE<br/>traces · evals · experiments"]
-    gh["GitHub"]
-
-    user --> ui --> bff --> routers
-    kc -.-> bff
-    routers --> services
-    services --> pg
-    services -- "enqueue" --> valkey --> orch
-    orch --> agents
-    orch --> sdlc
-    orch <-- "checkpoints" --> pg
-    orch -- "events" --> valkey --> sse --> ui
-    beat --> valkey
-    agents --> skills
-    agents --> arts
-    agents --> domain
-    agents --> adapters
-    adapters -- "context as the user" --> orbit
-    adapters -- "traces, experiments" --> forge
-    forge -- "evaluates via" --> proto
-    proto --> orch
-    sdlc --> gh
-    agents --> llm
-    ui --> voice
-    orch --> otel -. "OTLP" .-> forge
-```
+<sub>Click the diagram to enlarge. Source: [`docs/assets/architecture.mmd`](docs/assets/architecture.mmd) (Mermaid).</sub>
 
 Layering is enforced by tests (`tests/unit/test_architecture.py`): `domain` stays pure (no FastAPI, SQLAlchemy, httpx
 or LangGraph), `agent` depends only on domain ports, and nothing outside `integrations` knows ORBIT or FORGE payload
@@ -273,6 +210,13 @@ See [`docs/TRAINING.md`](docs/TRAINING.md#who-learns-what) and the state of ever
 
 Keycloak OIDC/SSO, RBAC, ORBIT ACL propagation, C0–C3 classification awareness, tool registry, autonomy policy,
 prompt-injection defenses, audit log, PII redaction. External actions always follow the company policy.
+
+## Accessibility and design tokens
+
+The light and dark themes are driven by CSS tokens in [`apps/web/src/app/globals.css`](apps/web/src/app/globals.css).
+Text tokens target WCAG AA (4.5:1) on every surface: `--text-subtle` is about 5:1 on the page background, the
+coral accent keeps white button labels above 4.5:1, status colours (success, warning, danger) are readable as text,
+and the page background, cards and borders are clearly separated in both themes.
 
 ## Production
 

@@ -6,40 +6,40 @@
 
 /* NOVA design tokens — warm light theme with a coral accent (default), dark variant via `.dark`. */
 :root {
-  --background: #faf8f7;
+  --background: #f3efed;
   --surface: #ffffff;
-  --surface-2: #f6f2f1;
-  --surface-3: #efe9e7;
-  --border: rgb(30 20 18 / 0.07);
-  --border-strong: rgb(30 20 18 / 0.12);
-  --text: #191716;
-  --text-muted: #5f5856;
-  --text-subtle: #9a918e;
-  --accent: #f8485e; /* Red Poppy */
-  --accent-strong: #e8344b;
-  --accent-soft: #feedef;
+  --surface-2: #ece6e3;
+  --surface-3: #e2dad7;
+  --border: rgb(30 20 18 / 0.14);
+  --border-strong: rgb(30 20 18 / 0.26);
+  --text: #141110;
+  --text-muted: #4a4341;
+  --text-subtle: #6b6360;
+  --accent: #dc2f48; /* Red Poppy */
+  --accent-strong: #c21f39;
+  --accent-soft: #fde6e9;
   --accent-fg: #ffffff;
-  --glow: rgb(248 72 94 / 0.3);
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
+  --glow: rgb(220 47 72 / 0.3);
+  --success: #14733a;
+  --warning: #9a4a06;
+  --danger: #c81e1e;
   --shadow: 0 1px 2px rgb(30 20 18 / 0.04), 0 10px 30px -12px rgb(30 20 18 / 0.12);
   color-scheme: light;
 }
 
 :root.dark {
-  --background: #0d0c0d;
-  --surface: #151314;
-  --surface-2: #1b1819;
-  --surface-3: #231f20;
-  --border: rgb(255 255 255 / 0.07);
-  --border-strong: rgb(255 255 255 / 0.12);
-  --text: #f1eeed;
-  --text-muted: #aaa3a1;
-  --text-subtle: #736c6a;
-  --accent: #f8485e; /* Red Poppy */
-  --accent-strong: #ff6276;
-  --accent-soft: rgb(248 72 94 / 0.14);
+  --background: #0a0909;
+  --surface: #161314;
+  --surface-2: #201c1d;
+  --surface-3: #2d2829;
+  --border: rgb(255 255 255 / 0.12);
+  --border-strong: rgb(255 255 255 / 0.22);
+  --text: #f7f4f3;
+  --text-muted: #c4bdbb;
+  --text-subtle: #9d9593;
+  --accent: #dc2f48; /* Red Poppy */
+  --accent-strong: #ff6b7e;
+  --accent-soft: rgb(248 72 94 / 0.18);
   --accent-fg: #ffffff;
   --glow: rgb(248 72 94 / 0.22);
   --success: oklch(0.76 0.13 155);
@@ -162,8 +162,8 @@ body {
 
 /* Landing page brand tokens (devoteam coral). */
 .landing {
-  --brand: #f8485e; /* Red Poppy */
-  --brand-soft: rgb(248 72 94 / 0.07);
+  --brand: #dc2f48; /* Red Poppy, AA-contrast */
+  --brand-soft: rgb(220 47 72 / 0.09);
   --brand-glow: rgb(248 72 94 / 0.22);
 }
 :root.dark .landing {

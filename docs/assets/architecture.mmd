@@ -1,0 +1,67 @@
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 40, "rankSpacing": 60}}}%%
+flowchart LR
+    user(["User"])
+
+    subgraph front["1 - Experience"]
+        web["Web app<br/>Next.js 15 · React 19<br/>Composer · Artifacts · Inbox"]
+        voice["Voice<br/>STT · TTS"]
+    end
+
+    subgraph back["2 - API"]
+        api["FastAPI<br/>REST · SSE live stream<br/>NOVA Agent Protocol"]
+        auth["Keycloak<br/>OIDC · SSO · RBAC"]
+    end
+
+    subgraph run["3 - Agent runtime"]
+        orch["NOVA orchestrator<br/>LangGraph · typed state<br/>plan · approve · resume"]
+        spec["Specialist agents<br/>Product · Project · Design<br/>Engineering · Research · Validation"]
+        sdlc["Engineering SDLC<br/>spec · code · test · PR<br/>review · CI repair · merge"]
+        beat["Routines<br/>Celery beat"]
+    end
+
+    subgraph know["4 - Knowledge"]
+        skills["Skills<br/>versioned workflows"]
+        arts["Artifact types<br/>PRD · backlog · sprint"]
+    end
+
+    subgraph state["State"]
+        pg[("PostgreSQL<br/>data + checkpoints")]
+        vk[("Valkey<br/>queue + pub/sub")]
+    end
+
+    subgraph ext["ORION and external"]
+        orbit["ORBIT<br/>context · memory · ACL"]
+        forge["FORGE<br/>traces · evals · experiments"]
+        gh["GitHub"]
+        llm["LLM<br/>vLLM · Ollama · Anthropic"]
+    end
+
+    user --> web
+    user -.-> voice
+    web --> api
+    auth -.-> api
+    api --> pg
+    api -->|enqueue| vk
+    vk --> orch
+    beat --> vk
+    orch --> spec
+    orch --> sdlc
+    orch <--> pg
+    orch -->|events| vk
+    vk -->|stream| api
+    spec --> skills
+    spec --> arts
+    spec -->|context as the user| orbit
+    spec --> llm
+    sdlc --> gh
+    orch -->|traces| forge
+    forge -->|evaluates via| api
+
+    classDef exp fill:#fde8ec,stroke:#e11d48,color:#111
+    classDef core fill:#eef2ff,stroke:#4f46e5,color:#111
+    classDef dat fill:#ecfdf5,stroke:#059669,color:#111
+    classDef ext fill:#fff7ed,stroke:#ea580c,color:#111
+    class web,voice,user exp
+    class api,auth,orch,spec,sdlc,beat,skills,arts core
+    class pg,vk dat
+    class orbit,forge,gh,llm ext
