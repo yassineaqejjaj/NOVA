@@ -185,6 +185,13 @@ See [`docs/TRAINING.md`](docs/TRAINING.md#who-learns-what) and the state of ever
 Keycloak OIDC/SSO, RBAC, ORBIT ACL propagation, C0–C3 classification awareness, tool registry, autonomy policy,
 prompt-injection defenses, audit log, PII redaction. External actions always follow the company policy.
 
+## Accessibility and design tokens
+
+The light and dark themes are driven by CSS tokens in [`apps/web/src/app/globals.css`](apps/web/src/app/globals.css).
+Text tokens target WCAG AA (4.5:1) on every surface: `--text-subtle` is about 5:1 on the page background, the
+coral accent keeps white button labels above 4.5:1, status colours (success, warning, danger) are readable as text,
+and the page background, cards and borders are clearly separated in both themes.
+
 ## Production
 
 Live on **Vercel** (web) + **Railway** (API, worker, beat, Keycloak, Valkey, PostgreSQL):
