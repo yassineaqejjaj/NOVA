@@ -338,3 +338,5 @@ tests/              unit, integration, support (test doubles)
 ## Part of an engineering approach
 
 Built with the [Agentic SDLC framework](https://github.com/yassineaqejjaj/agentic-sdlc) (earned autonomy). Read how this project was built and what its checks caught in the [case study](https://github.com/yassineaqejjaj/agentic-sdlc/blob/main/docs/case-studies/nova.md).
+
+**Related reading:** [SYMBIOSE](https://www.amazon.fr/dp/B0G48PY7S5) by Yassine Aqejjaj. [Explore the related projects and AI SDLC framework](https://github.com/yassineaqejjaj/agentic-sdlc/blob/main/docs/companion-books.md#symbiose).
