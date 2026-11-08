@@ -18,18 +18,26 @@ See `integration-analysis.md` §1 (ORBIT), §2 (FORGE), §3 (gaps). Summary of t
 
 ## 4. NOVA architecture
 
-```
-                         ┌───────────────── NOVA ─────────────────┐
- Browser ── web (Next.js) ─┤ /api/* proxy → api (FastAPI)           │
-                         │   routers → services → domain ← ports   │
-                         │   SSE stream ◄── Valkey pub/sub         │
-                         │   Celery tasks ──► worker (LangGraph)   │
-                         │        │ NovaState checkpoints (Postgres)│
-                         │        ├─ LLMProvider ──► vLLM (OpenAI-compatible)
-                         │        ├─ ContextProvider ──► ORBIT      │
-                         │        └─ EvaluationSink ──► FORGE      │
-                         └─────────────────────────────────────────┘
- Keycloak (OIDC) ◄── BFF login                 OTel ──► OTLP collector / FORGE
+```mermaid
+flowchart LR
+    browser["Browser"] --> web["Web · Next.js / BFF"]
+    web -->|"/api/* proxy"| api["API · FastAPI"]
+    web <-->|"OIDC login"| keycloak["Keycloak"]
+    subgraph nova["NOVA"]
+        api --> routers["Routers"] --> services["Services"] --> domain["Domain"]
+        ports["Ports"] --> domain
+        api -->|"Celery tasks"| worker["Worker · LangGraph"]
+        worker <-->|"NovaState checkpoints"| pg[("PostgreSQL")]
+        worker -->|"Events"| valkey[("Valkey · pub/sub")]
+        valkey -->|"SSE stream"| api
+        worker --> llmport["LLMProvider"]
+        worker --> contextport["ContextProvider"]
+        worker --> evalport["EvaluationSink"]
+    end
+    llmport --> llm["vLLM · OpenAI-compatible"]
+    contextport --> orbit["ORBIT"]
+    evalport --> forge["FORGE"]
+    otel["OpenTelemetry"] --> collector["OTLP collector / FORGE"]
 ```
 
 Layering (enforced by tests in `tests/unit/test_architecture.py`):
@@ -50,22 +58,22 @@ No agent-to-agent conversations.
 
 ## 5. LangGraph execution model
 
-```
-START → understand_intent ─┬─► retrieve_orbit_context ─► plan_execution ─► select_skills
-                           │                                                    │
-                           │        ┌─────────── request_user_input ◄── missing info (interrupt)
-                           │        ▼                                           │
-                           │   execute_skill ◄──────────────┐                   │
-                           │        │ tool requests          │ next step         │
-                           │        ▼                        │                   │
-                           │   execute_tools ────────────────┘                   │
-                           │        │ all steps done                             │
-                           │        ▼                                            │
-                           ├─► answer_question (provenance / Q&A, no artifact)   │
-                           │                                                     │
-                           └─► generate_artifact ─► request_approval (interrupt if policy)
-                                                        ▼
-                                                    finalize ─► emit_forge_trace ─► END
+```mermaid
+flowchart TD
+    start(["START"]) --> intent["understand_intent"]
+    intent -->|"Workflow"| context["retrieve_orbit_context"]
+    context --> plan["plan_execution"] --> skills["select_skills"] --> execute["execute_skill"]
+    execute -->|"Missing information · interrupt"| input["request_user_input"]
+    input -->|"Resume"| execute
+    execute -->|"Tool requests"| tools["execute_tools"]
+    tools -->|"Next step"| execute
+    execute -->|"All steps done"| artifact["generate_artifact"]
+    intent -->|"Question / provenance"| answer["answer_question · no artifact"]
+    intent -->|"Artifact generation"| artifact
+    artifact --> approval["request_approval · interrupt if policy"]
+    approval --> finalize["finalize"]
+    answer --> finalize
+    finalize --> trace["emit_forge_trace"] --> finish(["END"])
 ```
 
 * **State**: `NovaState` (Pydantic, `nova/domain/state.py`) — typed, no free-form dicts for
@@ -406,3 +414,4 @@ about the mission (`domain/assembly.py`).
   the same category, the best composition with at least 5 production runs and 80 % success lends its Skills a small
   router bonus (`services/compositions.py`, at most +1.0, never negative, never over an explicit `/skill`). A
   composition that failed is simply not encouraged.
+

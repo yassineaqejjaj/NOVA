@@ -5,15 +5,22 @@ NOVA **learns** from FORGE's feedback and applies a lesson **only after a FORGE 
 No model weights change: an agent's *policy* is a versioned set of lessons injected into its instructions, so
 every change is measurable, explainable and reversible.
 
-```
-         ┌──────────── NOVA ────────────┐                    ┌──────────── FORGE ────────────┐
-cycle →  │ policy vN (active)           │── agent version ─► │ nova-<agent> · pN             │
-         │ 1 service scenario per Skill │── scenarios ─────► │ nova-train-<skill>-<hash>     │
-         │                              │── baseline runs ─► │ runs ⇄ NOVA Agent Protocol    │
-         │ distill feedback → lessons   │◄─ feedback ─────── │ rules + judges → reports      │
-         │ policy vN+1 (candidate)      │── experiment ────► │ baseline vN vs candidate vN+1 │
-         │ promote / reject             │◄─ comparison ───── │ ship · caution · inconclusive │
-         └──────────────────────────────┘                    └───────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant NOVA as NOVA
+    participant FORGE as FORGE
+    Note over NOVA: Active policy vN · one service scenario per Skill
+    NOVA->>FORGE: Register agent version · nova-agent / pN
+    NOVA->>FORGE: Register scenarios · nova-train-skill-hash
+    NOVA->>FORGE: Submit baseline runs
+    FORGE->>NOVA: Execute via NOVA Agent Protocol
+    NOVA-->>FORGE: Run results
+    Note over FORGE: Rules + judges produce reports
+    FORGE-->>NOVA: Feedback
+    Note over NOVA: Distill feedback into lessons · candidate policy vN+1
+    NOVA->>FORGE: Experiment · baseline vN vs candidate vN+1
+    FORGE-->>NOVA: Comparison · ship / caution / inconclusive
+    Note over NOVA: Promote or reject candidate
 ```
 
 ## Who learns what
@@ -264,3 +271,4 @@ It is an explicit action, and it is **refused** when:
   cases"): the reason is shown to the user, nothing is hidden.
 
 The action is audited (`feedback.regression`) and recorded on the feedback (`forwarded.regression`).
+

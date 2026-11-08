@@ -140,8 +140,16 @@ confidential answers are never read aloud.
 
 ## How it works
 
-```text
-Intent → ORBIT context → Plan → Skill selection → Execution → Validation → Artifact → (approval) → FORGE trace
+```mermaid
+flowchart LR
+    intent["Intent"] --> context["ORBIT context"]
+    context --> plan["Plan"]
+    plan --> skills["Skill selection"]
+    skills --> execution["Execution"]
+    execution --> validation["Validation"]
+    validation --> artifact["Artifact"]
+    artifact --> approval["Approval"]
+    approval --> trace["FORGE trace"]
 ```
 
 1. **Understand** — the intent is classified (run a workflow, edit an Artifact, explain provenance, question…).
@@ -157,7 +165,75 @@ Intent → ORBIT context → Plan → Skill selection → Execution → Validati
 NOVA is a layered system: a Next.js front end, a FastAPI backend, a resumable LangGraph runtime executed by Celery
 workers, and ports/adapters towards ORBIT (context), FORGE (evaluation), the LLM and third-party tools.
 
-[![NOVA architecture](docs/assets/architecture.png)](docs/assets/architecture.png)
+```mermaid
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 40, "rankSpacing": 60}}}%%
+flowchart LR
+    user(["User"])
+
+    subgraph front["1 - Experience"]
+        web["Web app<br/>Next.js 15 · React 19<br/>Composer · Artifacts · Inbox"]
+        voice["Voice<br/>STT · TTS"]
+    end
+
+    subgraph back["2 - API"]
+        api["FastAPI<br/>REST · SSE live stream<br/>NOVA Agent Protocol"]
+        auth["Keycloak<br/>OIDC · SSO · RBAC"]
+    end
+
+    subgraph run["3 - Agent runtime"]
+        orch["NOVA orchestrator<br/>LangGraph · typed state<br/>plan · approve · resume"]
+        spec["Specialist agents<br/>Product · Project · Design<br/>Engineering · Research · Validation"]
+        sdlc["Engineering SDLC<br/>spec · code · test · PR<br/>review · CI repair · merge"]
+        beat["Routines<br/>Celery beat"]
+    end
+
+    subgraph know["4 - Knowledge"]
+        skills["Skills<br/>versioned workflows"]
+        arts["Artifact types<br/>PRD · backlog · sprint"]
+    end
+
+    subgraph state["State"]
+        pg[("PostgreSQL<br/>data + checkpoints")]
+        vk[("Valkey<br/>queue + pub/sub")]
+    end
+
+    subgraph ext["ORION and external"]
+        orbit["ORBIT<br/>context · memory · ACL"]
+        forge["FORGE<br/>traces · evals · experiments"]
+        gh["GitHub"]
+        llm["LLM<br/>vLLM · Ollama · Anthropic"]
+    end
+
+    user --> web
+    user -.-> voice
+    web --> api
+    auth -.-> api
+    api --> pg
+    api -->|enqueue| vk
+    vk --> orch
+    beat --> vk
+    orch --> spec
+    orch --> sdlc
+    orch <--> pg
+    orch -->|events| vk
+    vk -->|stream| api
+    spec --> skills
+    spec --> arts
+    spec -->|context as the user| orbit
+    spec --> llm
+    sdlc --> gh
+    orch -->|traces| forge
+    forge -->|evaluates via| api
+
+    classDef exp fill:#fde8ec,stroke:#e11d48,color:#111
+    classDef core fill:#eef2ff,stroke:#4f46e5,color:#111
+    classDef dat fill:#ecfdf5,stroke:#059669,color:#111
+    classDef ext fill:#fff7ed,stroke:#ea580c,color:#111
+    class web,voice,user exp
+    class api,auth,orch,spec,sdlc,beat,skills,arts core
+    class pg,vk dat
+    class orbit,forge,gh,llm ext
+```
 
 <sub>Click the diagram to enlarge. Source: [`docs/assets/architecture.mmd`](docs/assets/architecture.mmd) (Mermaid).</sub>
 
@@ -340,3 +416,4 @@ tests/              unit, integration, support (test doubles)
 Built with the [Agentic SDLC framework](https://github.com/yassineaqejjaj/agentic-sdlc) (earned autonomy). Read how this project was built and what its checks caught in the [case study](https://github.com/yassineaqejjaj/agentic-sdlc/blob/main/docs/case-studies/nova.md).
 
 **Related reading:** [SYMBIOSE](https://www.amazon.fr/dp/B0G48PY7S5) by Yassine Aqejjaj. [Explore the related projects and AI SDLC framework](https://github.com/yassineaqejjaj/agentic-sdlc/blob/main/docs/companion-books.md#symbiose).
+

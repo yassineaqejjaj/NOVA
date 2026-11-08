@@ -12,8 +12,13 @@ An AI product agent with versioned Skills, planning and specialist agents, artif
 
 ## System flow
 
-```text
-Intent or GitHub issue → plan → specialist agent/Skill → artifact or code change → validation/approval → trace and evaluation.
+```mermaid
+flowchart LR
+    intent["Intent or GitHub issue"] --> plan["Plan"]
+    plan --> agent["Specialist agent / Skill"]
+    agent --> output["Artifact or code change"]
+    output --> review["Validation / approval"]
+    review --> evaluation["Trace and evaluation"]
 ```
 
 ## What is available to inspect
@@ -73,3 +78,4 @@ The public demo illustrates the workflow. Feature availability depends on the de
 ---
 
 [Back to repository](../README.md)
+

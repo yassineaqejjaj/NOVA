@@ -16,12 +16,18 @@ deployments of their own repositories; NOVA only needs their URLs.
 | ORBIT | Railway `orbit` + Vercel `orbit` | https://api-production-deffe.up.railway.app · https://orbit-virid-psi-70.vercel.app |
 | FORGE | Railway `forge` + Vercel `forge` | https://api-production-b165a.up.railway.app · https://forge-pied-rho.vercel.app |
 
-```
-Browser ──► Vercel (web + same-origin /api proxy, cookies first-party) ──► Railway api ──► Postgres
-   │                                                                       │  ├─► Valkey ◄── worker / beat
-   └──► Keycloak (login) ◄──────────── OIDC back-channel ──────────────────┘  ├─► ORBIT API (as the user)
-                                                                              ├─► FORGE API (fgk_ key)
-                                                                              └─► LLM (OpenAI-compatible, self-hosted)
+```mermaid
+flowchart LR
+    browser["Browser"] -->|"Same-origin /api proxy · first-party cookies"| vercel["Vercel · web"]
+    vercel --> api["Railway · API"]
+    browser -->|"Login"| keycloak["Keycloak"]
+    api <-->|"OIDC back-channel"| keycloak
+    api --> pg[("PostgreSQL")]
+    api --> valkey[("Valkey")]
+    worker["Worker / beat"] <--> valkey
+    api -->|"As the user"| orbit["ORBIT API"]
+    api -->|"fgk_ key"| forge["FORGE API"]
+    api --> llm["Self-hosted LLM · OpenAI-compatible"]
 ```
 
 ## How the pieces are configured
@@ -261,3 +267,4 @@ for s in api worker beat; do railway variable delete NOVA_FORGE_CAPTURE_MODE -s 
 ```
 
 A rollback of the capture never touches releases already decided.
+

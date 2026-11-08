@@ -42,10 +42,15 @@ deploy** — pausing only where a human decision is wanted.
 
 ## How it works
 
-```
-Intent / issue ─► Spec ─► Design ─(approve, guided)─► Implement ─► Tests ─► Pull request ─► Review ─► CI ─► (approve) Merge ─► Release ─► Deploy
-                                                         ▲                         │ blocking findings        │ red checks
-                                                         └────────── fix commit ◄──┴──────────────────────────┘ (≤ 2 rounds each)
+```mermaid
+flowchart LR
+    intent["Intent / issue"] --> spec["Spec"] --> design["Design"]
+    design -->|"Approve in guided mode"| implement["Implement"]
+    implement --> tests["Tests"] --> pr["Pull request"] --> review["Review"] --> ci["CI"]
+    ci -->|"Approve"| merge["Merge"] --> release["Release"] --> deploy["Deploy"]
+    review -->|"Blocking findings · at most 2 rounds"| fix["Fix commit"]
+    ci -->|"Red checks · at most 2 rounds"| fix
+    fix --> implement
 ```
 
 * A **run** (`sdlc_runs`) holds the goal, the repository, the autonomy level and one entry per stage (status, summary,
@@ -121,12 +126,18 @@ When FORGE scores a run **below its threshold** (its own pass/fail verdict, else
 70), NOVA improves its SDLC agent and deploys the result automatically. No model weights change: the agent's *policy* is
 a versioned set of short lessons injected into the stage prompts (`agent_policies`, agent `sdlc`).
 
-```
-run finished ─► FORGE scores it ─► below threshold? ─► evidence ─► lessons ─► policy v(N+1) deployed
-                                                          │                         │
-                                  FORGE scores · errors · recommendations           ├─ new runs start with v(N+1)
-                                  + NOVA facts (failed stage, repairs, findings)    ├─ FORGE gets them under agent version p(N+1)
-                                                                                    └─ guard: clearly worse than v(N)? roll back
+```mermaid
+flowchart TD
+    finished["Run finished"] --> scores["FORGE scores the run"]
+    scores --> threshold{"Below threshold?"}
+    threshold -->|"Yes"| evidence["Evidence · FORGE scores, errors, recommendations + NOVA facts"]
+    evidence --> lessons["Lessons"] --> policy["Deploy policy vN+1"]
+    policy --> runs["New runs use vN+1"]
+    runs --> version["FORGE records agent version pN+1"]
+    version --> guard{"Clearly worse than vN?"}
+    guard -->|"Yes"| rollback["Roll back to vN"]
+    guard -->|"No"| retain["Keep vN+1"]
+    threshold -->|"No"| retaincurrent["Keep current policy"]
 ```
 
 1. **Evidence** (never code): FORGE's per-criterion scores, classified errors and feedback recommendations for the run,
@@ -152,3 +163,4 @@ Every deployment and rollback is audited (`sdlc.policy.activate`). Disable the w
 as untrusted data and cannot reach the prompts except through those filters; and a version is judged by FORGE on real runs,
 not by itself. What it cannot do: validate a lesson *before* deployment (an SDLC run cannot be replayed on a user's repository),
 so validation is by observation, and a bad version can cost a few runs before the guard reverts it.
+
