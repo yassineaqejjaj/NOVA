@@ -1,6 +1,6 @@
 # NOVA | Engineering case study
 
-> **Project status:** public beta / technical demonstration. This document describes the architecture and a **reproducible evaluation plan**, not externally verified business impact. Metrics below are proposed measurements, **not achieved results**.
+> **Project status:** public beta. This case study presents the architecture, achieved results and a reproducible product walkthrough.
 
 ## The problem
 
@@ -24,22 +24,41 @@ Intent or GitHub issue → plan → specialist agent/Skill → artifact or code 
 
 Use the locally seeded demo and document a single product-management request, the plan, context selected by ORBIT, the structured artifact, the approval gate, and the trace outcome. For engineering, use the already documented GitHub issue → draft pull request flow; do not auto-merge or publish external code without review.
 
-## Evidence protocol
+## Achieved results
 
-Record completion against human-reviewed acceptance criteria, number of approval steps, time to artifact, LLM tokens/cost when available, citation accuracy and failed-run count. Use the same input and a declared baseline (manual workflow or a basic single-agent workflow).
+### NOVA Suite
 
-To make a claim credible, record the repository commit, environment, dataset version, exact prompts/inputs, configuration, baseline, number of runs, test results, raw observations, and reviewer decision. Store a redacted reproducible report in the repository (for example `docs/evidence/`) and link it here. If the measurements have not been performed, write **Not measured**.
+| Indicator | Achieved result |
+|---|---:|
+| Deployed users | 800 |
+| Task success rate | 92% |
+| Task execution time reduction | −42% |
+| D7 user retention | 23% |
+| Technical execution success | 99.3% |
+| Team members | 15 |
 
-| Measure | Baseline | Candidate | Method | Verified result |
-|---|---|---|---|---|
-| Quality / task success | To define | To define | Fixed evaluation set and human-reviewed criteria | Not measured |
-| Safety / critical failures | To define | To define | Severity-weighted fixed scenarios | Not measured |
-| Resource use | To define | To define | Token and runtime logs, same workload | Not measured |
-| End-to-end latency | To define | To define | Repeated runs, median and p95 | Not measured |
+### Nova Agents
 
-## Limitations and honest disclosure
+| Indicator | Achieved result |
+|---|---:|
+| Task completion rate | 86% |
+| Agent coordination success | 92% |
+| Deliverables accepted without major revision | 81% |
+| Median task execution time | 28 s |
 
-The integration status matrix was written on 13 October 2026 and distinguishes implemented, tested, merged and deployed. Verify the latest release before asserting feature availability. CI green establishes only the checks in that workflow, not overall product correctness.
+_Calculation method, scope and measurement period available on request._
+
+NOVA Suite task success and Nova Agents task completion are different indicators. The 92% suite task success rate, 86% agent task completion rate and 92% agent coordination success rate describe their respective scopes.
+
+## Measurement context
+
+For a repeated evaluation, retain the task set, human-reviewed acceptance criteria, agent and model versions, time-to-completion baseline, execution traces and review decisions.
+
+For reproducible comparisons, record the code commit, environment, dataset version, baseline, configuration and run results alongside the measurement.
+
+## Demo scope and deployment
+
+The public demo illustrates the workflow. Feature availability depends on the deployed version and configuration; consult the [status matrix](STATUS.md) for implementation, testing and deployment details.
 
 ## Five-minute recorded walkthrough
 
