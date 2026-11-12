@@ -6,6 +6,15 @@
 NOVA is the personal product agent of the **ORION** ecosystem. It turns an intent into a plan, runs versioned
 Skills and delivers structured, editable Artifacts (PRD, backlog, sprint plan…), even merged pull requests.
 
+## At a glance
+
+* **What it is:** NOVA is a personal AI product agent that turns an intent into a plan, runs versioned Skills and delivers structured, editable Artifacts (PRD, backlog, sprint plan…), and can open and merge pull requests.
+* **Problem:** product work starts from a blank page and scattered context; AI output is an opaque chat message (see [Why NOVA](#why-nova)).
+* **Status:** Public beta (see [Current status](#current-status)).
+* **Links:** [Live application](https://nova-six-orcin-96.vercel.app) · [Architecture](docs/ARCHITECTURE.md) · [Status matrix](docs/STATUS.md) · [Case study](docs/PORTFOLIO_CASE_STUDY.md)
+
+**Reading guide:** [Problem](#why-nova) · [Solution and key features](#the-product) · [Architecture](#architecture) · [Tech stack](#tech-stack) · [Screenshots](#project-snapshot) · [Getting started](#quick-start-docker) · [Testing and quality](#tests-and-lint) · [Status](#current-status) · [Limitations](#known-limitations) · [Roadmap](#roadmap) · [Licence](#licence)
+
 ## Project snapshot
 
 <!-- portfolio-summary:start -->
@@ -408,6 +417,29 @@ tests/              unit, integration, support (test doubles)
 * [Deployment](docs/DEPLOYMENT.md) — Railway + Vercel production setup, releases, FORGE/ORBIT connection
 * [Operations](docs/OPERATIONS.md) — production configuration, scaling, observability
 * [Open source components](OPEN_SOURCE_COMPONENTS.md) — third-party components used by NOVA
+
+## Tech stack
+
+Summarised from the [Repository](#repository) layout: Next.js 15, React 19, Tailwind v4 (web); FastAPI (API); Celery and LangGraph (worker and agent runtime); PostgreSQL, Valkey, Keycloak and OpenTelemetry (state and infrastructure); LLM providers vLLM, Ollama, OpenAI-compatible servers or Anthropic. Third-party components: [`OPEN_SOURCE_COMPONENTS.md`](OPEN_SOURCE_COMPONENTS.md).
+
+## Current status
+
+Public beta, as stated in the project snapshot above. [`docs/STATUS.md`](docs/STATUS.md) lists, per ORION link and capability, what is implemented, tested, on `main` and deployed (matrix filled as of 13 October 2026). Verify deployment status before relying on it.
+
+## Known limitations
+
+* The status matrix distinguishes implemented, tested, merged and deployed; verify the latest release before asserting feature availability ([case study](docs/PORTFOLIO_CASE_STUDY.md#limitations-and-honest-disclosure)).
+* Green CI covers only the checks in the CI workflow, not overall product correctness (same case study section).
+* Metrics in the case study are proposed measurements, not achieved results.
+* Engineering: no sandboxed test execution yet and no preview capture of its own ([`docs/ENGINEERING.md`](docs/ENGINEERING.md)).
+
+## Roadmap
+
+The Engineering (SDLC) roadmap (v1.1 sandbox, v1.2 more forges and trackers, v1.3 operate, v2.0 team-scale delivery) is in [`docs/ENGINEERING.md`](docs/ENGINEERING.md#roadmap). No wider product roadmap is documented yet.
+
+## Licence
+
+No licence file yet.
 
 ---
 
